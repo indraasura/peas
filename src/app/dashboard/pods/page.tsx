@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Box,
   Typography,
@@ -28,15 +29,17 @@ import {
   Delete as DeleteIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material'
-import { getPods, createPod, deletePod, getAreas, getAvailableMembers } from '@/lib/data'
+import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers } from '@/lib/data'
 import { type Pod, type Area, type Profile } from '@/lib/supabase'
 
 export default function PodsPage() {
+  const router = useRouter()
   const [pods, setPods] = useState<Pod[]>([])
   const [areas, setAreas] = useState<Area[]>([])
   const [availableMembers, setAvailableMembers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
+  const [editingPod, setEditingPod] = useState<Pod | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -76,27 +79,57 @@ export default function PodsPage() {
   const handleCreatePod = async () => {
     try {
       setError('')
-      await createPod({
-        name: formData.name,
-        description: formData.description,
-        area_id: formData.area_id,
-        start_date: formData.start_date || undefined,
-        end_date: formData.end_date || undefined,
-        members: formData.members
-      })
+      if (editingPod) {
+        await updatePod(editingPod.id, {
+          name: formData.name,
+          description: formData.description,
+          area_id: formData.area_id,
+          start_date: formData.start_date || null,
+          end_date: formData.end_date || null,
+        })
+      } else {
+        await createPod({
+          name: formData.name,
+          description: formData.description,
+          area_id: formData.area_id,
+          start_date: formData.start_date || undefined,
+          end_date: formData.end_date || undefined,
+          members: formData.members
+        })
+      }
       setOpenDialog(false)
+      setEditingPod(null)
       setFormData({
         name: '',
         description: '',
         area_id: '',
         start_date: '',
         end_date: '',
-        members: []
+        members: [],
+        dependencies: []
       })
       fetchData()
     } catch (err: any) {
-      setError(err.message || 'Failed to create POD')
+      setError(err.message || 'Failed to save POD')
     }
+  }
+
+  const handleEditPod = (pod: Pod) => {
+    setEditingPod(pod)
+    setFormData({
+      name: pod.name,
+      description: pod.description,
+      area_id: pod.area_id,
+      start_date: pod.start_date || '',
+      end_date: pod.end_date || '',
+      members: pod.members?.map(member => ({
+        member_id: member.member_id,
+        bandwidth_percentage: member.bandwidth_percentage,
+        is_leader: member.is_leader
+      })) || [],
+      dependencies: [] // TODO: Load existing dependencies
+    })
+    setOpenDialog(true)
   }
 
   const handleDeletePod = async (id: string) => {
@@ -134,10 +167,10 @@ export default function PodsPage() {
       width: 150,
       renderCell: (params: any) => (
         <Box>
-          <IconButton size="small" onClick={() => console.log('View', params.id)}>
+          <IconButton size="small" onClick={() => router.push(`/dashboard/pods/${params.id}`)}>
             <ViewIcon />
           </IconButton>
-          <IconButton size="small" onClick={() => console.log('Edit', params.id)}>
+          <IconButton size="small" onClick={() => handleEditPod(params.row)}>
             <EditIcon />
           </IconButton>
           <IconButton size="small" onClick={() => handleDeletePod(params.id as string)}>
@@ -181,7 +214,7 @@ export default function PodsPage() {
       </Card>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Create New POD</DialogTitle>
+        <DialogTitle>{editingPod ? 'Edit POD' : 'Create New POD'}</DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           
@@ -368,7 +401,7 @@ export default function PodsPage() {
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
           <Button onClick={handleCreatePod} variant="contained">
-            Create POD
+            {editingPod ? 'Update POD' : 'Create POD'}
           </Button>
         </DialogActions>
       </Dialog>

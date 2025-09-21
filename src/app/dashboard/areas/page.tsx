@@ -18,7 +18,8 @@ import {
   CardContent,
   IconButton,
   Alert,
-  Grid
+  Grid,
+  Chip
 } from '@mui/material'
 import { DataGrid, GridColDef } from '@mui/x-data-grid'
 import {
@@ -83,7 +84,8 @@ export default function AreasPage() {
         revenue_impact: 'Low',
         business_enablement: 'Low',
         efforts: 'Low',
-        end_user_impact: 'Low'
+        end_user_impact: 'Low',
+        decision_quorum: []
       })
       fetchAreas()
     } catch (err: any) {
@@ -99,7 +101,8 @@ export default function AreasPage() {
       revenue_impact: area.revenue_impact,
       business_enablement: area.business_enablement,
       efforts: area.efforts,
-      end_user_impact: area.end_user_impact
+      end_user_impact: area.end_user_impact,
+      decision_quorum: [] // TODO: Load existing decision quorum from database
     })
     setOpenDialog(true)
   }

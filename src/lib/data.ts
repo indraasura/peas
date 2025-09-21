@@ -1,4 +1,4 @@
-import { supabase, type Area, type Pod, type Profile, type PodMember } from './supabase'
+import { supabase, type Area, type Pod, type Profile, type PodMember, type PodNote } from './supabase'
 
 // Areas
 export async function getAreas(): Promise<Area[]> {
@@ -190,6 +190,67 @@ export async function updatePod(id: string, updates: Partial<Pod>) {
 export async function deletePod(id: string) {
   const { error } = await supabase
     .from('pods')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+// POD Notes
+export async function getPodNotes(podId: string): Promise<PodNote[]> {
+  const { data, error } = await supabase
+    .from('pod_notes')
+    .select(`
+      *,
+      creator:profiles(*)
+    `)
+    .eq('pod_id', podId)
+    .order('review_date', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching POD notes:', error)
+    return []
+  }
+
+  return data || []
+}
+
+export async function createPodNote(noteData: {
+  pod_id: string
+  review_date: string
+  blockers?: string
+  learnings?: string
+  current_state?: string
+  deviation_to_plan?: string
+  dependencies_risks?: string
+  misc?: string
+  created_by: string
+}) {
+  const { data, error } = await supabase
+    .from('pod_notes')
+    .insert(noteData)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updatePodNote(id: string, updates: Partial<PodNote>) {
+  const { data, error } = await supabase
+    .from('pod_notes')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deletePodNote(id: string) {
+  const { error } = await supabase
+    .from('pod_notes')
     .delete()
     .eq('id', id)
 
