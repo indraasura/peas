@@ -14,9 +14,11 @@ import {
   Inventory as PodsIcon,
   People as MembersIcon,
   Business as AreasIcon,
-  Schedule as TimeIcon
+  Schedule as TimeIcon,
+  Warning as WarningIcon,
+  TrendingUp as TrendingUpIcon
 } from '@mui/icons-material'
-import { getPods, getMembers, getAreas } from '@/lib/data'
+import { getPods, getMembers, getAreas, getAvailableMembers } from '@/lib/data'
 
 interface DashboardStats {
   totalPods: number
@@ -34,15 +36,18 @@ export default function DashboardPage() {
     totalAreas: 0,
     avgDeliveryTime: 0
   })
+  const [upcomingReleases, setUpcomingReleases] = useState<any[]>([])
+  const [availableMembers, setAvailableMembers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchStats() {
       try {
-        const [pods, members, areas] = await Promise.all([
+        const [pods, members, areas, availableMembersData] = await Promise.all([
           getPods(),
           getMembers(),
-          getAreas()
+          getAreas(),
+          getAvailableMembers()
         ])
 
         const activePods = pods.filter(pod => pod.status !== 'backlog').length
@@ -58,6 +63,16 @@ export default function DashboardPage() {
             )
           : 0
 
+        // Get upcoming releases (PODs ending next week)
+        const nextWeek = new Date()
+        nextWeek.setDate(nextWeek.getDate() + 7)
+        const upcomingReleasesData = pods.filter(pod => {
+          if (!pod.end_date) return false
+          const endDate = new Date(pod.end_date)
+          const today = new Date()
+          return endDate >= today && endDate <= nextWeek
+        })
+
         setStats({
           totalPods: pods.length,
           activePods,
@@ -65,6 +80,8 @@ export default function DashboardPage() {
           totalAreas: areas.length,
           avgDeliveryTime
         })
+        setUpcomingReleases(upcomingReleasesData)
+        setAvailableMembers(availableMembersData)
       } catch (error) {
         console.error('Error fetching dashboard stats:', error)
       } finally {
@@ -170,6 +187,90 @@ export default function DashboardPage() {
                 <Chip label="Ready for Release" color="secondary" />
                 <Chip label="Released" color="success" />
               </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Upcoming Releases */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={1} mb={2}>
+                <WarningIcon color="warning" />
+                <Typography variant="h6">
+                  Upcoming Releases
+                </Typography>
+                <Chip 
+                  label={upcomingReleases.length} 
+                  color="warning" 
+                  size="small" 
+                />
+              </Box>
+              {upcomingReleases.length > 0 ? (
+                <Box>
+                  {upcomingReleases.slice(0, 3).map((pod) => (
+                    <Box key={pod.id} mb={1}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {pod.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Ends: {new Date(pod.end_date).toLocaleDateString()}
+                      </Typography>
+                    </Box>
+                  ))}
+                  {upcomingReleases.length > 3 && (
+                    <Typography variant="caption" color="text.secondary">
+                      +{upcomingReleases.length - 3} more...
+                    </Typography>
+                  )}
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No releases scheduled for next week
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Available Members */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={1} mb={2}>
+                <TrendingUpIcon color="success" />
+                <Typography variant="h6">
+                  Available Members
+                </Typography>
+                <Chip 
+                  label={availableMembers.length} 
+                  color="success" 
+                  size="small" 
+                />
+              </Box>
+              {availableMembers.length > 0 ? (
+                <Box>
+                  {availableMembers.slice(0, 3).map((member) => (
+                    <Box key={member.id} mb={1}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {member.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {member.available_bandwidth}% bandwidth available
+                      </Typography>
+                    </Box>
+                  ))}
+                  {availableMembers.length > 3 && (
+                    <Typography variant="caption" color="text.secondary">
+                      +{availableMembers.length - 3} more...
+                    </Typography>
+                  )}
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No available members
+                </Typography>
+              )}
             </CardContent>
           </Card>
         </Grid>

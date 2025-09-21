@@ -111,44 +111,48 @@ const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#3b82f6',
-      light: '#60a5fa',
-      dark: '#2563eb',
-      contrastText: '#ffffff',
+      main: '#60a5fa',
+      light: '#93c5fd',
+      dark: '#3b82f6',
+      contrastText: '#000000',
     },
     secondary: {
-      main: '#8b5cf6',
-      light: '#a78bfa',
-      dark: '#7c3aed',
-      contrastText: '#ffffff',
+      main: '#a78bfa',
+      light: '#c4b5fd',
+      dark: '#8b5cf6',
+      contrastText: '#000000',
     },
     background: {
-      default: '#0f172a',
-      paper: '#1e293b',
+      default: '#000000',
+      paper: '#111827',
     },
     text: {
-      primary: '#f1f5f9',
-      secondary: '#cbd5e1',
+      primary: '#ffffff',
+      secondary: '#d1d5db',
     },
     success: {
-      main: '#10b981',
-      light: '#34d399',
-      dark: '#059669',
+      main: '#22c55e',
+      light: '#4ade80',
+      dark: '#16a34a',
+      contrastText: '#000000',
     },
     warning: {
       main: '#f59e0b',
       light: '#fbbf24',
       dark: '#d97706',
+      contrastText: '#000000',
     },
     error: {
       main: '#ef4444',
       light: '#f87171',
       dark: '#dc2626',
+      contrastText: '#ffffff',
     },
     info: {
       main: '#06b6d4',
       light: '#22d3ee',
       dark: '#0891b2',
+      contrastText: '#000000',
     },
   },
   typography: {
@@ -270,7 +274,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         
         * {
           scrollbar-width: thin;
-          scrollbar-color: rgba(0,0,0,0.2) transparent;
+          scrollbar-color: ${darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'} transparent;
         }
         
         *::-webkit-scrollbar {
@@ -283,13 +287,165 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         }
         
         *::-webkit-scrollbar-thumb {
-          background-color: rgba(0,0,0,0.2);
+          background-color: ${darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)'};
           border-radius: 3px;
         }
         
         *::-webkit-scrollbar-thumb:hover {
-          background-color: rgba(0,0,0,0.3);
+          background-color: ${darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)'};
         }
+        
+        /* Dark mode specific improvements */
+        ${darkMode ? `
+          body {
+            background-color: #000000 !important;
+          }
+          
+          .MuiCard-root {
+            background-color: #111827 !important;
+            border: 1px solid #374151 !important;
+          }
+          
+          .MuiPaper-root {
+            background-color: #111827 !important;
+            border: 1px solid #374151 !important;
+          }
+          
+          .MuiChip-root {
+            background-color: #374151 !important;
+            color: #ffffff !important;
+            border: 1px solid #4b5563 !important;
+          }
+          
+          .MuiChip-root.MuiChip-colorPrimary {
+            background-color: #1e40af !important;
+            color: #ffffff !important;
+          }
+          
+          .MuiChip-root.MuiChip-colorSuccess {
+            background-color: #16a34a !important;
+            color: #ffffff !important;
+          }
+          
+          .MuiChip-root.MuiChip-colorWarning {
+            background-color: #d97706 !important;
+            color: #ffffff !important;
+          }
+          
+          .MuiChip-root.MuiChip-colorError {
+            background-color: #dc2626 !important;
+            color: #ffffff !important;
+          }
+          
+          .MuiChip-root.MuiChip-colorInfo {
+            background-color: #0891b2 !important;
+            color: #ffffff !important;
+          }
+          
+          .MuiTextField-root .MuiOutlinedInput-root {
+            background-color: #111827 !important;
+            border-color: #374151 !important;
+          }
+          
+          .MuiTextField-root .MuiOutlinedInput-root:hover {
+            border-color: #60a5fa !important;
+          }
+          
+          .MuiTextField-root .MuiOutlinedInput-root.Mui-focused {
+            border-color: #60a5fa !important;
+          }
+          
+          .MuiSelect-root {
+            background-color: #111827 !important;
+            color: #ffffff !important;
+          }
+          
+          .MuiMenuItem-root {
+            background-color: #111827 !important;
+            color: #ffffff !important;
+          }
+          
+          .MuiMenuItem-root:hover {
+            background-color: #374151 !important;
+          }
+          
+          .MuiButton-root.MuiButton-outlined {
+            border-color: #60a5fa !important;
+            color: #60a5fa !important;
+          }
+          
+          .MuiButton-root.MuiButton-outlined:hover {
+            background-color: rgba(96, 165, 250, 0.1) !important;
+            border-color: #93c5fd !important;
+          }
+          
+          .MuiDataGrid-root {
+            background-color: #111827 !important;
+            border-color: #374151 !important;
+          }
+          
+          .MuiDataGrid-cell {
+            border-color: #374151 !important;
+            color: #ffffff !important;
+          }
+          
+          .MuiDataGrid-columnHeaders {
+            background-color: #1f2937 !important;
+            border-color: #374151 !important;
+          }
+          
+          .MuiDataGrid-columnHeaderTitle {
+            color: #ffffff !important;
+          }
+          
+          .MuiDataGrid-footerContainer {
+            background-color: #1f2937 !important;
+            border-color: #374151 !important;
+          }
+          
+          .MuiDialog-paper {
+            background-color: #111827 !important;
+            border: 1px solid #374151 !important;
+          }
+          
+          .MuiDialogTitle-root {
+            color: #ffffff !important;
+            border-bottom: 1px solid #374151 !important;
+          }
+          
+          .MuiDialogContent-root {
+            color: #ffffff !important;
+          }
+          
+          .MuiDialogActions-root {
+            border-top: 1px solid #374151 !important;
+          }
+          
+          .MuiAlert-root {
+            background-color: #1f2937 !important;
+            border: 1px solid #374151 !important;
+          }
+          
+          .MuiAlert-standardError {
+            background-color: #7f1d1d !important;
+            border-color: #dc2626 !important;
+          }
+          
+          .MuiAlert-standardSuccess {
+            background-color: #14532d !important;
+            border-color: #16a34a !important;
+          }
+          
+          .MuiAlert-standardWarning {
+            background-color: #78350f !important;
+            border-color: #d97706 !important;
+          }
+          
+          .MuiAlert-standardInfo {
+            background-color: #0c4a6e !important;
+            border-color: #0891b2 !important;
+          }
+        ` : ''}
       `}</style>
       <ThemeContext.Provider value={{ darkMode, setDarkMode }}>
         {children}

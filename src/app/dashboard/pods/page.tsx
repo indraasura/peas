@@ -44,6 +44,7 @@ export default function PodsPage() {
     name: '',
     description: '',
     area_id: '',
+    status: 'backlog',
     start_date: '',
     end_date: '',
     members: [] as Array<{
@@ -84,6 +85,7 @@ export default function PodsPage() {
           name: formData.name,
           description: formData.description,
           area_id: formData.area_id,
+          status: formData.status,
           start_date: formData.start_date || null,
           end_date: formData.end_date || null,
         })
@@ -103,6 +105,7 @@ export default function PodsPage() {
         name: '',
         description: '',
         area_id: '',
+        status: 'backlog',
         start_date: '',
         end_date: '',
         members: [],
@@ -120,6 +123,7 @@ export default function PodsPage() {
       name: pod.name,
       description: pod.description,
       area_id: pod.area_id,
+      status: pod.status,
       start_date: pod.start_date || '',
       end_date: pod.end_date || '',
       members: pod.members?.map(member => ({
@@ -251,6 +255,23 @@ export default function PodsPage() {
                       {area.name}
                     </MenuItem>
                   ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  label="Status"
+                >
+                  <MenuItem value="backlog">Backlog</MenuItem>
+                  <MenuItem value="planning">Planning</MenuItem>
+                  <MenuItem value="in development">In Development</MenuItem>
+                  <MenuItem value="testing">Testing</MenuItem>
+                  <MenuItem value="ready for release">Ready for Release</MenuItem>
+                  <MenuItem value="released">Released</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
