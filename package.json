@@ -17,6 +17,7 @@
     "@mui/material": "^6.1.6",
     "@mui/system": "^6.5.0",
     "@mui/x-data-grid": "^7.22.2",
+    "@netlify/plugin-nextjs": "^5.13.3",
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.45.4",
     "@tailwindcss/postcss": "^4.1.13",
