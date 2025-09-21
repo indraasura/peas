@@ -23,9 +23,6 @@ const lightTheme = createTheme({
       default: '#f8fafc',
       paper: '#ffffff',
     },
-    surface: {
-      main: '#ffffff',
-    },
     text: {
       primary: '#0f172a',
       secondary: '#475569',
@@ -107,7 +104,6 @@ const lightTheme = createTheme({
     '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
     '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
     '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
   ],
 })
 
@@ -129,9 +125,6 @@ const darkTheme = createTheme({
     background: {
       default: '#0f172a',
       paper: '#1e293b',
-    },
-    surface: {
-      main: '#1e293b',
     },
     text: {
       primary: '#f1f5f9',
