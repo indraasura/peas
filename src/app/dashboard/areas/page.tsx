@@ -27,7 +27,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material'
-import { getAreas, createArea, updateArea, deleteArea, getMembers } from '@/lib/data'
+import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum } from '@/lib/data'
 import { type Area } from '@/lib/supabase'
 
 const impactLevels = ['Low', 'Medium', 'High']
@@ -71,11 +71,20 @@ export default function AreasPage() {
   const handleSubmit = async () => {
     try {
       setError('')
+      const { decision_quorum, ...areaData } = formData
+      
+      let areaId: string
       if (editingArea) {
-        await updateArea(editingArea.id, formData)
+        await updateArea(editingArea.id, areaData)
+        areaId = editingArea.id
       } else {
-        await createArea(formData)
+        const newArea = await createArea(areaData)
+        areaId = newArea.id
       }
+      
+      // Update decision quorum separately
+      await updateAreaDecisionQuorum(areaId, decision_quorum)
+      
       setOpenDialog(false)
       setEditingArea(null)
       setFormData({
@@ -102,7 +111,7 @@ export default function AreasPage() {
       business_enablement: area.business_enablement,
       efforts: area.efforts,
       end_user_impact: area.end_user_impact,
-      decision_quorum: [] // TODO: Load existing decision quorum from database
+      decision_quorum: area.decision_quorum?.map(member => member.id) || []
     })
     setOpenDialog(true)
   }

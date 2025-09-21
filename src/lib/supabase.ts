@@ -33,6 +33,7 @@ export interface Area {
   end_user_impact: string
   created_at: string
   updated_at: string
+  decision_quorum?: Profile[] // List of POD committee members for this area
 }
 
 export interface Pod {
@@ -81,4 +82,12 @@ export interface PodNote {
   created_at: string
   updated_at: string
   creator?: Profile
+}
+
+export interface AreaDecisionQuorum {
+  id: string
+  area_id: string
+  member_id: string
+  created_at: string
+  member?: Profile
 }
