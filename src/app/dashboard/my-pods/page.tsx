@@ -10,7 +10,8 @@ import {
   Grid
 } from '@mui/material'
 import { DataGrid, GridColDef } from '@mui/x-data-grid'
-import { getPods, getCurrentUser } from '@/lib/data'
+import { getPods } from '@/lib/data'
+import { getCurrentUser } from '@/lib/auth'
 import { type Pod } from '@/lib/supabase'
 
 export default function MyPodsPage() {
