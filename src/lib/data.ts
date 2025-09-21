@@ -4,13 +4,7 @@ import { supabase, type Area, type Pod, type Profile, type PodMember, type PodNo
 export async function getAreas(): Promise<Area[]> {
   const { data, error } = await supabase
     .from('areas')
-    .select(`
-      *,
-      area_decision_quorum(
-        *,
-        member:profiles(*)
-      )
-    `)
+    .select('*')
     .order('name')
 
   if (error) {
@@ -18,16 +12,10 @@ export async function getAreas(): Promise<Area[]> {
     return []
   }
 
-  // Transform the data to include decision_quorum as an array of profiles
-  const areasWithQuorum = (data || []).map(area => ({
-    ...area,
-    decision_quorum: area.area_decision_quorum?.map((quorum: any) => quorum.member).filter(Boolean) || []
-  }))
-
-  return areasWithQuorum
+  return data || []
 }
 
-export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum'>) {
+export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated_at'>) {
   const { data, error } = await supabase
     .from('areas')
     .insert(area)
@@ -38,7 +26,7 @@ export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated
   return data
 }
 
-export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum'>>) {
+export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'created_at' | 'updated_at'>>) {
   const { data, error } = await supabase
     .from('areas')
     .update(updates)
@@ -59,28 +47,6 @@ export async function deleteArea(id: string) {
   if (error) throw error
 }
 
-// Area Decision Quorum Management
-export async function updateAreaDecisionQuorum(areaId: string, memberIds: string[]) {
-  // First, remove all existing quorum members for this area
-  await supabase
-    .from('area_decision_quorum')
-    .delete()
-    .eq('area_id', areaId)
-
-  // Then, add the new quorum members
-  if (memberIds.length > 0) {
-    const quorumInserts = memberIds.map(memberId => ({
-      area_id: areaId,
-      member_id: memberId
-    }))
-
-    const { error } = await supabase
-      .from('area_decision_quorum')
-      .insert(quorumInserts)
-
-    if (error) throw error
-  }
-}
 
 // Members/Profiles
 export async function getMembers(): Promise<Profile[]> {
