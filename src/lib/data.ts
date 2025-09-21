@@ -2,29 +2,49 @@ import { supabase, type Area, type Pod, type Profile, type PodMember, type PodNo
 
 // Areas
 export async function getAreas(): Promise<Area[]> {
-  const { data, error } = await supabase
-    .from('areas')
-    .select(`
-      *,
-      area_decision_quorum(
+  try {
+    const { data, error } = await supabase
+      .from('areas')
+      .select(`
         *,
-        member:profiles(*)
-      )
-    `)
-    .order('name')
+        area_decision_quorum(
+          *,
+          member:profiles(*)
+        )
+      `)
+      .order('name')
 
-  if (error) {
-    console.error('Error fetching areas:', error)
+    if (error) {
+      console.error('Error fetching areas:', error)
+      // Fallback to simple query if join fails
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('areas')
+        .select('*')
+        .order('name')
+      
+      if (fallbackError) {
+        console.error('Fallback query also failed:', fallbackError)
+        return []
+      }
+      
+      return (fallbackData || []).map(area => ({
+        ...area,
+        decision_quorum: []
+      }))
+    }
+
+    // Transform the data to include decision_quorum as an array of profiles
+    const areasWithQuorum = (data || []).map(area => ({
+      ...area,
+      decision_quorum: area.area_decision_quorum?.map((quorum: any) => quorum.member).filter(Boolean) || []
+    }))
+
+    return areasWithQuorum
+  } catch (error) {
+    console.error('Unexpected error in getAreas:', error)
+    // Return empty array to prevent breaking the app
     return []
   }
-
-  // Transform the data to include decision_quorum as an array of profiles
-  const areasWithQuorum = (data || []).map(area => ({
-    ...area,
-    decision_quorum: area.area_decision_quorum?.map((quorum: any) => quorum.member).filter(Boolean) || []
-  }))
-
-  return areasWithQuorum
 }
 
 export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum'>) {
@@ -61,20 +81,25 @@ export async function deleteArea(id: string) {
 
 // Area Decision Quorum Management
 export async function getAreaDecisionQuorum(areaId: string): Promise<Profile[]> {
-  const { data, error } = await supabase
-    .from('area_decision_quorum')
-    .select(`
-      *,
-      member:profiles(*)
-    `)
-    .eq('area_id', areaId)
+  try {
+    const { data, error } = await supabase
+      .from('area_decision_quorum')
+      .select(`
+        *,
+        member:profiles(*)
+      `)
+      .eq('area_id', areaId)
 
-  if (error) {
-    console.error('Error fetching area decision quorum:', error)
+    if (error) {
+      console.error('Error fetching area decision quorum:', error)
+      return []
+    }
+
+    return data?.map((quorum: any) => quorum.member).filter(Boolean) || []
+  } catch (error) {
+    console.error('Unexpected error in getAreaDecisionQuorum:', error)
     return []
   }
-
-  return data?.map((quorum: any) => quorum.member).filter(Boolean) || []
 }
 
 export async function addToAreaDecisionQuorum(areaId: string, memberId: string) {

@@ -44,10 +44,22 @@ export default function DashboardPage() {
     async function fetchStats() {
       try {
         const [pods, members, areas, availableMembersData] = await Promise.all([
-          getPods(),
-          getMembers(),
-          getAreas(),
-          getAvailableMembers()
+          getPods().catch(err => {
+            console.error('Error fetching pods:', err)
+            return []
+          }),
+          getMembers().catch(err => {
+            console.error('Error fetching members:', err)
+            return []
+          }),
+          getAreas().catch(err => {
+            console.error('Error fetching areas:', err)
+            return []
+          }),
+          getAvailableMembers().catch(err => {
+            console.error('Error fetching available members:', err)
+            return []
+          })
         ])
 
         const activePods = pods.filter(pod => pod.status !== 'backlog').length
