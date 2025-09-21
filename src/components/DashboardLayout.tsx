@@ -50,6 +50,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [desktopOpen, setDesktopOpen] = useState(true)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const router = useRouter()
   const pathname = usePathname()
@@ -70,6 +71,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
+  }
+
+  const handleDesktopDrawerToggle = () => {
+    setDesktopOpen(!desktopOpen)
   }
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -98,9 +103,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const drawer = (
     <Box>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          POD Management
-        </Typography>
+        <Box display="flex" alignItems="center" justifyContent="space-between" width="100%">
+          <Typography variant="h6" noWrap component="div">
+            POD Management
+          </Typography>
+          <IconButton onClick={handleDesktopDrawerToggle} sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <MenuIcon />
+          </IconButton>
+        </Box>
       </Toolbar>
       <Divider />
       <List>
@@ -144,8 +154,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: { sm: desktopOpen ? `calc(100% - ${drawerWidth}px)` : '100%' },
+          ml: { sm: desktopOpen ? `${drawerWidth}px` : 0 },
+          transition: 'all 0.3s ease',
         }}
       >
         <Toolbar>
@@ -230,9 +241,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: desktopOpen ? drawerWidth : 0,
+              transition: 'width 0.3s ease',
+              overflow: 'hidden',
+            },
           }}
-          open
+          open={desktopOpen}
         >
           {drawer}
         </Drawer>
@@ -242,7 +258,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: { sm: desktopOpen ? `calc(100% - ${drawerWidth}px)` : '100%' },
+          transition: 'all 0.3s ease',
         }}
       >
         <Toolbar />

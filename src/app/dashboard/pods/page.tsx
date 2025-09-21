@@ -47,7 +47,8 @@ export default function PodsPage() {
       member_id: string
       bandwidth_percentage: number
       is_leader: boolean
-    }>
+    }>,
+    dependencies: [] as string[]
   })
   const [error, setError] = useState('')
 
@@ -244,6 +245,9 @@ export default function PodsPage() {
               <Typography variant="h6" gutterBottom>
                 Team Members
               </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <strong>Note:</strong> Only non-POD Committee members are shown in this list. POD Committee members are not displayed as they have administrative access.
+              </Typography>
               <FormControl fullWidth>
                 <InputLabel>Add Member</InputLabel>
                 <Select
@@ -325,6 +329,39 @@ export default function PodsPage() {
                   </Card>
                 )
               })}
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                POD Dependencies
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Select other PODs that this POD depends on
+              </Typography>
+              <FormControl fullWidth>
+                <InputLabel>Dependent PODs</InputLabel>
+                <Select
+                  multiple
+                  value={formData.dependencies}
+                  onChange={(e) => setFormData({ ...formData, dependencies: e.target.value as string[] })}
+                  label="Dependent PODs"
+                  renderValue={(selected) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {selected.map((value) => {
+                        const pod = pods.find(p => p.id === value)
+                        return (
+                          <Chip key={value} label={pod?.name || value} size="small" />
+                        )
+                      })}
+                    </Box>
+                  )}
+                >
+                  {pods.map((pod) => (
+                    <MenuItem key={pod.id} value={pod.id}>
+                      {pod.name} ({pod.area?.name || 'No Area'})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
           </Grid>
         </DialogContent>

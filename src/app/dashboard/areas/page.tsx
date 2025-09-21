@@ -26,13 +26,14 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material'
-import { getAreas, createArea, updateArea, deleteArea } from '@/lib/data'
+import { getAreas, createArea, updateArea, deleteArea, getMembers } from '@/lib/data'
 import { type Area } from '@/lib/supabase'
 
 const impactLevels = ['Low', 'Medium', 'High']
 
 export default function AreasPage() {
   const [areas, setAreas] = useState<Area[]>([])
+  const [podCommitteeMembers, setPodCommitteeMembers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [editingArea, setEditingArea] = useState<Area | null>(null)
@@ -42,7 +43,8 @@ export default function AreasPage() {
     revenue_impact: 'Low',
     business_enablement: 'Low',
     efforts: 'Low',
-    end_user_impact: 'Low'
+    end_user_impact: 'Low',
+    decision_quorum: [] as string[]
   })
   const [error, setError] = useState('')
 
@@ -52,8 +54,12 @@ export default function AreasPage() {
 
   const fetchAreas = async () => {
     try {
-      const areasData = await getAreas()
+      const [areasData, membersData] = await Promise.all([
+        getAreas(),
+        getMembers()
+      ])
       setAreas(areasData)
+      setPodCommitteeMembers(membersData.filter(member => member.team === 'POD committee'))
     } catch (error) {
       console.error('Error fetching areas:', error)
     } finally {
@@ -251,6 +257,33 @@ export default function AreasPage() {
                   {impactLevels.map((level) => (
                     <MenuItem key={level} value={level}>
                       {level}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Decision Quorum (POD Committee Members)</InputLabel>
+                <Select
+                  multiple
+                  value={formData.decision_quorum}
+                  onChange={(e) => setFormData({ ...formData, decision_quorum: e.target.value as string[] })}
+                  label="Decision Quorum (POD Committee Members)"
+                  renderValue={(selected) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {selected.map((value) => {
+                        const member = podCommitteeMembers.find(m => m.id === value)
+                        return (
+                          <Chip key={value} label={member?.name || value} size="small" />
+                        )
+                      })}
+                    </Box>
+                  )}
+                >
+                  {podCommitteeMembers.map((member) => (
+                    <MenuItem key={member.id} value={member.id}>
+                      {member.name} ({member.email})
                     </MenuItem>
                   ))}
                 </Select>
