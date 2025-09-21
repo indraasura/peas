@@ -21,7 +21,12 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Alert
+  Alert,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Paper,
+  Stack
 } from '@mui/material'
 import {
   ArrowBack as BackIcon,
@@ -30,7 +35,11 @@ import {
   Person as PersonIcon,
   Schedule as ScheduleIcon,
   Business as BusinessIcon,
-  Assessment as AssessmentIcon
+  Assessment as AssessmentIcon,
+  Visibility as ViewIcon,
+  Close as CloseIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon
 } from '@mui/icons-material'
 import { getPods, getPodNotes, createPodNote } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'
@@ -44,6 +53,8 @@ export default function PodViewPage() {
   const [loading, setLoading] = useState(true)
   const [notes, setNotes] = useState<PodNote[]>([])
   const [openNoteDialog, setOpenNoteDialog] = useState(false)
+  const [openViewDialog, setOpenViewDialog] = useState(false)
+  const [selectedNote, setSelectedNote] = useState<PodNote | null>(null)
   const [noteForm, setNoteForm] = useState({
     review_date: '',
     blockers: '',
@@ -113,6 +124,19 @@ export default function PodViewPage() {
     } catch (error) {
       console.error('Error adding note:', error)
     }
+  }
+
+  const handleViewNote = (note: PodNote) => {
+    setSelectedNote(note)
+    setOpenViewDialog(true)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
   }
 
   const getStatusColor = (status: string) => {
@@ -235,6 +259,13 @@ export default function PodViewPage() {
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={() => setOpenNoteDialog(true)}
+                  sx={{
+                    background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                    boxShadow: '0 3px 5px 2px rgba(25, 118, 210, .3)',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)',
+                    }
+                  }}
                 >
                   Add Note
                 </Button>
@@ -242,36 +273,172 @@ export default function PodViewPage() {
               <Divider sx={{ mb: 2 }} />
               
               {notes.length > 0 ? (
-                <List>
+                <Stack spacing={2}>
                   {notes.map((note) => (
-                    <ListItem key={note.id}>
-                      <ListItemText
-                        primary={`Review Date: ${new Date(note.review_date).toLocaleDateString()}`}
-                        secondary={
-                          <Box>
-                            {note.current_state && (
-                              <Typography variant="body2" sx={{ mt: 1 }}>
-                                <strong>Current State:</strong> {note.current_state}
-                              </Typography>
-                            )}
-                            {note.blockers && (
-                              <Typography variant="body2" sx={{ mt: 1 }}>
-                                <strong>Blockers:</strong> {note.blockers}
-                              </Typography>
-                            )}
-                            {note.learnings && (
-                              <Typography variant="body2" sx={{ mt: 1 }}>
-                                <strong>Learnings:</strong> {note.learnings}
-                              </Typography>
-                            )}
-                          </Box>
+                    <Paper
+                      key={note.id}
+                      elevation={2}
+                      sx={{
+                        p: 2,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                          elevation: 4,
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                         }
-                      />
-                    </ListItem>
+                      }}
+                    >
+                      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                        <Typography variant="h6" color="primary">
+                          Review: {formatDate(note.review_date)}
+                        </Typography>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<ViewIcon />}
+                          onClick={() => handleViewNote(note)}
+                          sx={{
+                            borderColor: 'primary.main',
+                            color: 'primary.main',
+                            '&:hover': {
+                              borderColor: 'primary.dark',
+                              backgroundColor: 'primary.light',
+                              color: 'primary.dark'
+                            }
+                          }}
+                        >
+                          View Details
+                        </Button>
+                      </Box>
+                      
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Created by {note.creator?.name || 'Unknown'} • {formatDate(note.created_at)}
+                      </Typography>
+
+                      <Grid container spacing={2}>
+                        {note.current_state && (
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="primary" gutterBottom>
+                              Current State
+                            </Typography>
+                            <Typography variant="body2" sx={{ 
+                              p: 1, 
+                              bgcolor: 'action.hover', 
+                              borderRadius: 1,
+                              minHeight: '40px',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}>
+                              {note.current_state.length > 100 
+                                ? `${note.current_state.substring(0, 100)}...` 
+                                : note.current_state
+                              }
+                            </Typography>
+                          </Grid>
+                        )}
+                        
+                        {note.blockers && (
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="error.main" gutterBottom>
+                              Blockers
+                            </Typography>
+                            <Typography variant="body2" sx={{ 
+                              p: 1, 
+                              bgcolor: 'error.light', 
+                              borderRadius: 1,
+                              minHeight: '40px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              color: 'error.contrastText'
+                            }}>
+                              {note.blockers.length > 100 
+                                ? `${note.blockers.substring(0, 100)}...` 
+                                : note.blockers
+                              }
+                            </Typography>
+                          </Grid>
+                        )}
+                        
+                        {note.learnings && (
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="success.main" gutterBottom>
+                              Learnings
+                            </Typography>
+                            <Typography variant="body2" sx={{ 
+                              p: 1, 
+                              bgcolor: 'success.light', 
+                              borderRadius: 1,
+                              minHeight: '40px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              color: 'success.contrastText'
+                            }}>
+                              {note.learnings.length > 100 
+                                ? `${note.learnings.substring(0, 100)}...` 
+                                : note.learnings
+                              }
+                            </Typography>
+                          </Grid>
+                        )}
+                        
+                        {note.deviation_to_plan && (
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="subtitle2" color="warning.main" gutterBottom>
+                              Deviation to Plan
+                            </Typography>
+                            <Typography variant="body2" sx={{ 
+                              p: 1, 
+                              bgcolor: 'warning.light', 
+                              borderRadius: 1,
+                              minHeight: '40px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              color: 'warning.contrastText'
+                            }}>
+                              {note.deviation_to_plan.length > 100 
+                                ? `${note.deviation_to_plan.substring(0, 100)}...` 
+                                : note.deviation_to_plan
+                              }
+                            </Typography>
+                          </Grid>
+                        )}
+                      </Grid>
+                    </Paper>
                   ))}
-                </List>
+                </Stack>
               ) : (
-                <Typography color="text.secondary">No notes added yet</Typography>
+                <Box 
+                  textAlign="center" 
+                  py={4}
+                  sx={{
+                    border: '2px dashed',
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    bgcolor: 'action.hover'
+                  }}
+                >
+                  <AssessmentIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    No Review Notes Yet
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Start documenting your POD's progress and insights
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => setOpenNoteDialog(true)}
+                    sx={{
+                      background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                      boxShadow: '0 3px 5px 2px rgba(25, 118, 210, .3)',
+                    }}
+                  >
+                    Add First Note
+                  </Button>
+                </Box>
               )}
             </CardContent>
           </Card>
@@ -416,6 +583,142 @@ export default function PodViewPage() {
           <Button onClick={() => setOpenNoteDialog(false)}>Cancel</Button>
           <Button onClick={handleAddNote} variant="contained">
             Add Note
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Note Details Dialog */}
+      <Dialog 
+        open={openViewDialog} 
+        onClose={() => setOpenViewDialog(false)} 
+        maxWidth="lg" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          pb: 1
+        }}>
+          <Box>
+            <Typography variant="h5" component="div">
+              Review Note Details
+            </Typography>
+            {selectedNote && (
+              <Typography variant="subtitle1" color="text.secondary">
+                {formatDate(selectedNote.review_date)} • Created by {selectedNote.creator?.name || 'Unknown'}
+              </Typography>
+            )}
+          </Box>
+          <IconButton onClick={() => setOpenViewDialog(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          {selectedNote && (
+            <Grid container spacing={3}>
+              {selectedNote.current_state && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'primary.main' }}>
+                    <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AssessmentIcon />
+                      Current State
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedNote.current_state}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+              
+              {selectedNote.blockers && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'error.main' }}>
+                    <Typography variant="h6" color="error.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AssessmentIcon />
+                      Blockers
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedNote.blockers}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+              
+              {selectedNote.learnings && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'success.main' }}>
+                    <Typography variant="h6" color="success.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AssessmentIcon />
+                      Learnings
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedNote.learnings}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+              
+              {selectedNote.deviation_to_plan && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'warning.main' }}>
+                    <Typography variant="h6" color="warning.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AssessmentIcon />
+                      Deviation to Plan
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedNote.deviation_to_plan}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+              
+              {selectedNote.dependencies_risks && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'info.main' }}>
+                    <Typography variant="h6" color="info.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AssessmentIcon />
+                      Dependencies & Risks
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedNote.dependencies_risks}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+              
+              {selectedNote.misc && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'grey.500' }}>
+                    <Typography variant="h6" color="text.primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AssessmentIcon />
+                      Miscellaneous Notes
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedNote.misc}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button 
+            onClick={() => setOpenViewDialog(false)} 
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+              boxShadow: '0 3px 5px 2px rgba(25, 118, 210, .3)',
+            }}
+          >
+            Close
           </Button>
         </DialogActions>
       </Dialog>
