@@ -118,7 +118,13 @@ export async function getPods(): Promise<Pod[]> {
     return []
   }
 
-  return data || []
+  // Ensure area data is properly structured
+  const podsWithAreas = (data || []).map(pod => ({
+    ...pod,
+    area: pod.area || null
+  }))
+
+  return podsWithAreas
 }
 
 export async function createPod(podData: {

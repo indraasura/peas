@@ -116,7 +116,13 @@ export default function PodsPage() {
       field: 'area', 
       headerName: 'Area', 
       width: 150,
-      valueGetter: (params: any) => params.row.area?.name || 'N/A'
+      valueGetter: (params: any) => {
+        try {
+          return params.row.area?.name || 'N/A'
+        } catch (error) {
+          return 'N/A'
+        }
+      }
     },
     { field: 'status', headerName: 'Status', width: 150 },
     { field: 'start_date', headerName: 'Start Date', width: 120 },
