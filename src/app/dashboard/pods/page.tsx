@@ -29,7 +29,7 @@ import {
   Delete as DeleteIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material'
-import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers } from '@/lib/data'
+import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers } from '@/lib/data'
 import { type Pod, type Area, type Profile } from '@/lib/supabase'
 
 export default function PodsPage() {
@@ -89,6 +89,8 @@ export default function PodsPage() {
           start_date: formData.start_date || null,
           end_date: formData.end_date || null,
         })
+        // Update POD members separately
+        await updatePodMembers(editingPod.id, formData.members)
       } else {
         await createPod({
           name: formData.name,
@@ -163,6 +165,25 @@ export default function PodsPage() {
       }
     },
     { field: 'status', headerName: 'Status', width: 150 },
+    { 
+      field: 'members', 
+      headerName: 'Members', 
+      width: 200,
+      valueGetter: (params: any) => {
+        try {
+          if (!params.row.members || params.row.members.length === 0) {
+            return 'No members'
+          }
+          const memberNames = params.row.members.map((member: any) => {
+            const name = member.member?.name || 'Unknown'
+            return member.is_leader ? `${name} (Leader)` : name
+          })
+          return memberNames.join(', ')
+        } catch (error) {
+          return 'No members'
+        }
+      }
+    },
     { field: 'start_date', headerName: 'Start Date', width: 120 },
     { field: 'end_date', headerName: 'End Date', width: 120 },
     {

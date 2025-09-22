@@ -108,6 +108,40 @@ export async function updateAreaDecisionQuorum(areaId: string, memberIds: string
   }
 }
 
+// POD Members Management
+export async function updatePodMembers(podId: string, members: Array<{
+  member_id: string
+  bandwidth_percentage: number
+  is_leader: boolean
+}>) {
+  try {
+    // First, remove all existing members for this POD
+    await supabase
+      .from('pod_members')
+      .delete()
+      .eq('pod_id', podId)
+
+    // Then, add the new members
+    if (members.length > 0) {
+      const memberInserts = members.map(member => ({
+        pod_id: podId,
+        member_id: member.member_id,
+        bandwidth_percentage: member.bandwidth_percentage,
+        is_leader: member.is_leader
+      }))
+
+      const { error } = await supabase
+        .from('pod_members')
+        .insert(memberInserts)
+
+      if (error) throw error
+    }
+  } catch (error) {
+    console.error('Error updating POD members:', error)
+    throw error
+  }
+}
+
 // Members/Profiles
 export async function getMembers(): Promise<Profile[]> {
   const { data, error } = await supabase
