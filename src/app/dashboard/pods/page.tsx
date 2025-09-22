@@ -67,6 +67,7 @@ export default function PodsPage() {
         getAreas(),
         getAvailableMembers()
       ])
+      
       setPods(podsData)
       setAreas(areasData)
       setAvailableMembers(membersData)

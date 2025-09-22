@@ -220,7 +220,6 @@ export async function getPods(): Promise<Pod[]> {
     return []
   }
 
-
   // Ensure area data is properly structured and map pod_members to members
   const podsWithAreas = (data || []).map(pod => ({
     ...pod,

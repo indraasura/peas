@@ -32,10 +32,16 @@ export default function MyPodsPage() {
       
       setUser(currentUser)
       
+      if (!currentUser) {
+        console.error('No current user found - please ensure you are logged in')
+        setPods([])
+        return
+      }
+      
       // Filter PODs where user is a member
-      const userPods = currentUser ? podsData.filter(pod => 
+      const userPods = podsData.filter(pod => 
         pod.members?.some(member => member.member_id === currentUser.id)
-      ) : []
+      )
       
       setPods(userPods)
     } catch (error) {
