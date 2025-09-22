@@ -39,7 +39,8 @@ import {
   Visibility as ViewIcon,
   Close as CloseIcon,
   ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon
+  ExpandLess as ExpandLessIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material'
 import { getPods, getPodNotes, createPodNote, updatePodNote, deletePodNote } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'
