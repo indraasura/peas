@@ -33,9 +33,9 @@ export default function MyPodsPage() {
       setUser(currentUser)
       
       // Filter PODs where user is a member
-      const userPods = podsData.filter(pod => 
-        pod.members?.some(member => member.member_id === currentUser?.id)
-      )
+      const userPods = currentUser ? podsData.filter(pod => 
+        pod.members?.some(member => member.member_id === currentUser.id)
+      ) : []
       
       setPods(userPods)
     } catch (error) {

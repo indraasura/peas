@@ -103,7 +103,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }
 
   const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column',
+      backgroundColor: darkMode ? 'background.paper' : 'background.paper'
+    }}>
       <Toolbar sx={{ 
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         color: 'white',
@@ -221,9 +226,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           width: { sm: desktopOpen ? `calc(100% - ${drawerWidth}px)` : '100%' },
           ml: { sm: desktopOpen ? `${drawerWidth}px` : 0 },
           transition: 'all 0.3s ease',
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+          background: darkMode 
+            ? 'linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 100%)'
+            : 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
           backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid rgba(0,0,0,0.08)',
+          borderBottom: darkMode 
+            ? '1px solid rgba(255,255,255,0.08)'
+            : '1px solid rgba(0,0,0,0.08)',
           '&.MuiAppBar-root': {
             color: 'text.primary',
           },
@@ -400,7 +409,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           p: 3,
           width: { sm: desktopOpen ? `calc(100% - ${drawerWidth}px)` : '100%' },
           transition: 'all 0.3s ease',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          background: darkMode 
+            ? 'linear-gradient(135deg, #000000 0%, #111827 100%)'
+            : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
           minHeight: '100vh',
         }}
       >

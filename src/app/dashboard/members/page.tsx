@@ -82,20 +82,24 @@ export default function MembersPage() {
       )
     },
     { 
-      field: 'bandwidth', 
-      headerName: 'Bandwidth', 
-      width: 120,
-      renderCell: (params: any) => (
-        <Box>
-          <Typography variant="body2">
-            {params.value && params.value > 0 ? `${params.value}%` : 'Not allocated'}
-          </Typography>
-        </Box>
-      )
+      field: 'remaining_bandwidth', 
+      headerName: 'Remaining Bandwidth', 
+      width: 150,
+      renderCell: (params: any) => {
+        const usedBandwidth = params.row.bandwidth || 0
+        const remainingBandwidth = Math.max(0, 100 - usedBandwidth)
+        return (
+          <Box>
+            <Typography variant="body2">
+              {remainingBandwidth}%
+            </Typography>
+          </Box>
+        )
+      }
     },
     { 
-      field: 'availability', 
-      headerName: 'Availability', 
+      field: 'member_usage', 
+      headerName: 'Member Usage', 
       width: 120,
       renderCell: (params: any) => {
         const bandwidth = params.row.bandwidth || 0
@@ -109,14 +113,17 @@ export default function MembersPage() {
       }
     },
     { 
-      field: 'pods', 
-      headerName: 'PODs', 
+      field: 'assigned_pods', 
+      headerName: 'Assigned PODs', 
       width: 200,
-      renderCell: (params: any) => (
-        <Typography variant="body2">
-          {params.value?.join(', ') || 'No PODs'}
-        </Typography>
-      )
+      renderCell: (params: any) => {
+        const podNames = params.row.pod_members?.map((pm: any) => pm.pod?.name).filter(Boolean) || []
+        return (
+          <Typography variant="body2">
+            {podNames.length > 0 ? podNames.join(', ') : 'No PODs'}
+          </Typography>
+        )
+      }
     }
   ]
 

@@ -41,7 +41,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon
 } from '@mui/icons-material'
-import { getPods, getPodNotes, createPodNote } from '@/lib/data'
+import { getPods, getPodNotes, createPodNote, updatePodNote, deletePodNote } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'
 import { type Pod, type PodNote } from '@/lib/supabase'
 
@@ -55,6 +55,7 @@ export default function PodViewPage() {
   const [openNoteDialog, setOpenNoteDialog] = useState(false)
   const [openViewDialog, setOpenViewDialog] = useState(false)
   const [selectedNote, setSelectedNote] = useState<PodNote | null>(null)
+  const [editingNote, setEditingNote] = useState<PodNote | null>(null)
   const [noteForm, setNoteForm] = useState({
     review_date: '',
     blockers: '',
@@ -95,19 +96,32 @@ export default function PodViewPage() {
     try {
       if (!pod || !user) return
       
-      await createPodNote({
-        pod_id: pod.id,
-        review_date: noteForm.review_date,
-        blockers: noteForm.blockers || undefined,
-        learnings: noteForm.learnings || undefined,
-        current_state: noteForm.current_state || undefined,
-        deviation_to_plan: noteForm.deviation_to_plan || undefined,
-        dependencies_risks: noteForm.dependencies_risks || undefined,
-        misc: noteForm.misc || undefined,
-        created_by: user.id
-      })
+      if (editingNote) {
+        await updatePodNote(editingNote.id, {
+          review_date: noteForm.review_date,
+          blockers: noteForm.blockers || undefined,
+          learnings: noteForm.learnings || undefined,
+          current_state: noteForm.current_state || undefined,
+          deviation_to_plan: noteForm.deviation_to_plan || undefined,
+          dependencies_risks: noteForm.dependencies_risks || undefined,
+          misc: noteForm.misc || undefined,
+        })
+      } else {
+        await createPodNote({
+          pod_id: pod.id,
+          review_date: noteForm.review_date,
+          blockers: noteForm.blockers || undefined,
+          learnings: noteForm.learnings || undefined,
+          current_state: noteForm.current_state || undefined,
+          deviation_to_plan: noteForm.deviation_to_plan || undefined,
+          dependencies_risks: noteForm.dependencies_risks || undefined,
+          misc: noteForm.misc || undefined,
+          created_by: user.id
+        })
+      }
       
       setOpenNoteDialog(false)
+      setEditingNote(null)
       setNoteForm({
         review_date: '',
         blockers: '',
@@ -122,13 +136,42 @@ export default function PodViewPage() {
       const notesData = await getPodNotes(pod.id)
       setNotes(notesData)
     } catch (error) {
-      console.error('Error adding note:', error)
+      console.error('Error saving note:', error)
     }
   }
 
   const handleViewNote = (note: PodNote) => {
     setSelectedNote(note)
     setOpenViewDialog(true)
+  }
+
+  const handleEditNote = (note: PodNote) => {
+    setEditingNote(note)
+    setNoteForm({
+      review_date: note.review_date,
+      blockers: note.blockers || '',
+      learnings: note.learnings || '',
+      current_state: note.current_state || '',
+      deviation_to_plan: note.deviation_to_plan || '',
+      dependencies_risks: note.dependencies_risks || '',
+      misc: note.misc || ''
+    })
+    setOpenNoteDialog(true)
+  }
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (window.confirm('Are you sure you want to delete this note?')) {
+      try {
+        await deletePodNote(noteId)
+        // Refresh notes
+        if (pod) {
+          const notesData = await getPodNotes(pod.id)
+          setNotes(notesData)
+        }
+      } catch (error) {
+        console.error('Error deleting note:', error)
+      }
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -295,117 +338,91 @@ export default function PodViewPage() {
                         <Typography variant="h6" color="primary">
                           Review: {formatDate(note.review_date)}
                         </Typography>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<ViewIcon />}
-                          onClick={() => handleViewNote(note)}
-                          sx={{
-                            borderColor: 'primary.main',
-                            color: 'primary.main',
-                            '&:hover': {
-                              borderColor: 'primary.dark',
-                              backgroundColor: 'primary.light',
-                              color: 'primary.dark'
-                            }
-                          }}
-                        >
-                          View Details
-                        </Button>
+                        <Box display="flex" gap={1}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<ViewIcon />}
+                            onClick={() => handleViewNote(note)}
+                            sx={{
+                              borderColor: 'primary.main',
+                              color: 'primary.main',
+                              '&:hover': {
+                                borderColor: 'primary.dark',
+                                backgroundColor: 'primary.light',
+                                color: 'primary.dark'
+                              }
+                            }}
+                          >
+                            View
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<EditIcon />}
+                            onClick={() => handleEditNote(note)}
+                            sx={{
+                              borderColor: 'info.main',
+                              color: 'info.main',
+                              '&:hover': {
+                                borderColor: 'info.dark',
+                                backgroundColor: 'info.light',
+                                color: 'info.dark'
+                              }
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          {user?.team === 'POD committee' && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<DeleteIcon />}
+                              onClick={() => handleDeleteNote(note.id)}
+                              sx={{
+                                borderColor: 'error.main',
+                                color: 'error.main',
+                                '&:hover': {
+                                  borderColor: 'error.dark',
+                                  backgroundColor: 'error.light',
+                                  color: 'error.dark'
+                                }
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          )}
+                        </Box>
                       </Box>
                       
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                         Created by {note.creator?.name || 'Unknown'} • {formatDate(note.created_at)}
                       </Typography>
 
-                      <Grid container spacing={2}>
+                      {/* Show only a summary of key fields */}
+                      <Box sx={{ mb: 2 }}>
                         {note.current_state && (
-                          <Grid item xs={12} sm={6}>
-                            <Typography variant="subtitle2" color="primary" gutterBottom>
-                              Current State
-                            </Typography>
-                            <Typography variant="body2" sx={{ 
-                              p: 1, 
-                              bgcolor: 'action.hover', 
-                              borderRadius: 1,
-                              minHeight: '40px',
-                              display: 'flex',
-                              alignItems: 'center'
-                            }}>
-                              {note.current_state.length > 100 
-                                ? `${note.current_state.substring(0, 100)}...` 
-                                : note.current_state
-                              }
-                            </Typography>
-                          </Grid>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            <strong>Current State:</strong> {note.current_state.length > 80 
+                              ? `${note.current_state.substring(0, 80)}...` 
+                              : note.current_state}
+                          </Typography>
                         )}
-                        
                         {note.blockers && (
-                          <Grid item xs={12} sm={6}>
-                            <Typography variant="subtitle2" color="error.main" gutterBottom>
-                              Blockers
-                            </Typography>
-                            <Typography variant="body2" sx={{ 
-                              p: 1, 
-                              bgcolor: 'error.light', 
-                              borderRadius: 1,
-                              minHeight: '40px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              color: 'error.contrastText'
-                            }}>
-                              {note.blockers.length > 100 
-                                ? `${note.blockers.substring(0, 100)}...` 
-                                : note.blockers
-                              }
-                            </Typography>
-                          </Grid>
+                          <Typography variant="body2" sx={{ mb: 1, color: 'error.main' }}>
+                            <strong>Blockers:</strong> {note.blockers.length > 80 
+                              ? `${note.blockers.substring(0, 80)}...` 
+                              : note.blockers}
+                          </Typography>
                         )}
-                        
                         {note.learnings && (
-                          <Grid item xs={12} sm={6}>
-                            <Typography variant="subtitle2" color="success.main" gutterBottom>
-                              Learnings
-                            </Typography>
-                            <Typography variant="body2" sx={{ 
-                              p: 1, 
-                              bgcolor: 'success.light', 
-                              borderRadius: 1,
-                              minHeight: '40px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              color: 'success.contrastText'
-                            }}>
-                              {note.learnings.length > 100 
-                                ? `${note.learnings.substring(0, 100)}...` 
-                                : note.learnings
-                              }
-                            </Typography>
-                          </Grid>
+                          <Typography variant="body2" sx={{ mb: 1, color: 'success.main' }}>
+                            <strong>Learnings:</strong> {note.learnings.length > 80 
+                              ? `${note.learnings.substring(0, 80)}...` 
+                              : note.learnings}
+                          </Typography>
                         )}
-                        
-                        {note.deviation_to_plan && (
-                          <Grid item xs={12} sm={6}>
-                            <Typography variant="subtitle2" color="warning.main" gutterBottom>
-                              Deviation to Plan
-                            </Typography>
-                            <Typography variant="body2" sx={{ 
-                              p: 1, 
-                              bgcolor: 'warning.light', 
-                              borderRadius: 1,
-                              minHeight: '40px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              color: 'warning.contrastText'
-                            }}>
-                              {note.deviation_to_plan.length > 100 
-                                ? `${note.deviation_to_plan.substring(0, 100)}...` 
-                                : note.deviation_to_plan
-                              }
-                            </Typography>
-                          </Grid>
-                        )}
-                      </Grid>
+                      </Box>
                     </Paper>
                   ))}
                 </Stack>
@@ -503,7 +520,7 @@ export default function PodViewPage() {
 
       {/* Add Note Dialog */}
       <Dialog open={openNoteDialog} onClose={() => setOpenNoteDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Add POD Review Note</DialogTitle>
+        <DialogTitle>{editingNote ? 'Edit POD Review Note' : 'Add POD Review Note'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
@@ -580,9 +597,21 @@ export default function PodViewPage() {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenNoteDialog(false)}>Cancel</Button>
+          <Button onClick={() => {
+            setOpenNoteDialog(false)
+            setEditingNote(null)
+            setNoteForm({
+              review_date: '',
+              blockers: '',
+              learnings: '',
+              current_state: '',
+              deviation_to_plan: '',
+              dependencies_risks: '',
+              misc: ''
+            })
+          }}>Cancel</Button>
           <Button onClick={handleAddNote} variant="contained">
-            Add Note
+            {editingNote ? 'Update Note' : 'Add Note'}
           </Button>
         </DialogActions>
       </Dialog>

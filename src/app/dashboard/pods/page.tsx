@@ -29,7 +29,7 @@ import {
   Delete as DeleteIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material'
-import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers } from '@/lib/data'
+import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies } from '@/lib/data'
 import { type Pod, type Area, type Profile } from '@/lib/supabase'
 
 export default function PodsPage() {
@@ -91,8 +91,10 @@ export default function PodsPage() {
         })
         // Update POD members separately
         await updatePodMembers(editingPod.id, formData.members)
+        // Update POD dependencies separately
+        await updatePodDependencies(editingPod.id, formData.dependencies)
       } else {
-        await createPod({
+        const newPod = await createPod({
           name: formData.name,
           description: formData.description,
           area_id: formData.area_id,
@@ -100,6 +102,10 @@ export default function PodsPage() {
           end_date: formData.end_date || undefined,
           members: formData.members
         })
+        // Add POD dependencies
+        if (formData.dependencies.length > 0) {
+          await updatePodDependencies(newPod.id, formData.dependencies)
+        }
       }
       setOpenDialog(false)
       setEditingPod(null)
@@ -119,8 +125,12 @@ export default function PodsPage() {
     }
   }
 
-  const handleEditPod = (pod: Pod) => {
+  const handleEditPod = async (pod: Pod) => {
     setEditingPod(pod)
+    
+    // Load existing dependencies
+    const existingDependencies = await getPodDependencies(pod.id)
+    
     setFormData({
       name: pod.name,
       description: pod.description,
@@ -133,7 +143,7 @@ export default function PodsPage() {
         bandwidth_percentage: member.bandwidth_percentage,
         is_leader: member.is_leader
       })) || [],
-      dependencies: [] // TODO: Load existing dependencies
+      dependencies: existingDependencies
     })
     setOpenDialog(true)
   }
@@ -166,8 +176,8 @@ export default function PodsPage() {
     },
     { field: 'status', headerName: 'Status', width: 150 },
     { 
-      field: 'members', 
-      headerName: 'Members', 
+      field: 'assigned_members', 
+      headerName: 'Assigned Members', 
       width: 200,
       valueGetter: (params: any) => {
         try {

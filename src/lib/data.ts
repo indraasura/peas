@@ -360,3 +360,66 @@ export async function deletePodNote(id: string) {
 
   if (error) throw error
 }
+
+export async function getPodNote(id: string): Promise<PodNote | null> {
+  const { data, error } = await supabase
+    .from('pod_notes')
+    .select(`
+      *,
+      creator:profiles(*)
+    `)
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    console.error('Error fetching POD note:', error)
+    return null
+  }
+
+  return data
+}
+
+// POD Dependencies Management
+export async function updatePodDependencies(podId: string, dependentPodIds: string[]) {
+  try {
+    // First, remove all existing dependencies for this POD
+    await supabase
+      .from('pod_dependencies')
+      .delete()
+      .eq('pod_id', podId)
+
+    // Then, add the new dependencies
+    if (dependentPodIds.length > 0) {
+      const dependencyInserts = dependentPodIds.map(dependentPodId => ({
+        pod_id: podId,
+        dependent_pod_id: dependentPodId
+      }))
+
+      const { error } = await supabase
+        .from('pod_dependencies')
+        .insert(dependencyInserts)
+
+      if (error) {
+        console.error('Error inserting POD dependencies:', error)
+        throw error
+      }
+    }
+  } catch (error) {
+    console.error('Error updating POD dependencies:', error)
+    throw error
+  }
+}
+
+export async function getPodDependencies(podId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('pod_dependencies')
+    .select('dependent_pod_id')
+    .eq('pod_id', podId)
+
+  if (error) {
+    console.error('Error fetching POD dependencies:', error)
+    return []
+  }
+
+  return data?.map(dep => dep.dependent_pod_id) || []
+}
