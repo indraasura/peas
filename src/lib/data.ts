@@ -115,8 +115,6 @@ export async function updatePodMembers(podId: string, members: Array<{
   is_leader: boolean
 }>) {
   try {
-    console.log('Updating POD members for POD:', podId, 'Members:', members)
-    
     // First, remove all existing members for this POD
     const { error: deleteError } = await supabase
       .from('pod_members')
@@ -125,8 +123,6 @@ export async function updatePodMembers(podId: string, members: Array<{
 
     if (deleteError) {
       console.error('Error deleting existing POD members:', deleteError)
-    } else {
-      console.log('Successfully deleted existing POD members')
     }
 
     // Then, add the new members
@@ -138,7 +134,6 @@ export async function updatePodMembers(podId: string, members: Array<{
         is_leader: member.is_leader
       }))
 
-      console.log('Inserting new POD members:', memberInserts)
       const { error } = await supabase
         .from('pod_members')
         .insert(memberInserts)
@@ -146,8 +141,6 @@ export async function updatePodMembers(podId: string, members: Array<{
       if (error) {
         console.error('Error inserting new POD members:', error)
         throw error
-      } else {
-        console.log('Successfully inserted new POD members')
       }
     }
   } catch (error) {
@@ -227,16 +220,12 @@ export async function getPods(): Promise<Pod[]> {
     return []
   }
 
-  // Debug logging
-  console.log('Raw PODs data:', data)
-  data?.forEach(pod => {
-    console.log(`POD ${pod.name} members:`, pod.pod_members)
-  })
 
-  // Ensure area data is properly structured
+  // Ensure area data is properly structured and map pod_members to members
   const podsWithAreas = (data || []).map(pod => ({
     ...pod,
-    area: pod.area || null
+    area: pod.area || null,
+    members: pod.pod_members || []
   }))
 
   return podsWithAreas
@@ -271,7 +260,6 @@ export async function createPod(podData: {
 
   // Add members if provided
   if (podData.members && podData.members.length > 0) {
-    console.log('Adding members to POD:', podData.members)
     const memberInserts = podData.members.map(member => ({
       pod_id: pod.id,
       member_id: member.member_id,
@@ -279,15 +267,12 @@ export async function createPod(podData: {
       is_leader: member.is_leader
     }))
 
-    console.log('Member inserts:', memberInserts)
     const { error: membersError } = await supabase
       .from('pod_members')
       .insert(memberInserts)
 
     if (membersError) {
       console.error('Error adding pod members:', membersError)
-    } else {
-      console.log('Successfully added POD members')
     }
   }
 
