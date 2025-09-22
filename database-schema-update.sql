@@ -152,6 +152,7 @@ CREATE POLICY "Allow authenticated inserts" ON public.pod_notes FOR ALL USING (a
 CREATE POLICY "Allow all reads" ON public.area_decision_quorum FOR SELECT USING (true);
 CREATE POLICY "Allow authenticated inserts" ON public.area_decision_quorum FOR ALL USING (auth.uid() IS NOT NULL);
 
+
 -- Drop existing function and trigger if they exist
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();

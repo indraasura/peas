@@ -27,7 +27,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material'
-import { getAreas, createArea, updateArea, deleteArea, getMembers } from '@/lib/data'
+import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum } from '@/lib/data'
 import { type Area } from '@/lib/supabase'
 
 const impactLevels = ['Low', 'Medium', 'High']
@@ -44,7 +44,8 @@ export default function AreasPage() {
     revenue_impact: 'Low',
     business_enablement: 'Low',
     efforts: 'Low',
-    end_user_impact: 'Low'
+    end_user_impact: 'Low',
+    decision_quorum: [] as string[]
   })
   const [error, setError] = useState('')
 
@@ -70,12 +71,19 @@ export default function AreasPage() {
   const handleSubmit = async () => {
     try {
       setError('')
+      const { decision_quorum, ...areaData } = formData
       
+      let areaId: string
       if (editingArea) {
-        await updateArea(editingArea.id, formData)
+        await updateArea(editingArea.id, areaData)
+        areaId = editingArea.id
       } else {
-        await createArea(formData)
+        const newArea = await createArea(areaData)
+        areaId = newArea.id
       }
+      
+      // Update decision quorum separately
+      await updateAreaDecisionQuorum(areaId, decision_quorum)
       
       setOpenDialog(false)
       setEditingArea(null)
@@ -85,7 +93,8 @@ export default function AreasPage() {
         revenue_impact: 'Low',
         business_enablement: 'Low',
         efforts: 'Low',
-        end_user_impact: 'Low'
+        end_user_impact: 'Low',
+        decision_quorum: []
       })
       fetchAreas()
     } catch (err: any) {
@@ -101,7 +110,8 @@ export default function AreasPage() {
       revenue_impact: area.revenue_impact,
       business_enablement: area.business_enablement,
       efforts: area.efforts,
-      end_user_impact: area.end_user_impact
+      end_user_impact: area.end_user_impact,
+      decision_quorum: area.decision_quorum?.map(member => member.id) || []
     })
     setOpenDialog(true)
   }
@@ -259,6 +269,33 @@ export default function AreasPage() {
                   {impactLevels.map((level) => (
                     <MenuItem key={level} value={level}>
                       {level}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Decision Quorum (POD Committee Members)</InputLabel>
+                <Select
+                  multiple
+                  value={formData.decision_quorum}
+                  onChange={(e) => setFormData({ ...formData, decision_quorum: e.target.value as string[] })}
+                  label="Decision Quorum (POD Committee Members)"
+                  renderValue={(selected) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {selected.map((value) => {
+                        const member = podCommitteeMembers.find(m => m.id === value)
+                        return (
+                          <Chip key={value} label={member?.name || value} size="small" />
+                        )
+                      })}
+                    </Box>
+                  )}
+                >
+                  {podCommitteeMembers.map((member) => (
+                    <MenuItem key={member.id} value={member.id}>
+                      {member.name} ({member.email})
                     </MenuItem>
                   ))}
                 </Select>
