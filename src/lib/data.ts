@@ -534,100 +534,17 @@ export async function createMember(memberData: {
   password?: string
 }): Promise<Profile> {
   try {
-    if (memberData.team === 'POD committee') {
-      // For POD committee members, create auth user with email verification
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: memberData.email,
-        password: memberData.password || 'temp123456',
-        options: {
-          data: {
-            name: memberData.name,
-            team: memberData.team
-          }
-        }
-      })
-
-      if (authError) {
-        throw authError
-      }
-
-      if (!authData.user) {
-        throw new Error('Failed to create user account')
-      }
-
-      // Create the profile linked to auth user
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          name: memberData.name,
-          email: memberData.email,
-          team: memberData.team
-        })
-        .select()
-        .single()
-
-      if (profileError) {
-        throw profileError
-      }
-
-      return profileData
-    } else {
-      // For non-POD committee members, create profile only (no auth user)
-      // Check if email already exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', memberData.email)
-        .single()
-
-      if (existingProfile) {
-        throw new Error('A member with this email already exists')
-      }
-
-      // For non-POD committee members, we'll use a different approach
-      // Create a temporary auth user first, then delete the auth user but keep the profile
-      // This ensures we get a valid UUID that satisfies the foreign key constraint
-      
-      // Generate a temporary email for auth user creation
-      const tempEmail = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}@temp.com`
-      
-      const { data: tempAuthData, error: tempAuthError } = await supabase.auth.signUp({
-        email: tempEmail,
-        password: 'temp123456',
-        options: {
-          data: {
-            name: 'temp',
-            team: 'temp'
-          }
-        }
-      })
-
-      if (tempAuthError || !tempAuthData.user) {
-        throw new Error('Failed to create temporary user for profile')
-      }
-
-      // Create the profile with the temp auth user ID
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: tempAuthData.user.id,
-          name: memberData.name,
-          email: memberData.email,
-          team: memberData.team
-        })
-        .select()
-        .single()
-
-      if (profileError) {
-        throw profileError
-      }
-
-      // Note: We keep the profile but the auth user can be considered inactive
-      // The profile will work for our purposes without the auth user being active
-      
-      return profileData
-    }
+    // Import the createMemberProfile function from auth.ts
+    const { createMemberProfile } = await import('./auth')
+    
+    // Use the proper createMemberProfile function
+    return await createMemberProfile({
+      name: memberData.name,
+      email: memberData.email,
+      team: memberData.team,
+      password: memberData.password || 'temp123456',
+      bandwidth: 100 // Default bandwidth
+    })
   } catch (error) {
     console.error('Error creating member:', error)
     throw error
