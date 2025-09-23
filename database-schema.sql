@@ -201,12 +201,12 @@ BEGIN
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data ->> 'name', 'New User'),
-    COALESCE(NEW.raw_user_meta_data ->> 'team', 'POD committee')
+    'POD committee' -- Force POD committee team for all new users
   )
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     name = COALESCE(EXCLUDED.name, profiles.name),
-    team = COALESCE(EXCLUDED.team, profiles.team),
+    team = 'POD committee', -- Force POD committee team
     updated_at = NOW();
   
   RETURN NEW;

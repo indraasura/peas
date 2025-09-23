@@ -11,24 +11,15 @@ import {
   Typography,
   Alert,
   Link as MuiLink,
-  Container,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  Container
 } from '@mui/material'
 import { signUp } from '@/lib/auth'
-
-const teams = [
-  'POD committee'
-]
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
-    team: ''
+    password: ''
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -42,10 +33,15 @@ export default function SignupPage() {
     try {
       await signUp(formData.email, formData.password, {
         name: formData.name,
-        team: formData.team
+        team: 'POD committee'
       })
-      router.push('/dashboard')
+      
+      // Show success message and redirect
+      setError('')
+      alert('Account created successfully! Please check your email to confirm your account before signing in.')
+      router.push('/auth/login')
     } catch (err: any) {
+      console.error('Signup error:', err)
       setError(err.message || 'Signup failed')
     } finally {
       setLoading(false)
@@ -66,7 +62,7 @@ export default function SignupPage() {
               Sign Up
             </Typography>
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-              Create your POD committee account. Only POD committee members can sign up.
+              Create your POD committee account. You will receive a confirmation email after signup.
             </Typography>
 
             {error && (
@@ -94,20 +90,6 @@ export default function SignupPage() {
                 required
                 autoComplete="email"
               />
-              <FormControl fullWidth margin="normal" required>
-                <InputLabel>Team</InputLabel>
-                <Select
-                  value={formData.team}
-                  onChange={(e) => setFormData({ ...formData, team: e.target.value })}
-                  label="Team"
-                >
-                  {teams.map((team) => (
-                    <MenuItem key={team} value={team}>
-                      {team}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
               <TextField
                 fullWidth
                 label="Password"

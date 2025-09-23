@@ -40,7 +40,15 @@ A Next.js application for managing Product-Oriented Development (POD) teams and 
    ```
 
 3. **Set up database**:
+   
+   **Option A: Fresh Setup (if no tables exist)**:
    Run the SQL commands in `database-schema.sql` in your Supabase SQL editor.
+   
+   **Option B: Migration (if tables already exist)**:
+   Run the SQL commands in `database-migration.sql` in your Supabase SQL editor.
+   
+   **Option C: Reset Everything (if you want to start fresh)**:
+   Run `database-reset.sql` first, then `database-schema.sql`.
 
 4. **Run the development server**:
    ```bash

@@ -20,8 +20,18 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 
 3. **Set up the database**:
    - Go to the SQL Editor in your Supabase dashboard
+   
+   **If you're setting up for the first time:**
    - Copy and paste the contents of `database-schema.sql`
    - Run the SQL commands to create all tables, policies, and sample data
+   
+   **If you're getting "relation already exists" errors:**
+   - Copy and paste the contents of `database-migration.sql`
+   - Run the SQL commands to update existing tables and policies
+   
+   **If you want to start completely fresh:**
+   - First run `database-reset.sql` to delete everything
+   - Then run `database-schema.sql` to recreate everything
 
 4. **Configure Authentication**:
    - Go to Authentication → Settings

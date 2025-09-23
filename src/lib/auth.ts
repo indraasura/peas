@@ -88,29 +88,20 @@ export async function signUp(email: string, password: string, userData: { name: 
     email,
     password,
     options: {
-      data: userData
+      data: {
+        name: userData.name,
+        team: 'POD committee'
+      }
     }
   })
 
-  if (error) throw error
-
-  // Create profile
-  if (data.user) {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: data.user.id,
-        email: data.user.email!,
-        name: userData.name,
-        team: 'POD committee' // Force POD committee team
-      })
-
-    if (profileError) {
-      console.error('Profile creation error:', profileError)
-      throw new Error('Failed to create user profile. Please try again.')
-    }
+  if (error) {
+    console.error('Signup error:', error)
+    throw error
   }
 
+  // The profile will be created automatically by the database trigger
+  // No need to manually create it here
   return data
 }
 
@@ -148,7 +139,8 @@ export async function signIn(email: string, password: string) {
 
         if (createError) {
           console.error('Error creating profile:', createError)
-          throw new Error('Failed to create user profile. Please contact an administrator.')
+          // If profile creation fails, still allow login but log the error
+          console.warn('Profile creation failed, but allowing login')
         }
       } else {
         // Check if user is POD committee member

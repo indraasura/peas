@@ -30,12 +30,18 @@ export default function LoginPage() {
     try {
       const result = await signIn(email, password)
       
-      // Small delay to ensure authentication state is properly set
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 100)
+      if (result?.user) {
+        // Small delay to ensure authentication state is properly set
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 100)
+      } else {
+        setError('Login failed. Please try again.')
+        setLoading(false)
+      }
       
     } catch (err: any) {
+      console.error('Login error:', err)
       setError(err.message || 'Login failed')
       setLoading(false)
     }
