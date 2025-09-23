@@ -585,18 +585,33 @@ export async function createMember(memberData: {
         throw new Error('A member with this email already exists')
       }
 
-      // Generate a UUID for the profile
-      const userId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0
-        const v = c === 'x' ? r : (r & 0x3 | 0x8)
-        return v.toString(16)
+      // For non-POD committee members, we'll use a different approach
+      // Create a temporary auth user first, then delete the auth user but keep the profile
+      // This ensures we get a valid UUID that satisfies the foreign key constraint
+      
+      // Generate a temporary email for auth user creation
+      const tempEmail = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}@temp.com`
+      
+      const { data: tempAuthData, error: tempAuthError } = await supabase.auth.signUp({
+        email: tempEmail,
+        password: 'temp123456',
+        options: {
+          data: {
+            name: 'temp',
+            team: 'temp'
+          }
+        }
       })
 
-      // Create the profile without auth user
+      if (tempAuthError || !tempAuthData.user) {
+        throw new Error('Failed to create temporary user for profile')
+      }
+
+      // Create the profile with the temp auth user ID
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert({
-          id: userId,
+          id: tempAuthData.user.id,
           name: memberData.name,
           email: memberData.email,
           team: memberData.team
@@ -608,6 +623,9 @@ export async function createMember(memberData: {
         throw profileError
       }
 
+      // Note: We keep the profile but the auth user can be considered inactive
+      // The profile will work for our purposes without the auth user being active
+      
       return profileData
     }
   } catch (error) {

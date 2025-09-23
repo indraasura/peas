@@ -461,12 +461,11 @@ export default function MembersPage() {
                 onChange={(e) => setMemberForm({ ...memberForm, team: e.target.value })}
                 label="Team"
               >
-                <MenuItem value="Frontend">Frontend</MenuItem>
-                <MenuItem value="Backend">Backend</MenuItem>
-                <MenuItem value="DevOps">DevOps</MenuItem>
-                <MenuItem value="QA">QA</MenuItem>
-                <MenuItem value="Design">Design</MenuItem>
-                <MenuItem value="Product">Product</MenuItem>
+                <MenuItem value="Product (PM/UX/QA)">Product (PM/UX/QA)</MenuItem>
+                <MenuItem value="Engineering">Engineering</MenuItem>
+                <MenuItem value="Configuration">Configuration</MenuItem>
+                <MenuItem value="Customer success">Customer Success</MenuItem>
+                <MenuItem value="BD/Sales">BD/Sales</MenuItem>
                 <MenuItem value="POD committee">POD Committee</MenuItem>
               </Select>
             </FormControl>
