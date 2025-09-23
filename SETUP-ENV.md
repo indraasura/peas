@@ -1,44 +1,54 @@
-# Environment Setup Instructions
+# Environment Setup Guide
 
-## Create Environment File
+## Required Environment Variables
 
-Create a file named `.env.local` in the root directory of your project with the following content:
+Create a `.env.local` file in the root directory with the following variables:
 
-```bash
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-## How to Get Your Supabase Credentials
+## Supabase Setup
 
-1. **Go to Supabase Dashboard**: Visit [https://supabase.com/dashboard](https://supabase.com/dashboard)
-2. **Select Your Project**: Choose the project you want to use
-3. **Navigate to API Settings**: Go to Settings → API
-4. **Copy the Values**:
-   - **Project URL**: Copy the "Project URL" and paste it as `NEXT_PUBLIC_SUPABASE_URL`
-   - **API Key**: Copy the "anon public" key and paste it as `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+1. **Create a new Supabase project** at [supabase.com](https://supabase.com)
 
-## Example
+2. **Get your project credentials**:
+   - Go to Settings → API
+   - Copy the Project URL (this is your `NEXT_PUBLIC_SUPABASE_URL`)
+   - Copy the `anon` public key (this is your `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
 
-If your Supabase project URL is `https://abcdefghijklmnop.supabase.co` and your anon key is `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`, your `.env.local` file should look like:
+3. **Set up the database**:
+   - Go to the SQL Editor in your Supabase dashboard
+   - Copy and paste the contents of `database-schema.sql`
+   - Run the SQL commands to create all tables, policies, and sample data
 
-```bash
-NEXT_PUBLIC_SUPABASE_URL=https://abcdefghijklmnop.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
+4. **Configure Authentication**:
+   - Go to Authentication → Settings
+   - Enable email confirmations if desired
+   - Configure any additional auth settings as needed
 
-## Important Notes
+## First POD Committee Member
 
-- The `.env.local` file should be in the root directory (same level as `package.json`)
-- Never commit the `.env.local` file to version control
-- The `.env.local` file is already included in `.gitignore`
-- After creating the file, restart your development server (`npm run dev`)
+To create your first POD committee member:
 
-## Next Steps
+1. Run the application: `npm run dev`
+2. Go to `/auth/signup`
+3. Sign up with your email and password
+4. Select "POD committee" as your team
+5. Confirm your email (if email confirmation is enabled)
+6. Sign in at `/auth/login`
 
-After setting up the environment variables:
+## Creating Team Members
 
-1. Run the database schema: Copy and paste the contents of `database-schema.sql` into your Supabase SQL Editor
-2. Start the development server: `npm run dev`
-3. Visit `http://localhost:3000` to see your POD management application
+Once you're signed in as a POD committee member:
+
+1. Go to `/dashboard/members`
+2. Use the "Add Member" functionality to create profiles for other team members
+3. These members will not have authentication accounts but can be assigned to PODs
+
+## Troubleshooting
+
+- **"User not found" error**: Make sure you're signing up as a POD committee member
+- **Database errors**: Ensure you've run the complete `database-schema.sql` file
+- **Build errors**: Make sure all dependencies are installed with `npm install`

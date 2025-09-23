@@ -1,97 +1,82 @@
-# POD Management Tool v2
+# POD Management App
 
-A modern, fully functional Product Oriented Development (POD) management system built with Next.js, Material-UI, and Supabase.
+A Next.js application for managing Product-Oriented Development (POD) teams and projects.
 
 ## Features
 
-✅ **Modern UI**: Built with Material-UI components and dark mode support
-✅ **Robust Authentication**: Secure signup/login with Supabase Auth
-✅ **Dashboard**: Real-time statistics and overview
-✅ **POD Management**: Create, edit, and manage PODs with working dropdowns
-✅ **Areas Management**: Configure business areas and their impact levels
-✅ **Members Management**: View team members with bandwidth allocation
-✅ **Role-based Access**: POD Committee vs regular member permissions
-✅ **Profile Management**: User profiles with team information
-✅ **Responsive Design**: Works on desktop and mobile devices
+- **POD Committee Authentication**: Only POD committee members can sign up and sign in
+- **Member Management**: POD committee members can create and manage other team members
+- **Area Management**: Organize work into different areas with priority scoring
+- **POD Management**: Create and manage PODs with member assignments
+- **Kanban Board**: Visual project management with drag-and-drop functionality
+- **Notes & Reviews**: Track POD progress with regular reviews and notes
 
-## Quick Setup
+## Authentication
 
-### 1. Environment Setup
+### POD Committee Members
+- Can sign up and sign in using email/password
+- Have full access to all features
+- Can create and manage other team members
+- Can create, edit, and delete areas, PODs, and assignments
 
-Create a `.env.local` file in the root directory:
+### Other Team Members
+- Cannot sign up or sign in directly
+- Must be created by POD committee members
+- Can be assigned to PODs and areas
+- Profiles are managed by POD committee members
 
-```bash
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-```
+## Setup
 
-### 2. Database Setup
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-1. Go to your Supabase Dashboard → SQL Editor
-2. Copy and paste the contents of `database-schema.sql`
-3. Run the SQL script to create all tables, policies, and sample data
+2. **Set up environment variables**:
+   Create a `.env.local` file with:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-### 3. Install Dependencies
+3. **Set up database**:
+   Run the SQL commands in `database-schema.sql` in your Supabase SQL editor.
 
-```bash
-npm install
-```
+4. **Run the development server**:
+   ```bash
+   npm run dev
+   ```
 
-### 4. Run the Application
+5. **Build for production**:
+   ```bash
+   npm run build
+   ```
 
-```bash
-npm run dev
-```
+## Database Schema
 
-The application will be available at `http://localhost:3000`
+The application uses the following main tables:
+- `profiles`: User profiles (POD committee members and other team members)
+- `areas`: Work areas with priority scoring
+- `pods`: Product-Oriented Development teams
+- `pod_members`: POD member assignments with bandwidth allocation
+- `pod_notes`: Regular POD reviews and progress tracking
+- `area_comments`: Discussion threads for areas
+- `area_decision_quorum`: POD committee members responsible for area decisions
 
-## User Roles
+## Key Files
 
-- **POD Committee**: Full access to create/edit PODs, manage areas, and view all members
-- **Regular Members**: Can view their assigned PODs and profile information
+- `src/lib/auth.ts`: Authentication logic (POD committee only)
+- `src/lib/supabase.ts`: Database types and Supabase client
+- `src/components/KanbanBoard.tsx`: Drag-and-drop project management
+- `database-schema.sql`: Complete database schema with RLS policies
 
-## Key Improvements from v1
+## Security
 
-- ✅ **Working Dropdowns**: Areas and members properly populate in POD creation
-- ✅ **Fast Loading**: Optimized data fetching with proper error handling
-- ✅ **Modern UI**: Material-UI components with consistent design
-- ✅ **Dark Mode**: Fully functional theme switching
-- ✅ **Professional Icons**: Lucide React icons throughout
-- ✅ **Bandwidth Display**: Shows "Not allocated" instead of "0%" for unassigned members
-- ✅ **Error Handling**: Comprehensive error handling and user feedback
-- ✅ **Type Safety**: Full TypeScript implementation
-- ✅ **Performance**: Optimized queries and data loading
-
-## Project Structure
-
-```
-src/
-├── app/                    # Next.js app directory
-│   ├── auth/              # Authentication pages
-│   ├── dashboard/         # Dashboard pages
-│   └── layout.tsx         # Root layout
-├── components/            # Reusable components
-│   ├── DashboardLayout.tsx
-│   └── ThemeProvider.tsx
-└── lib/                   # Utilities and data access
-    ├── auth.ts           # Authentication functions
-    ├── data.ts           # Data access functions
-    └── supabase.ts       # Supabase client and types
-```
-
-## Technology Stack
-
-- **Frontend**: Next.js 15, React 18, TypeScript
-- **UI Library**: Material-UI (MUI) with Emotion
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth
-- **Styling**: Material-UI theming system
-- **Icons**: Lucide React icons
+- Row Level Security (RLS) is enabled on all tables
+- Only POD committee members can perform write operations
+- All other users have read-only access
+- Authentication is restricted to POD committee members only
 
 ## Deployment
 
-The application is ready for deployment on Vercel, Netlify, or any other Next.js hosting platform. Just make sure to set the environment variables in your deployment environment.
-
-## Support
-
-This is a complete, production-ready POD management system. All core functionality has been implemented and tested.
+The app is configured for deployment on Netlify with the included `netlify.toml` configuration.

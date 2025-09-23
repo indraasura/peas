@@ -20,12 +20,7 @@ import {
 import { signUp } from '@/lib/auth'
 
 const teams = [
-  'POD committee',
-  'Product',
-  'Configuration',
-  'Customer Success',
-  'Engineering',
-  'Sales'
+  'POD committee'
 ]
 
 export default function SignupPage() {
@@ -71,7 +66,7 @@ export default function SignupPage() {
               Sign Up
             </Typography>
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-              Create your POD management account
+              Create your POD committee account. Only POD committee members can sign up.
             </Typography>
 
             {error && (

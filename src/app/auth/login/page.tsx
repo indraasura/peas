@@ -55,7 +55,7 @@ export default function LoginPage() {
               Sign In
             </Typography>
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-              Access your POD management dashboard
+              Access your POD committee dashboard. Only POD committee members can sign in.
             </Typography>
 
             {error && (

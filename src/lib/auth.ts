@@ -52,7 +52,38 @@ export async function signOut() {
   localStorage.removeItem('current_user_id')
 }
 
+export async function createMemberProfile(memberData: { name: string; email: string; team: string }) {
+  // Only POD committee members can create member profiles
+  const currentUser = await getCurrentUser()
+  if (!currentUser || currentUser.team !== 'POD committee') {
+    throw new Error('Only POD committee members can create member profiles.')
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .insert({
+      id: crypto.randomUUID(), // Generate a UUID for non-auth users
+      email: memberData.email,
+      name: memberData.name,
+      team: memberData.team
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error creating member profile:', error)
+    throw new Error('Failed to create member profile. Please try again.')
+  }
+
+  return data
+}
+
 export async function signUp(email: string, password: string, userData: { name: string; team: string }) {
+  // Only allow POD committee members to sign up
+  if (userData.team !== 'POD committee') {
+    throw new Error('Only POD committee members can create accounts. Please contact an administrator.')
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -71,11 +102,12 @@ export async function signUp(email: string, password: string, userData: { name: 
         id: data.user.id,
         email: data.user.email!,
         name: userData.name,
-        team: userData.team
+        team: 'POD committee' // Force POD committee team
       })
 
     if (profileError) {
       console.error('Profile creation error:', profileError)
+      throw new Error('Failed to create user profile. Please try again.')
     }
   }
 
@@ -84,7 +116,7 @@ export async function signUp(email: string, password: string, userData: { name: 
 
 export async function signIn(email: string, password: string) {
   try {
-    // First, try direct Supabase auth (for POD committee members)
+    // Only allow Supabase auth for POD committee members
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -94,7 +126,7 @@ export async function signIn(email: string, password: string) {
       // Clear any stored non-auth user session
       localStorage.removeItem('current_user_id')
       
-      // Try to get or create profile for this auth user
+      // Get profile for this auth user
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -102,61 +134,43 @@ export async function signIn(email: string, password: string) {
         .limit(1)
 
       if (profileError || !profiles || profiles.length === 0) {
-        // Profile doesn't exist, create one
+        // Profile doesn't exist, create one for POD committee member
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .insert({
             id: authData.user.id,
             email: authData.user.email!,
             name: authData.user.user_metadata?.name || 'User',
-            team: authData.user.user_metadata?.team || 'POD committee'
+            team: 'POD committee'
           })
           .select()
           .single()
 
         if (createError) {
           console.error('Error creating profile:', createError)
-          // Still return auth data even if profile creation fails
+          throw new Error('Failed to create user profile. Please contact an administrator.')
+        }
+      } else {
+        // Check if user is POD committee member
+        const profile = profiles[0]
+        if (profile.team !== 'POD committee') {
+          await supabase.auth.signOut()
+          throw new Error('Access denied. Only POD committee members can sign in.')
         }
       }
 
       return authData
     }
 
-    // If Supabase auth fails, check if there's a profile in the database
-    const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('email', email)
-      .limit(1)
-
-    if (profileError) {
-      console.error('Profile lookup error:', profileError)
-      throw new Error('Database error occurred. Please try again.')
+    // If Supabase auth fails, throw error
+    if (authError) {
+      if (authError.message?.includes('Invalid login credentials')) {
+        throw new Error('Invalid email or password. Only POD committee members can sign in.')
+      }
+      throw authError
     }
 
-    if (!profiles || profiles.length === 0) {
-      throw new Error('User not found. Please check your email or contact an administrator.')
-    }
-
-    // Get the first profile (in case there are duplicates)
-    const profile = profiles[0]
-
-    // For non-POD committee members, use profile-based authentication
-    localStorage.setItem('current_user_id', profile.id)
-
-    // Return a mock auth response
-    return {
-      user: {
-        id: profile.id,
-        email: profile.email,
-        user_metadata: {
-          name: profile.name,
-          team: profile.team
-        }
-      },
-      session: null // No real session for non-auth users
-    }
+    throw new Error('Authentication failed. Please try again.')
 
   } catch (error: any) {
     // Handle specific error cases

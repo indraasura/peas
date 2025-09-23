@@ -23,6 +23,8 @@ CREATE TABLE public.areas (
   business_enablement TEXT DEFAULT 'Low',
   efforts TEXT DEFAULT 'Low',
   end_user_impact TEXT DEFAULT 'Low',
+  status TEXT NOT NULL DEFAULT 'backlog',
+  one_pager_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -86,6 +88,16 @@ CREATE TABLE public.area_decision_quorum (
   UNIQUE(area_id, member_id)
 );
 
+-- Create area_comments table for area discussions
+CREATE TABLE public.area_comments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  area_id UUID NOT NULL REFERENCES public.areas(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_by UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Enable Row Level Security
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.areas ENABLE ROW LEVEL SECURITY;
@@ -94,36 +106,88 @@ ALTER TABLE public.pod_dependencies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pod_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pod_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.area_decision_quorum ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.area_comments ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
--- Profiles policies
+-- Profiles policies - Only POD committee members can manage profiles
 CREATE POLICY "Allow all reads" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Allow profile inserts" ON public.profiles FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow profile updates" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Allow POD committee profile management" ON public.profiles FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM public.profiles p 
+    WHERE p.id = auth.uid() 
+    AND p.team = 'POD committee'
+  )
+);
 
 -- Areas policies
 CREATE POLICY "Allow all reads" ON public.areas FOR SELECT USING (true);
-CREATE POLICY "Allow authenticated inserts" ON public.areas FOR ALL USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Allow POD committee area management" ON public.areas FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM public.profiles p 
+    WHERE p.id = auth.uid() 
+    AND p.team = 'POD committee'
+  )
+);
 
 -- PODs policies
 CREATE POLICY "Allow all reads" ON public.pods FOR SELECT USING (true);
-CREATE POLICY "Allow authenticated inserts" ON public.pods FOR ALL USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Allow POD committee pod management" ON public.pods FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM public.profiles p 
+    WHERE p.id = auth.uid() 
+    AND p.team = 'POD committee'
+  )
+);
 
 -- POD dependencies policies
 CREATE POLICY "Allow all reads" ON public.pod_dependencies FOR SELECT USING (true);
-CREATE POLICY "Allow authenticated inserts" ON public.pod_dependencies FOR ALL USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Allow POD committee dependency management" ON public.pod_dependencies FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM public.profiles p 
+    WHERE p.id = auth.uid() 
+    AND p.team = 'POD committee'
+  )
+);
 
 -- POD members policies
 CREATE POLICY "Allow all reads" ON public.pod_members FOR SELECT USING (true);
-CREATE POLICY "Allow authenticated inserts" ON public.pod_members FOR ALL USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Allow POD committee member management" ON public.pod_members FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM public.profiles p 
+    WHERE p.id = auth.uid() 
+    AND p.team = 'POD committee'
+  )
+);
 
 -- POD notes policies
 CREATE POLICY "Allow all reads" ON public.pod_notes FOR SELECT USING (true);
-CREATE POLICY "Allow authenticated inserts" ON public.pod_notes FOR ALL USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Allow POD committee notes management" ON public.pod_notes FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM public.profiles p 
+    WHERE p.id = auth.uid() 
+    AND p.team = 'POD committee'
+  )
+);
 
 -- Area decision quorum policies
 CREATE POLICY "Allow all reads" ON public.area_decision_quorum FOR SELECT USING (true);
-CREATE POLICY "Allow authenticated inserts" ON public.area_decision_quorum FOR ALL USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Allow POD committee quorum management" ON public.area_decision_quorum FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM public.profiles p 
+    WHERE p.id = auth.uid() 
+    AND p.team = 'POD committee'
+  )
+);
+
+-- Area comments policies
+CREATE POLICY "Allow all reads" ON public.area_comments FOR SELECT USING (true);
+CREATE POLICY "Allow POD committee comment management" ON public.area_comments FOR ALL USING (
+  EXISTS (
+    SELECT 1 FROM public.profiles p 
+    WHERE p.id = auth.uid() 
+    AND p.team = 'POD committee'
+  )
+);
 
 -- Function to create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -137,7 +201,7 @@ BEGIN
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data ->> 'name', 'New User'),
-    COALESCE(NEW.raw_user_meta_data ->> 'team', 'Member')
+    COALESCE(NEW.raw_user_meta_data ->> 'team', 'POD committee')
   )
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
@@ -166,12 +230,16 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
 
+-- Add constraint to ensure valid status values for areas
+ALTER TABLE public.areas 
+ADD CONSTRAINT check_area_status CHECK (status IN ('backlog', 'planned'));
+
 -- Insert sample data
-INSERT INTO public.areas (name, description, revenue_impact, business_enablement, efforts, end_user_impact) VALUES
-('Customer Experience', 'Improving customer satisfaction and retention', 'High', 'High', 'Medium', 'High'),
-('Product Innovation', 'Developing new features and capabilities', 'Medium', 'High', 'High', 'Medium'),
-('Operational Efficiency', 'Streamlining internal processes', 'Low', 'Medium', 'Low', 'Low'),
-('Market Expansion', 'Entering new markets and segments', 'High', 'Medium', 'High', 'Medium');
+INSERT INTO public.areas (name, description, revenue_impact, business_enablement, efforts, end_user_impact, status) VALUES
+('Customer Experience', 'Improving customer satisfaction and retention', 'High', 'High', 'Medium', 'High', 'backlog'),
+('Product Innovation', 'Developing new features and capabilities', 'Medium', 'High', 'High', 'Medium', 'backlog'),
+('Operational Efficiency', 'Streamlining internal processes', 'Low', 'Medium', 'Low', 'Low', 'backlog'),
+('Market Expansion', 'Entering new markets and segments', 'High', 'Medium', 'High', 'Medium', 'backlog');
 
 -- Insert sample PODs
 INSERT INTO public.pods (name, description, area_id, status) VALUES
