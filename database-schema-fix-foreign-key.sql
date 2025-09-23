@@ -95,7 +95,7 @@ CREATE POLICY "POD committee can delete profiles" ON public.profiles
 -- Step 5: Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON public.profiles TO anon, authenticated;
-GRANT USAGE ON FUNCTION is_valid_auth_user(UUID) TO anon, authenticated;
+-- Note: Function permissions are handled by SECURITY DEFINER in the function definition
 
 -- Step 6: Add comment explaining the setup
 COMMENT ON CONSTRAINT profiles_auth_check ON public.profiles IS 

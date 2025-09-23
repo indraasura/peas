@@ -60,16 +60,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function loadUser() {
-      const currentUser = await getCurrentUser()
-      if (!currentUser) {
-        router.push('/auth/login')
-        return
+      try {
+        const currentUser = await getCurrentUser()
+        if (!currentUser) {
+          // Only redirect if we're not already on the login page
+          if (pathname !== '/auth/login') {
+            router.push('/auth/login')
+          }
+          return
+        }
+        setUser(currentUser)
+        setLoading(false)
+      } catch (error) {
+        console.error('Error loading user:', error)
+        if (pathname !== '/auth/login') {
+          router.push('/auth/login')
+        }
       }
-      setUser(currentUser)
-      setLoading(false)
     }
     loadUser()
-  }, [router])
+  }, [router, pathname])
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)

@@ -28,11 +28,15 @@ export default function LoginPage() {
     setError('')
 
     try {
-      await signIn(email, password)
-      router.push('/dashboard')
+      const result = await signIn(email, password)
+      
+      // Small delay to ensure authentication state is properly set
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 100)
+      
     } catch (err: any) {
       setError(err.message || 'Login failed')
-    } finally {
       setLoading(false)
     }
   }
