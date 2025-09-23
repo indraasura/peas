@@ -250,12 +250,12 @@ export default function PodsPage() {
       await createPodNote({
         pod_id: selectedPod.id,
         review_date: newNote.review_date,
-        blockers: newNote.blockers || null,
-        learnings: newNote.learnings || null,
-        current_state: newNote.current_state || null,
-        deviation_to_plan: newNote.deviation_to_plan || null,
-        dependencies_risks: newNote.dependencies_risks || null,
-        misc: newNote.misc || null,
+        blockers: newNote.blockers || undefined,
+        learnings: newNote.learnings || undefined,
+        current_state: newNote.current_state || undefined,
+        deviation_to_plan: newNote.deviation_to_plan || undefined,
+        dependencies_risks: newNote.dependencies_risks || undefined,
+        misc: newNote.misc || undefined,
         created_by: userId
       })
 

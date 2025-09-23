@@ -85,12 +85,12 @@ export interface PodNote {
   id: string
   pod_id: string
   review_date: string
-  blockers: string | null
-  learnings: string | null
-  current_state: string | null
-  deviation_to_plan: string | null
-  dependencies_risks: string | null
-  misc: string | null
+  blockers?: string
+  learnings?: string
+  current_state?: string
+  deviation_to_plan?: string
+  dependencies_risks?: string
+  misc?: string
   created_by: string
   created_at: string
   updated_at: string
