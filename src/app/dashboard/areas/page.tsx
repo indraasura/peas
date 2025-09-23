@@ -481,12 +481,19 @@ export default function AreasPage() {
             {area.one_pager_url && (
               <IconButton
                 size="small"
-                onClick={() => window.open(area.one_pager_url, '_blank')}
+                onClick={() => {
+                  const link = document.createElement('a')
+                  link.href = area.one_pager_url!
+                  link.download = `${area.name}_one_pager.pdf`
+                  document.body.appendChild(link)
+                  link.click()
+                  document.body.removeChild(link)
+                }}
                 sx={{ 
                   p: 0.5,
                   color: '#1976d2'
                 }}
-                title="View one-pager"
+                title="Download one-pager"
               >
                 <DownloadIcon sx={{ fontSize: 16 }} />
               </IconButton>

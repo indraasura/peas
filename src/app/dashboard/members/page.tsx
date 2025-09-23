@@ -131,8 +131,14 @@ export default function MembersPage() {
   }
 
   const handleSubmit = async () => {
-    if (!memberForm.name || !memberForm.email || !memberForm.team) {
-      setError('Please fill in all required fields')
+    // For POD committee members, email is required. For others, it's optional
+    const isEmailRequired = memberForm.team === 'POD committee'
+    
+    if (!memberForm.name || !memberForm.team || (isEmailRequired && !memberForm.email)) {
+      setError(isEmailRequired 
+        ? 'Please fill in all required fields (Name, Email, Team)' 
+        : 'Please fill in Name and Team'
+      )
       return
     }
 
@@ -144,7 +150,7 @@ export default function MembersPage() {
         // Update existing member
         await updateMember(editingMember.id, {
           name: memberForm.name,
-          email: memberForm.email,
+          email: memberForm.email || '',
           team: memberForm.team
         })
         setSuccess('Member updated successfully')
@@ -152,7 +158,7 @@ export default function MembersPage() {
         // Create new member
         await createMember({
           name: memberForm.name,
-          email: memberForm.email,
+          email: memberForm.email || `${memberForm.name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
           team: memberForm.team,
           password: memberForm.password || undefined
         })
@@ -440,8 +446,13 @@ export default function MembersPage() {
               value={memberForm.email}
               onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
               margin="normal"
-              required
+              required={memberForm.team === 'POD committee'}
               disabled={!!editingMember}
+              helperText={
+                memberForm.team === 'POD committee' 
+                  ? 'Email is required for POD committee members' 
+                  : 'Email is optional for team members'
+              }
             />
             <FormControl fullWidth margin="normal" required>
               <InputLabel>Team</InputLabel>

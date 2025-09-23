@@ -534,31 +534,45 @@ export async function createMember(memberData: {
   password?: string
 }): Promise<Profile> {
   try {
-    // First, create the auth user
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: memberData.email,
-      password: memberData.password || 'temp123456', // Temporary password
-      options: {
-        data: {
-          name: memberData.name,
-          team: memberData.team
+    let userId: string
+
+    if (memberData.team === 'POD committee') {
+      // For POD committee members, create auth user with email verification
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: memberData.email,
+        password: memberData.password || 'temp123456',
+        options: {
+          data: {
+            name: memberData.name,
+            team: memberData.team
+          }
         }
+      })
+
+      if (authError) {
+        throw authError
       }
-    })
 
-    if (authError) {
-      throw authError
-    }
+      if (!authData.user) {
+        throw new Error('Failed to create user account')
+      }
 
-    if (!authData.user) {
-      throw new Error('Failed to create user account')
+      userId = authData.user.id
+    } else {
+      // For non-POD committee members, create profile without auth user
+      // Generate a UUID for the profile using a simple method
+      userId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0
+        const v = c === 'x' ? r : (r & 0x3 | 0x8)
+        return v.toString(16)
+      })
     }
 
     // Create the profile
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .insert({
-        id: authData.user.id,
+        id: userId,
         name: memberData.name,
         email: memberData.email,
         team: memberData.team
@@ -599,7 +613,35 @@ export async function updateMember(memberId: string, updates: {
 
 export async function deleteMember(memberId: string): Promise<void> {
   try {
-    // Delete the profile first
+    // First check if this member has any POD assignments
+    const { data: podMembers, error: podMembersError } = await supabase
+      .from('pod_members')
+      .select('id')
+      .eq('member_id', memberId)
+
+    if (podMembersError) {
+      throw podMembersError
+    }
+
+    if (podMembers && podMembers.length > 0) {
+      throw new Error('Cannot delete member who is assigned to PODs. Please remove them from all PODs first.')
+    }
+
+    // Check if this member is part of any area decision quorum
+    const { data: areaQuorum, error: quorumError } = await supabase
+      .from('area_decision_quorum')
+      .select('id')
+      .eq('member_id', memberId)
+
+    if (quorumError) {
+      throw quorumError
+    }
+
+    if (areaQuorum && areaQuorum.length > 0) {
+      throw new Error('Cannot delete member who is part of area decision quorum. Please remove them from all areas first.')
+    }
+
+    // Delete the profile
     const { error: profileError } = await supabase
       .from('profiles')
       .delete()
@@ -609,9 +651,7 @@ export async function deleteMember(memberId: string): Promise<void> {
       throw profileError
     }
 
-    // Note: In a real application, you might want to delete the auth user as well
-    // This requires admin privileges and should be done carefully
-    console.log('Profile deleted. Auth user deletion requires admin privileges.')
+    console.log('Member profile deleted successfully.')
   } catch (error) {
     console.error('Error deleting member:', error)
     throw error
