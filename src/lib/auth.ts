@@ -15,7 +15,6 @@ export async function getCurrentUser(): Promise<Profile | null> {
         .limit(1)
 
       if (profileError || !profiles || profiles.length === 0) {
-        console.error('Profile error:', profileError)
         return null
       }
 
@@ -34,7 +33,6 @@ export async function getCurrentUser(): Promise<Profile | null> {
 
       if (!profileError && profiles && profiles.length > 0) {
         const profile = profiles[0]
-        // Return profile with bandwidth information
         return {
           id: profile.id,
           email: profile.email,
@@ -112,7 +110,6 @@ export async function getMemberAssignedPods(): Promise<any[]> {
 export async function createMemberProfile(memberData: { name: string; email: string; team: string; password: string; bandwidth?: number }) {
   // Only POD committee members can create member profiles
   const currentUser = await getCurrentUser()
-  console.log('Current user:', currentUser)
   
   if (!currentUser) {
     throw new Error('You must be logged in to create member profiles.')
@@ -122,61 +119,30 @@ export async function createMemberProfile(memberData: { name: string; email: str
     throw new Error(`Only POD committee members can create member profiles. Your team: ${currentUser.team}`)
   }
 
-  console.log('Attempting to create member profile with data:', memberData)
-
-  try {
-    // First try the database function (if it exists)
-    const { data, error } = await supabase.rpc('create_profile_member', {
-      p_email: memberData.email,
-      p_password: memberData.password, // In production, hash this
-      p_name: memberData.name,
-      p_team: memberData.team,
-      p_bandwidth: memberData.bandwidth || 100
+  // Use direct insert instead of RPC function to avoid dependency issues
+  const newId = crypto.randomUUID()
+  
+  const { data, error } = await supabase
+    .from('profiles')
+    .insert({
+      id: newId,
+      email: memberData.email,
+      password_hash: memberData.password,
+      name: memberData.name,
+      team: memberData.team,
+      bandwidth: memberData.bandwidth || 100,
+      available_bandwidth: memberData.bandwidth || 100,
+      used_bandwidth: 0
     })
+    .select()
+    .single()
 
-    if (error) {
-      console.error('Database function error:', error)
-      
-      // If the function doesn't exist, fall back to direct insert
-      if (error.message?.includes('function') && error.message?.includes('does not exist')) {
-        console.log('Database function not found, falling back to direct insert')
-        
-        // Generate a UUID for the new member
-        const newId = crypto.randomUUID()
-        
-        const { data: insertData, error: insertError } = await supabase
-          .from('profiles')
-          .insert({
-            id: newId,
-            email: memberData.email,
-            password_hash: memberData.password,
-            name: memberData.name,
-            team: memberData.team,
-            bandwidth: memberData.bandwidth || 100,
-            available_bandwidth: memberData.bandwidth || 100,
-            used_bandwidth: 0
-          })
-          .select()
-          .single()
-
-        if (insertError) {
-          console.error('Direct insert error:', insertError)
-          throw new Error(`Failed to create member profile: ${insertError.message}`)
-        }
-
-        console.log('Successfully created member profile via direct insert:', insertData)
-        return insertData
-      } else {
-        throw new Error(`Failed to create member profile: ${error.message}`)
-      }
-    }
-
-    console.log('Successfully created member profile via database function:', data)
-    return data
-  } catch (error: any) {
+  if (error) {
     console.error('Error creating member profile:', error)
-    throw error
+    throw new Error(`Failed to create member profile: ${error.message}`)
   }
+
+  return data
 }
 
 export async function signUp(email: string, password: string, userData: { name: string; team: string }) {
