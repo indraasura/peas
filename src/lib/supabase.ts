@@ -31,9 +31,22 @@ export interface Area {
   business_enablement: string
   efforts: string
   end_user_impact: string
+  status: 'backlog' | 'planned'
+  one_pager_url?: string
   created_at: string
   updated_at: string
   decision_quorum?: Profile[] // List of POD committee members for this area
+  comments?: AreaComment[] // List of comments for this area
+}
+
+export interface AreaComment {
+  id: string
+  area_id: string
+  content: string
+  created_by: string
+  created_at: string
+  updated_at: string
+  creator?: Profile
 }
 
 export interface Pod {

@@ -1,9 +1,9 @@
-import { supabase, type Area, type Pod, type Profile, type PodMember, type PodNote, type AreaDecisionQuorum } from './supabase'
+import { supabase, type Area, type Pod, type Profile, type PodMember, type PodNote, type AreaDecisionQuorum, type AreaComment } from './supabase'
 
 // Areas
 export async function getAreas(): Promise<Area[]> {
   try {
-    // First try to get areas with decision quorum
+    // First try to get areas with decision quorum and comments
     const { data, error } = await supabase
       .from('areas')
       .select(`
@@ -11,6 +11,10 @@ export async function getAreas(): Promise<Area[]> {
         area_decision_quorum(
           *,
           member:profiles(*)
+        ),
+        area_comments(
+          *,
+          creator:profiles(*)
         )
       `)
       .order('name')
@@ -30,14 +34,19 @@ export async function getAreas(): Promise<Area[]> {
       
       return (fallbackData || []).map(area => ({
         ...area,
-        decision_quorum: []
+        decision_quorum: [],
+        comments: []
       }))
     }
 
-    // Transform the data to include decision_quorum as an array of profiles
+    // Transform the data to include decision_quorum as an array of profiles and comments
     const areasWithQuorum = (data || []).map(area => ({
       ...area,
-      decision_quorum: area.area_decision_quorum?.map((quorum: any) => quorum.member).filter(Boolean) || []
+      decision_quorum: area.area_decision_quorum?.map((quorum: any) => quorum.member).filter(Boolean) || [],
+      comments: area.area_comments?.map((comment: any) => ({
+        ...comment,
+        creator: comment.creator
+      })) || []
     }))
 
     return areasWithQuorum
@@ -48,7 +57,7 @@ export async function getAreas(): Promise<Area[]> {
   }
 }
 
-export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum'>) {
+export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum' | 'comments'>) {
   const { data, error } = await supabase
     .from('areas')
     .insert(area)
@@ -59,7 +68,7 @@ export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated
   return data
 }
 
-export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum'>>) {
+export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum' | 'comments'>>) {
   const { data, error } = await supabase
     .from('areas')
     .update(updates)
@@ -421,4 +430,98 @@ export async function getPodDependencies(podId: string): Promise<string[]> {
   }
 
   return data?.map(dep => dep.dependent_pod_id) || []
+}
+
+// Area Comments Management
+export async function getAreaComments(areaId: string): Promise<AreaComment[]> {
+  const { data, error } = await supabase
+    .from('area_comments')
+    .select(`
+      *,
+      creator:profiles(*)
+    `)
+    .eq('area_id', areaId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching area comments:', error)
+    return []
+  }
+
+  return data || []
+}
+
+export async function createAreaComment(commentData: {
+  area_id: string
+  content: string
+  created_by: string
+}) {
+  const { data, error } = await supabase
+    .from('area_comments')
+    .insert(commentData)
+    .select(`
+      *,
+      creator:profiles(*)
+    `)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateAreaComment(id: string, updates: Partial<AreaComment>) {
+  const { data, error } = await supabase
+    .from('area_comments')
+    .update(updates)
+    .eq('id', id)
+    .select(`
+      *,
+      creator:profiles(*)
+    `)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteAreaComment(id: string) {
+  const { error } = await supabase
+    .from('area_comments')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+// Get planned areas only (for POD creation dropdown)
+export async function getPlannedAreas(): Promise<Area[]> {
+  try {
+    const { data, error } = await supabase
+      .from('areas')
+      .select(`
+        *,
+        area_decision_quorum(
+          *,
+          member:profiles(*)
+        )
+      `)
+      .eq('status', 'planned')
+      .order('name')
+
+    if (error) {
+      console.error('Error fetching planned areas:', error)
+      return []
+    }
+
+    // Transform the data to include decision_quorum as an array of profiles
+    const areasWithQuorum = (data || []).map(area => ({
+      ...area,
+      decision_quorum: area.area_decision_quorum?.map((quorum: any) => quorum.member).filter(Boolean) || []
+    }))
+
+    return areasWithQuorum
+  } catch (error) {
+    console.error('Unexpected error in getPlannedAreas:', error)
+    return []
+  }
 }
