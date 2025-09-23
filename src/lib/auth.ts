@@ -4,9 +4,9 @@ export type { Profile }
 
 export async function getCurrentUser(): Promise<Profile | null> {
   try {
+    // First check for Supabase auth user (POD committee members)
     const { data: { user }, error } = await supabase.auth.getUser()
     
-    // If we have an auth user, get their profile
     if (!error && user) {
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
@@ -22,19 +22,30 @@ export async function getCurrentUser(): Promise<Profile | null> {
       return profiles[0]
     }
 
-    // If no auth user, check if there's a stored session for non-auth users
-    // This is a fallback for team members who don't have auth users
-    const storedUserId = localStorage.getItem('current_user_id')
+    // If no auth user, check for member session
+    const storedMemberId = localStorage.getItem('current_member_id')
     
-    if (storedUserId) {
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
+    if (storedMemberId) {
+      const { data: members, error: memberError } = await supabase
+        .from('members')
         .select('*')
-        .eq('id', storedUserId)
+        .eq('id', storedMemberId)
         .limit(1)
 
-      if (!profileError && profiles && profiles.length > 0) {
-        return profiles[0]
+      if (!memberError && members && members.length > 0) {
+        const member = members[0]
+        // Convert member to Profile format for compatibility
+        return {
+          id: member.id,
+          email: member.email,
+          name: member.name,
+          team: member.team,
+          bandwidth: member.bandwidth,
+          available_bandwidth: member.available_bandwidth,
+          used_bandwidth: member.used_bandwidth,
+          created_at: member.created_at,
+          updated_at: member.updated_at
+        }
       }
     }
 
@@ -48,22 +59,70 @@ export async function getCurrentUser(): Promise<Profile | null> {
 export async function signOut() {
   // Clear auth session
   await supabase.auth.signOut()
-  // Clear stored non-auth user session
-  localStorage.removeItem('current_user_id')
+  // Clear stored member session
+  localStorage.removeItem('current_member_id')
 }
 
-export async function createMemberProfile(memberData: { name: string; email: string; team: string }) {
+export async function canManagePodNotes(podId: string): Promise<boolean> {
+  const currentUser = await getCurrentUser()
+  if (!currentUser) return false
+
+  // POD committee members can manage all notes
+  if (currentUser.team === 'POD committee') return true
+
+  // For regular members, check if they're assigned to this POD
+  const { data: podMembers, error } = await supabase
+    .from('pod_members')
+    .select('*')
+    .eq('pod_id', podId)
+    .eq('member_id', currentUser.id)
+
+  if (error) {
+    console.error('Error checking POD membership:', error)
+    return false
+  }
+
+  return podMembers && podMembers.length > 0
+}
+
+export async function getMemberAssignedPods(): Promise<any[]> {
+  const currentUser = await getCurrentUser()
+  if (!currentUser) return []
+
+  // Get all PODs this member is assigned to
+  const { data: podMembers, error } = await supabase
+    .from('pod_members')
+    .select(`
+      *,
+      pods (
+        *,
+        areas (*)
+      )
+    `)
+    .eq('member_id', currentUser.id)
+
+  if (error) {
+    console.error('Error fetching assigned PODs:', error)
+    return []
+  }
+
+  return podMembers || []
+}
+
+export async function createMemberProfile(memberData: { name: string; email: string; team: string; password: string; bandwidth?: number }) {
   // Only POD committee members can create member profiles
   const currentUser = await getCurrentUser()
   if (!currentUser || currentUser.team !== 'POD committee') {
     throw new Error('Only POD committee members can create member profiles.')
   }
 
-  // Use the database function to create member profile with proper UUID handling
-  const { data, error } = await supabase.rpc('create_member_profile', {
+  // Use the database function to create member profile
+  const { data, error } = await supabase.rpc('create_member', {
     p_email: memberData.email,
+    p_password: memberData.password, // In production, hash this
     p_name: memberData.name,
-    p_team: memberData.team
+    p_team: memberData.team,
+    p_bandwidth: memberData.bandwidth || 100
   })
 
   if (error) {
@@ -103,15 +162,15 @@ export async function signUp(email: string, password: string, userData: { name: 
 
 export async function signIn(email: string, password: string) {
   try {
-    // Only allow Supabase auth for POD committee members
+    // First, try Supabase auth (for POD committee members)
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
     })
 
     if (authData?.user) {
-      // Clear any stored non-auth user session
-      localStorage.removeItem('current_user_id')
+      // Clear any stored member session
+      localStorage.removeItem('current_member_id')
       
       // Get profile for this auth user
       const { data: profiles, error: profileError } = await supabase
@@ -135,30 +194,48 @@ export async function signIn(email: string, password: string) {
 
         if (createError) {
           console.error('Error creating profile:', createError)
-          // If profile creation fails, still allow login but log the error
           console.warn('Profile creation failed, but allowing login')
-        }
-      } else {
-        // Check if user is POD committee member
-        const profile = profiles[0]
-        if (profile.team !== 'POD committee') {
-          await supabase.auth.signOut()
-          throw new Error('Access denied. Only POD committee members can sign in.')
         }
       }
 
       return authData
     }
 
-    // If Supabase auth fails, throw error
+    // If Supabase auth fails, try member authentication
+    const { data: memberData, error: memberError } = await supabase.rpc('authenticate_member', {
+      p_email: email,
+      p_password: password
+    })
+
+    if (memberData && memberData.length > 0) {
+      const member = memberData[0]
+      // Store member session
+      localStorage.setItem('current_member_id', member.id)
+      
+      // Return a mock auth response for members
+      return {
+        user: {
+          id: member.id,
+          email: member.email,
+          user_metadata: {
+            name: member.name,
+            team: member.team,
+            is_member: true // Flag to identify this as a member, not POD committee
+          }
+        },
+        session: null
+      }
+    }
+
+    // If both fail, throw error
     if (authError) {
       if (authError.message?.includes('Invalid login credentials')) {
-        throw new Error('Invalid email or password. Only POD committee members can sign in.')
+        throw new Error('Invalid email or password.')
       }
       throw authError
     }
 
-    throw new Error('Authentication failed. Please try again.')
+    throw new Error('Invalid email or password.')
 
   } catch (error: any) {
     // Handle specific error cases
