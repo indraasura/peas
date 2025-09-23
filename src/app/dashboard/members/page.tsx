@@ -470,7 +470,7 @@ export default function MembersPage() {
                 <MenuItem value="POD committee">POD Committee</MenuItem>
               </Select>
             </FormControl>
-            {!editingMember && (
+            {!editingMember && memberForm.team === 'POD committee' && (
               <TextField
                 fullWidth
                 label="Password (optional - will use default if not provided)"
@@ -479,6 +479,17 @@ export default function MembersPage() {
                 onChange={(e) => setMemberForm({ ...memberForm, password: e.target.value })}
                 margin="normal"
                 helperText="If not provided, a temporary password will be generated"
+              />
+            )}
+            {!editingMember && memberForm.team !== 'POD committee' && (
+              <TextField
+                fullWidth
+                label="Password (not needed for team members)"
+                type="password"
+                value=""
+                disabled
+                margin="normal"
+                helperText="Team members don't need passwords - they can log in with email only"
               />
             )}
           </Box>

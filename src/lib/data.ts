@@ -534,8 +534,6 @@ export async function createMember(memberData: {
   password?: string
 }): Promise<Profile> {
   try {
-    let userId: string
-
     if (memberData.team === 'POD committee') {
       // For POD committee members, create auth user with email verification
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -557,34 +555,61 @@ export async function createMember(memberData: {
         throw new Error('Failed to create user account')
       }
 
-      userId = authData.user.id
+      // Create the profile linked to auth user
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          name: memberData.name,
+          email: memberData.email,
+          team: memberData.team
+        })
+        .select()
+        .single()
+
+      if (profileError) {
+        throw profileError
+      }
+
+      return profileData
     } else {
-      // For non-POD committee members, create profile without auth user
-      // Generate a UUID for the profile using a simple method
-      userId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      // For non-POD committee members, create profile only (no auth user)
+      // Check if email already exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', memberData.email)
+        .single()
+
+      if (existingProfile) {
+        throw new Error('A member with this email already exists')
+      }
+
+      // Generate a UUID for the profile
+      const userId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         const r = Math.random() * 16 | 0
         const v = c === 'x' ? r : (r & 0x3 | 0x8)
         return v.toString(16)
       })
+
+      // Create the profile without auth user
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          name: memberData.name,
+          email: memberData.email,
+          team: memberData.team
+        })
+        .select()
+        .single()
+
+      if (profileError) {
+        throw profileError
+      }
+
+      return profileData
     }
-
-    // Create the profile
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: userId,
-        name: memberData.name,
-        email: memberData.email,
-        team: memberData.team
-      })
-      .select()
-      .single()
-
-    if (profileError) {
-      throw profileError
-    }
-
-    return profileData
   } catch (error) {
     console.error('Error creating member:', error)
     throw error

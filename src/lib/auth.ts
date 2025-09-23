@@ -64,11 +64,44 @@ export async function signUp(email: string, password: string, userData: { name: 
 }
 
 export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
+  // First try to sign in as a POD committee member (has auth user)
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
     email,
     password
   })
 
-  if (error) throw error
-  return data
+  if (authData?.user) {
+    return authData
+  }
+
+  // If auth fails, check if it's a regular team member (no auth user)
+  if (authError) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('email', email)
+      .neq('team', 'POD committee')
+      .single()
+
+    if (profileError || !profile) {
+      throw authError // Return the original auth error
+    }
+
+    // For non-POD committee members, we'll just return the profile
+    // In a real app, you might want to implement a simple password check
+    // For now, we'll assume the password is correct if the email exists
+    return {
+      user: {
+        id: profile.id,
+        email: profile.email,
+        user_metadata: {
+          name: profile.name,
+          team: profile.team
+        }
+      },
+      session: null // No real session for non-auth users
+    }
+  }
+
+  return authData
 }
