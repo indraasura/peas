@@ -21,11 +21,14 @@
     -- Enable RLS for members table
     ALTER TABLE public.members ENABLE ROW LEVEL SECURITY;
 
-    -- Create RLS policies for members table
-    CREATE POLICY "Allow all reads" ON public.members FOR SELECT USING (true);
-    CREATE POLICY "Allow POD committee to manage members" ON public.members FOR ALL USING (
-    auth.uid() IS NOT NULL -- Only authenticated POD committee members
-    );
+-- Create RLS policies for members table
+DROP POLICY IF EXISTS "Allow all reads" ON public.members;
+DROP POLICY IF EXISTS "Allow POD committee to manage members" ON public.members;
+
+CREATE POLICY "Allow all reads" ON public.members FOR SELECT USING (true);
+CREATE POLICY "Allow POD committee to manage members" ON public.members FOR ALL USING (
+  auth.uid() IS NOT NULL -- Only authenticated POD committee members
+);
 
 -- Update POD notes policies to allow members to manage notes for their assigned PODs
 DROP POLICY IF EXISTS "Allow all reads" ON public.pod_notes;

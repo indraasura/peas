@@ -26,25 +26,25 @@ export async function getCurrentUser(): Promise<Profile | null> {
     const storedMemberId = localStorage.getItem('current_member_id')
     
     if (storedMemberId) {
-      const { data: members, error: memberError } = await supabase
-        .from('members')
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
         .select('*')
         .eq('id', storedMemberId)
         .limit(1)
 
-      if (!memberError && members && members.length > 0) {
-        const member = members[0]
-        // Convert member to Profile format for compatibility
+      if (!profileError && profiles && profiles.length > 0) {
+        const profile = profiles[0]
+        // Return profile with bandwidth information
         return {
-          id: member.id,
-          email: member.email,
-          name: member.name,
-          team: member.team,
-          bandwidth: member.bandwidth,
-          available_bandwidth: member.available_bandwidth,
-          used_bandwidth: member.used_bandwidth,
-          created_at: member.created_at,
-          updated_at: member.updated_at
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          team: profile.team,
+          bandwidth: profile.bandwidth,
+          available_bandwidth: profile.available_bandwidth,
+          used_bandwidth: profile.used_bandwidth,
+          created_at: profile.created_at,
+          updated_at: profile.updated_at
         }
       }
     }
@@ -117,7 +117,7 @@ export async function createMemberProfile(memberData: { name: string; email: str
   }
 
   // Use the database function to create member profile
-  const { data, error } = await supabase.rpc('create_member', {
+  const { data, error } = await supabase.rpc('create_profile_member', {
     p_email: memberData.email,
     p_password: memberData.password, // In production, hash this
     p_name: memberData.name,
@@ -201,25 +201,28 @@ export async function signIn(email: string, password: string) {
       return authData
     }
 
-    // If Supabase auth fails, try member authentication
-    const { data: memberData, error: memberError } = await supabase.rpc('authenticate_member', {
+    // If Supabase auth fails, try profile authentication (for regular members)
+    const { data: profileData, error: profileError } = await supabase.rpc('authenticate_profile', {
       p_email: email,
       p_password: password
     })
 
-    if (memberData && memberData.length > 0) {
-      const member = memberData[0]
-      // Store member session
-      localStorage.setItem('current_member_id', member.id)
+    if (profileData && profileData.length > 0) {
+      const profile = profileData[0]
+      // Store profile session
+      localStorage.setItem('current_member_id', profile.id)
       
       // Return a mock auth response for members
       return {
         user: {
-          id: member.id,
-          email: member.email,
+          id: profile.id,
+          email: profile.email,
           user_metadata: {
-            name: member.name,
-            team: member.team,
+            name: profile.name,
+            team: profile.team,
+            bandwidth: profile.bandwidth,
+            available_bandwidth: profile.available_bandwidth,
+            used_bandwidth: profile.used_bandwidth,
             is_member: true // Flag to identify this as a member, not POD committee
           }
         },
