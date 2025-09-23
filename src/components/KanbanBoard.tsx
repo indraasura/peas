@@ -33,7 +33,7 @@ import {
   Assessment as AssessmentIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material'
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd'
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 
 interface KanbanColumn {
   id: string

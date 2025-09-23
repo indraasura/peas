@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box,
@@ -48,7 +48,7 @@ import {
 import { getPods, createPod, updatePod, deletePod, getPlannedAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote } from '@/lib/data'
 import { type Pod, type Area, type Profile, type PodNote } from '@/lib/supabase'
 import KanbanBoard from '@/components/KanbanBoard'
-import { DropResult } from 'react-beautiful-dnd'
+import { DropResult } from '@hello-pangea/dnd'
 
 const podStatuses = ['backlog', 'planning', 'in development', 'testing', 'released']
 

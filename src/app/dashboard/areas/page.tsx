@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -48,7 +48,7 @@ import {
 import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, getPods } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import KanbanBoard from '@/components/KanbanBoard'
-import { DropResult } from 'react-beautiful-dnd'
+import { DropResult } from '@hello-pangea/dnd'
 
 const impactLevels = ['Low', 'Medium', 'High']
 
