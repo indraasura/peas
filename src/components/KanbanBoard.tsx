@@ -78,10 +78,14 @@ export default function KanbanBoard({
               minWidth: 300,
               maxWidth: 350,
               height: 'fit-content',
-              backgroundColor: '#f8f9fa'
+              backgroundColor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              boxShadow: 1
             }}
           >
-            <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
+            <Box sx={{ p: 2, borderBottom: '1px solid', borderBottomColor: 'divider' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
                   {column.title}
@@ -113,8 +117,9 @@ export default function KanbanBoard({
                   sx={{
                     minHeight: 200,
                     p: 1,
-                    backgroundColor: snapshot.isDraggingOver ? '#e3f2fd' : 'transparent',
-                    transition: 'background-color 0.2s ease'
+                    backgroundColor: snapshot.isDraggingOver ? 'action.hover' : 'transparent',
+                    transition: 'background-color 0.2s ease',
+                    borderRadius: 1
                   }}
                 >
                   {column.items.map((item, index) => (
@@ -133,10 +138,14 @@ export default function KanbanBoard({
                           <Card
                             sx={{
                               cursor: 'pointer',
+                              backgroundColor: 'background.paper',
+                              border: '1px solid',
+                              borderColor: 'divider',
                               '&:hover': {
-                                boxShadow: 3
+                                boxShadow: 3,
+                                borderColor: 'primary.main'
                               },
-                              transition: 'box-shadow 0.2s ease'
+                              transition: 'all 0.2s ease'
                             }}
                           >
                             <CardContent sx={{ pb: 1 }}>

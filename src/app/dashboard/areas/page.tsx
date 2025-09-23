@@ -40,7 +40,10 @@ import {
   Group as GroupIcon,
   Schedule as ScheduleIcon,
   Assessment as AssessmentIcon,
-  Send as SendIcon
+  Send as SendIcon,
+  Upload as UploadIcon,
+  Download as DownloadIcon,
+  CloudUpload as CloudUploadIcon
 } from '@mui/icons-material'
 import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, getPods } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
@@ -57,11 +60,13 @@ export default function AreasPage() {
   const [openDialog, setOpenDialog] = useState(false)
   const [openCommentsDialog, setOpenCommentsDialog] = useState(false)
   const [openMoveDialog, setOpenMoveDialog] = useState(false)
+  const [openDetailsDialog, setOpenDetailsDialog] = useState(false)
   const [editingArea, setEditingArea] = useState<Area | null>(null)
   const [selectedArea, setSelectedArea] = useState<Area | null>(null)
   const [areaComments, setAreaComments] = useState<any[]>([])
   const [newComment, setNewComment] = useState('')
   const [newCommentLoading, setNewCommentLoading] = useState(false)
+  const [uploadingFile, setUploadingFile] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -103,7 +108,7 @@ export default function AreasPage() {
     try {
       setError('')
       const { decision_quorum, ...areaData } = formData
-
+      
       if (editingArea) {
         await updateArea(editingArea.id, areaData)
         await updateAreaDecisionQuorum(editingArea.id, decision_quorum)
@@ -111,7 +116,7 @@ export default function AreasPage() {
         const newArea = await createArea({ ...areaData, status: 'backlog' })
         await updateAreaDecisionQuorum(newArea.id, decision_quorum)
       }
-
+      
       setOpenDialog(false)
       setEditingArea(null)
       setFormData({
@@ -221,6 +226,62 @@ export default function AreasPage() {
     setOpenCommentsDialog(true)
   }
 
+  const handleViewAreaDetails = async (area: Area) => {
+    setSelectedArea(area)
+    try {
+      const comments = await getAreaComments(area.id)
+      setAreaComments(comments)
+    } catch (error) {
+      console.error('Error fetching comments:', error)
+      setAreaComments([])
+    }
+    setOpenDetailsDialog(true)
+  }
+
+  const handleFileUpload = async (event: any, area: Area) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type (PDF only)
+    if (file.type !== 'application/pdf') {
+      setError('Please upload a PDF file only')
+      return
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File size must be less than 10MB')
+      return
+    }
+
+    try {
+      setUploadingFile(true)
+      setError('')
+
+      // In a real implementation, you would upload to a storage service like Supabase Storage
+      // For now, we'll simulate the upload and store a mock URL
+      const mockUrl = `https://storage.example.com/one-pagers/${area.id}/${file.name}`
+      
+      await updateArea(area.id, { one_pager_url: mockUrl })
+      
+      // Update local state
+      setAreas(prev => prev.map(a => 
+        a.id === area.id ? { ...a, one_pager_url: mockUrl } : a
+      ))
+
+      // Show success message
+      setError('') // Clear any previous errors
+      alert('One-pager uploaded successfully!')
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      setError('Failed to upload file. Please try again.')
+    } finally {
+      setUploadingFile(false)
+      // Reset file input
+      event.target.value = ''
+    }
+  }
+
   const handleAddComment = async () => {
     if (!newComment.trim() || !selectedArea) return
 
@@ -258,7 +319,7 @@ export default function AreasPage() {
     const areaPods = pods.filter(pod => pod.area_id === area.id)
     
     return (
-      <Box>
+        <Box>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
           {area.name}
         </Typography>
@@ -367,21 +428,54 @@ export default function AreasPage() {
         )}
 
         {/* One-pager status */}
-        {area.one_pager_url ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-            <AttachFileIcon sx={{ fontSize: 14, color: '#4caf50' }} />
-            <Typography variant="caption" color="success.main">
-              One-pager uploaded
-            </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          {area.one_pager_url ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <AttachFileIcon sx={{ fontSize: 14, color: '#4caf50' }} />
+              <Typography variant="caption" color="success.main">
+                One-pager uploaded
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <AttachFileIcon sx={{ fontSize: 14, color: '#f44336' }} />
+              <Typography variant="caption" color="error.main">
+                One-pager required
+              </Typography>
+            </Box>
+          )}
+          
+          {/* Upload button */}
+          <Box>
+            <input
+              accept=".pdf"
+              style={{ display: 'none' }}
+              id={`upload-${area.id}`}
+              type="file"
+              onChange={(e) => handleFileUpload(e, area)}
+              disabled={uploadingFile}
+            />
+            <label htmlFor={`upload-${area.id}`}>
+              <IconButton
+                size="small"
+                component="span"
+                disabled={uploadingFile}
+                sx={{ 
+                  p: 0.5,
+                  color: area.one_pager_url ? '#4caf50' : '#1976d2'
+                }}
+              >
+                {uploadingFile ? (
+                  <CloudUploadIcon sx={{ fontSize: 16 }} />
+                ) : area.one_pager_url ? (
+                  <DownloadIcon sx={{ fontSize: 16 }} />
+                ) : (
+                  <UploadIcon sx={{ fontSize: 16 }} />
+                )}
+              </IconButton>
+            </label>
           </Box>
-        ) : (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-            <AttachFileIcon sx={{ fontSize: 14, color: '#f44336' }} />
-            <Typography variant="caption" color="error.main">
-              One-pager required
-            </Typography>
-          </Box>
-        )}
+        </Box>
 
         {/* Comments count */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -390,8 +484,8 @@ export default function AreasPage() {
             {area.comments?.length || 0} comments
           </Typography>
         </Box>
-      </Box>
-    )
+        </Box>
+      )
   }
 
   const backlogAreas = areas.filter(area => area.status === 'backlog')
@@ -442,6 +536,7 @@ export default function AreasPage() {
         onItemMove={handleItemMove}
         onItemEdit={handleEditArea}
         onItemDelete={handleDeleteArea}
+        onItemView={handleViewAreaDetails}
         onItemAdd={handleAddArea}
         renderItem={renderAreaCard}
         addButtonText="Add Area"
@@ -609,6 +704,162 @@ export default function AreasPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenCommentsDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Area Details Dialog */}
+      <Dialog open={openDetailsDialog} onClose={() => setOpenDetailsDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          {selectedArea?.name} - Details
+        </DialogTitle>
+        <DialogContent>
+          {selectedArea && (
+            <Box>
+              <Typography variant="body1" sx={{ mb: 3 }}>
+                {selectedArea.description}
+              </Typography>
+              
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2" color="text.secondary">Revenue Impact</Typography>
+                  <Chip 
+                    label={selectedArea.revenue_impact} 
+                    sx={{ 
+                      backgroundColor: getImpactColor(selectedArea.revenue_impact), 
+                      color: 'white' 
+                    }} 
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2" color="text.secondary">Business Enablement</Typography>
+                  <Chip 
+                    label={selectedArea.business_enablement} 
+                    sx={{ 
+                      backgroundColor: getImpactColor(selectedArea.business_enablement), 
+                      color: 'white' 
+                    }} 
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2" color="text.secondary">Efforts</Typography>
+                  <Chip 
+                    label={selectedArea.efforts} 
+                    sx={{ 
+                      backgroundColor: getImpactColor(selectedArea.efforts), 
+                      color: 'white' 
+                    }} 
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2" color="text.secondary">End User Impact</Typography>
+                  <Chip 
+                    label={selectedArea.end_user_impact} 
+                    sx={{ 
+                      backgroundColor: getImpactColor(selectedArea.end_user_impact), 
+                      color: 'white' 
+                    }} 
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2" color="text.secondary">Status</Typography>
+                  <Chip 
+                    label={selectedArea.status} 
+                    sx={{ 
+                      backgroundColor: selectedArea.status === 'planned' ? '#4caf50' : '#ff9800', 
+                      color: 'white' 
+                    }} 
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2" color="text.secondary">One-pager</Typography>
+                  {selectedArea.one_pager_url ? (
+                    <Chip 
+                      label="Uploaded" 
+                      sx={{ backgroundColor: '#4caf50', color: 'white' }} 
+                    />
+                  ) : (
+                    <Chip 
+                      label="Required" 
+                      sx={{ backgroundColor: '#f44336', color: 'white' }} 
+                    />
+                  )}
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="h6" sx={{ mb: 2 }}>Associated PODs</Typography>
+              {pods.filter(pod => pod.area_id === selectedArea.id).length > 0 ? (
+                <List>
+                  {pods.filter(pod => pod.area_id === selectedArea.id).map((pod) => (
+                    <ListItem key={pod.id}>
+                      <ListItemText
+                        primary={pod.name}
+                        secondary={pod.description}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography color="text.secondary">No PODs assigned to this area</Typography>
+              )}
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="h6" sx={{ mb: 2 }}>Comments</Typography>
+              <List>
+                {areaComments.map((comment) => (
+                  <ListItem key={comment.id} alignItems="flex-start">
+                    <ListItemAvatar>
+                      <Avatar>{comment.creator?.name?.[0] || 'U'}</Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={comment.creator?.name || 'Unknown User'}
+                      secondary={
+                        <Box>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            {comment.content}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(comment.created_at).toLocaleString()}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  fullWidth
+                  placeholder="Add a comment..."
+                  value={newComment}
+                  onChange={(e: any) => setNewComment(e.target.value)}
+                  multiline
+                  rows={2}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={handleAddComment}
+                          disabled={!newComment.trim() || newCommentLoading}
+                          edge="end"
+                        >
+                          <SendIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
+                />
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDetailsDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 

@@ -45,7 +45,7 @@ import {
   TrendingUp as TrendingUpIcon,
   Comment as CommentIcon
 } from '@mui/icons-material'
-import { getPods, createPod, updatePod, deletePod, getPlannedAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes } from '@/lib/data'
+import { getPods, createPod, updatePod, deletePod, getPlannedAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote } from '@/lib/data'
 import { type Pod, type Area, type Profile, type PodNote } from '@/lib/supabase'
 import KanbanBoard from '@/components/KanbanBoard'
 import { DropResult } from 'react-beautiful-dnd'
@@ -60,9 +60,20 @@ export default function PodsPage() {
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false)
+  const [openNotesDialog, setOpenNotesDialog] = useState(false)
   const [editingPod, setEditingPod] = useState<Pod | null>(null)
   const [selectedPod, setSelectedPod] = useState<Pod | null>(null)
   const [podNotes, setPodNotes] = useState<PodNote[]>([])
+  const [newNote, setNewNote] = useState({
+    review_date: '',
+    blockers: '',
+    learnings: '',
+    current_state: '',
+    deviation_to_plan: '',
+    dependencies_risks: '',
+    misc: ''
+  })
+  const [addingNote, setAddingNote] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -207,11 +218,67 @@ export default function PodsPage() {
     try {
       const notes = await getPodNotes(pod.id)
       setPodNotes(notes)
-    } catch (error) {
+        } catch (error) {
       console.error('Error fetching pod notes:', error)
       setPodNotes([])
     }
     setOpenDetailsDialog(true)
+  }
+
+  const handleAddReviewNote = () => {
+    if (!selectedPod) return
+    setNewNote({
+      review_date: '',
+      blockers: '',
+      learnings: '',
+      current_state: '',
+      deviation_to_plan: '',
+      dependencies_risks: '',
+      misc: ''
+    })
+    setOpenNotesDialog(true)
+  }
+
+  const handleSubmitReviewNote = async () => {
+    if (!selectedPod || !newNote.review_date) return
+
+    try {
+      setAddingNote(true)
+      // For now, using a placeholder user ID - in real app, get from auth context
+      const userId = 'placeholder-user-id'
+      
+      await createPodNote({
+        pod_id: selectedPod.id,
+        review_date: newNote.review_date,
+        blockers: newNote.blockers || null,
+        learnings: newNote.learnings || null,
+        current_state: newNote.current_state || null,
+        deviation_to_plan: newNote.deviation_to_plan || null,
+        dependencies_risks: newNote.dependencies_risks || null,
+        misc: newNote.misc || null,
+        created_by: userId
+      })
+
+      // Refresh notes
+      const notes = await getPodNotes(selectedPod.id)
+      setPodNotes(notes)
+      
+      setOpenNotesDialog(false)
+      setNewNote({
+        review_date: '',
+        blockers: '',
+        learnings: '',
+        current_state: '',
+        deviation_to_plan: '',
+        dependencies_risks: '',
+        misc: ''
+      })
+        } catch (error) {
+      console.error('Error adding review note:', error)
+      setError('Failed to add review note. Please try again.')
+    } finally {
+      setAddingNote(false)
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -230,7 +297,7 @@ export default function PodsPage() {
     const memberCount = pod.members?.length || 0
     
     return (
-      <Box>
+        <Box>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
           {pod.name}
         </Typography>
@@ -309,9 +376,9 @@ export default function PodsPage() {
             {podNotes.filter((note: any) => note.pod_id === pod.id).length} review notes
           </Typography>
         </Box>
-      </Box>
-    )
-  }
+        </Box>
+      )
+    }
 
   // Group pods by status
   const podsByStatus = podStatuses.map((status: string) => ({
@@ -441,7 +508,7 @@ export default function PodsPage() {
                   <Grid item xs={5}>
                     <FormControl fullWidth size="small">
                       <InputLabel>Member</InputLabel>
-                      <Select
+                <Select
                         value={member.member_id}
                         onChange={(e: any) => {
                           const newMembers = [...formData.members]
@@ -453,43 +520,43 @@ export default function PodsPage() {
                         {availableMembers.map((memberOption: Profile) => (
                           <MenuItem key={memberOption.id} value={memberOption.id}>
                             {memberOption.name} ({memberOption.available_bandwidth || 100}% available)
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
                   </Grid>
                   <Grid item xs={3}>
-                    <TextField
-                      fullWidth
+                          <TextField
+                            fullWidth
                       size="small"
-                      label="Bandwidth %"
-                      type="number"
-                      value={member.bandwidth_percentage}
+                            label="Bandwidth %"
+                            type="number"
+                            value={member.bandwidth_percentage}
                       onChange={(e: any) => {
-                        const newMembers = [...formData.members]
-                        newMembers[index].bandwidth_percentage = parseInt(e.target.value) || 0
-                        setFormData({ ...formData, members: newMembers })
-                      }}
+                              const newMembers = [...formData.members]
+                              newMembers[index].bandwidth_percentage = parseInt(e.target.value) || 0
+                              setFormData({ ...formData, members: newMembers })
+                            }}
                       inputProps={{ min: 0, max: 100 }}
-                    />
-                  </Grid>
+                          />
+                        </Grid>
                   <Grid item xs={3}>
                     <FormControl fullWidth size="small">
-                      <InputLabel>Role</InputLabel>
-                      <Select
-                        value={member.is_leader ? 'leader' : 'member'}
+                            <InputLabel>Role</InputLabel>
+                            <Select
+                              value={member.is_leader ? 'leader' : 'member'}
                         onChange={(e: any) => {
-                          const newMembers = [...formData.members]
-                          newMembers[index].is_leader = e.target.value === 'leader'
-                          setFormData({ ...formData, members: newMembers })
-                        }}
-                        label="Role"
-                      >
-                        <MenuItem value="member">Member</MenuItem>
-                        <MenuItem value="leader">Leader</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
+                                const newMembers = [...formData.members]
+                                newMembers[index].is_leader = e.target.value === 'leader'
+                                setFormData({ ...formData, members: newMembers })
+                              }}
+                              label="Role"
+                            >
+                              <MenuItem value="member">Member</MenuItem>
+                              <MenuItem value="leader">Leader</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
                   <Grid item xs={1}>
                     <IconButton
                       size="small"
@@ -500,8 +567,8 @@ export default function PodsPage() {
                     >
                       <DeleteIcon />
                     </IconButton>
-                  </Grid>
-                </Grid>
+                      </Grid>
+            </Grid>
               ))}
               <Button
                 size="small"
@@ -590,7 +657,18 @@ export default function PodsPage() {
 
               <Divider sx={{ my: 2 }} />
 
-              <Typography variant="h6" sx={{ mb: 2 }}>Review Meeting Notes</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">Review Meeting Notes</Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddReviewNote}
+                >
+                  Add Review Note
+                </Button>
+              </Box>
+              
               {podNotes.length > 0 ? (
                 <List>
                   {podNotes.map((note: PodNote) => (
@@ -617,6 +695,24 @@ export default function PodsPage() {
                                 <Typography variant="body2">{note.learnings}</Typography>
                               </Box>
                             )}
+                            {note.deviation_to_plan && (
+                              <Box sx={{ mb: 1 }}>
+                                <Typography variant="subtitle2">Deviation to Plan:</Typography>
+                                <Typography variant="body2">{note.deviation_to_plan}</Typography>
+                              </Box>
+                            )}
+                            {note.dependencies_risks && (
+                              <Box sx={{ mb: 1 }}>
+                                <Typography variant="subtitle2">Dependencies & Risks:</Typography>
+                                <Typography variant="body2">{note.dependencies_risks}</Typography>
+                              </Box>
+                            )}
+                            {note.misc && (
+                              <Box sx={{ mb: 1 }}>
+                                <Typography variant="subtitle2">Miscellaneous:</Typography>
+                                <Typography variant="body2">{note.misc}</Typography>
+                              </Box>
+                            )}
                             <Typography variant="caption" color="text.secondary">
                               Created by {note.creator?.name || 'Unknown'} on {new Date(note.created_at).toLocaleString()}
                             </Typography>
@@ -637,6 +733,102 @@ export default function PodsPage() {
             View Full Details
           </Button>
           <Button onClick={() => setOpenDetailsDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Review Note Dialog */}
+      <Dialog open={openNotesDialog} onClose={() => setOpenNotesDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Add Review Meeting Note</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Review Date"
+                type="date"
+                value={newNote.review_date}
+                onChange={(e: any) => setNewNote({ ...newNote, review_date: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                required
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Current State"
+                value={newNote.current_state}
+                onChange={(e: any) => setNewNote({ ...newNote, current_state: e.target.value })}
+                multiline
+                rows={3}
+                placeholder="Describe the current state of the POD..."
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Blockers"
+                value={newNote.blockers}
+                onChange={(e: any) => setNewNote({ ...newNote, blockers: e.target.value })}
+                multiline
+                rows={2}
+                placeholder="List any blockers or impediments..."
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Learnings"
+                value={newNote.learnings}
+                onChange={(e: any) => setNewNote({ ...newNote, learnings: e.target.value })}
+                multiline
+                rows={2}
+                placeholder="What did the team learn during this period?"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Deviation to Plan"
+                value={newNote.deviation_to_plan}
+                onChange={(e: any) => setNewNote({ ...newNote, deviation_to_plan: e.target.value })}
+                multiline
+                rows={2}
+                placeholder="Any deviations from the original plan..."
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Dependencies & Risks"
+                value={newNote.dependencies_risks}
+                onChange={(e: any) => setNewNote({ ...newNote, dependencies_risks: e.target.value })}
+                multiline
+                rows={2}
+                placeholder="External dependencies and potential risks..."
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Miscellaneous"
+                value={newNote.misc}
+                onChange={(e: any) => setNewNote({ ...newNote, misc: e.target.value })}
+                multiline
+                rows={2}
+                placeholder="Any other notes or observations..."
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenNotesDialog(false)}>Cancel</Button>
+          <Button 
+            onClick={handleSubmitReviewNote} 
+            variant="contained"
+            disabled={!newNote.review_date || addingNote}
+          >
+            {addingNote ? 'Adding...' : 'Add Note'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
