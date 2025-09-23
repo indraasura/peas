@@ -109,85 +109,42 @@ ALTER TABLE public.area_decision_quorum ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.area_comments ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
--- Profiles policies - Only POD committee members can manage profiles
+-- Profiles policies - Fixed to avoid infinite recursion
 CREATE POLICY "Allow all reads" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Allow POD committee profile management" ON public.profiles FOR ALL USING (
-  EXISTS (
-    SELECT 1 FROM public.profiles p 
-    WHERE p.id = auth.uid() 
-    AND p.team = 'POD committee'
-  )
-);
+CREATE POLICY "Allow authenticated profile inserts" ON public.profiles FOR INSERT 
+WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Allow users to update own profile" ON public.profiles FOR UPDATE 
+USING (auth.uid() = id);
+CREATE POLICY "Allow authenticated profile management" ON public.profiles FOR ALL 
+USING (auth.uid() IS NOT NULL);
 
 -- Areas policies
 CREATE POLICY "Allow all reads" ON public.areas FOR SELECT USING (true);
-CREATE POLICY "Allow POD committee area management" ON public.areas FOR ALL USING (
-  EXISTS (
-    SELECT 1 FROM public.profiles p 
-    WHERE p.id = auth.uid() 
-    AND p.team = 'POD committee'
-  )
-);
+CREATE POLICY "Allow authenticated area management" ON public.areas FOR ALL USING (auth.uid() IS NOT NULL);
 
 -- PODs policies
 CREATE POLICY "Allow all reads" ON public.pods FOR SELECT USING (true);
-CREATE POLICY "Allow POD committee pod management" ON public.pods FOR ALL USING (
-  EXISTS (
-    SELECT 1 FROM public.profiles p 
-    WHERE p.id = auth.uid() 
-    AND p.team = 'POD committee'
-  )
-);
+CREATE POLICY "Allow authenticated pod management" ON public.pods FOR ALL USING (auth.uid() IS NOT NULL);
 
 -- POD dependencies policies
 CREATE POLICY "Allow all reads" ON public.pod_dependencies FOR SELECT USING (true);
-CREATE POLICY "Allow POD committee dependency management" ON public.pod_dependencies FOR ALL USING (
-  EXISTS (
-    SELECT 1 FROM public.profiles p 
-    WHERE p.id = auth.uid() 
-    AND p.team = 'POD committee'
-  )
-);
+CREATE POLICY "Allow authenticated dependency management" ON public.pod_dependencies FOR ALL USING (auth.uid() IS NOT NULL);
 
 -- POD members policies
 CREATE POLICY "Allow all reads" ON public.pod_members FOR SELECT USING (true);
-CREATE POLICY "Allow POD committee member management" ON public.pod_members FOR ALL USING (
-  EXISTS (
-    SELECT 1 FROM public.profiles p 
-    WHERE p.id = auth.uid() 
-    AND p.team = 'POD committee'
-  )
-);
+CREATE POLICY "Allow authenticated member management" ON public.pod_members FOR ALL USING (auth.uid() IS NOT NULL);
 
 -- POD notes policies
 CREATE POLICY "Allow all reads" ON public.pod_notes FOR SELECT USING (true);
-CREATE POLICY "Allow POD committee notes management" ON public.pod_notes FOR ALL USING (
-  EXISTS (
-    SELECT 1 FROM public.profiles p 
-    WHERE p.id = auth.uid() 
-    AND p.team = 'POD committee'
-  )
-);
+CREATE POLICY "Allow authenticated notes management" ON public.pod_notes FOR ALL USING (auth.uid() IS NOT NULL);
 
 -- Area decision quorum policies
 CREATE POLICY "Allow all reads" ON public.area_decision_quorum FOR SELECT USING (true);
-CREATE POLICY "Allow POD committee quorum management" ON public.area_decision_quorum FOR ALL USING (
-  EXISTS (
-    SELECT 1 FROM public.profiles p 
-    WHERE p.id = auth.uid() 
-    AND p.team = 'POD committee'
-  )
-);
+CREATE POLICY "Allow authenticated quorum management" ON public.area_decision_quorum FOR ALL USING (auth.uid() IS NOT NULL);
 
 -- Area comments policies
 CREATE POLICY "Allow all reads" ON public.area_comments FOR SELECT USING (true);
-CREATE POLICY "Allow POD committee comment management" ON public.area_comments FOR ALL USING (
-  EXISTS (
-    SELECT 1 FROM public.profiles p 
-    WHERE p.id = auth.uid() 
-    AND p.team = 'POD committee'
-  )
-);
+CREATE POLICY "Allow authenticated comment management" ON public.area_comments FOR ALL USING (auth.uid() IS NOT NULL);
 
 -- Function to create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()

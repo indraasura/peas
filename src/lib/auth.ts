@@ -59,16 +59,12 @@ export async function createMemberProfile(memberData: { name: string; email: str
     throw new Error('Only POD committee members can create member profiles.')
   }
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .insert({
-      id: crypto.randomUUID(), // Generate a UUID for non-auth users
-      email: memberData.email,
-      name: memberData.name,
-      team: memberData.team
-    })
-    .select()
-    .single()
+  // Use the database function to create member profile with proper UUID handling
+  const { data, error } = await supabase.rpc('create_member_profile', {
+    p_email: memberData.email,
+    p_name: memberData.name,
+    p_team: memberData.team
+  })
 
   if (error) {
     console.error('Error creating member profile:', error)
