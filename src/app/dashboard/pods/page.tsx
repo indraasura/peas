@@ -47,6 +47,7 @@ import {
 } from '@mui/icons-material'
 import { getPods, createPod, updatePod, deletePod, getPlannedAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote } from '@/lib/data'
 import { type Pod, type Area, type Profile, type PodNote } from '@/lib/supabase'
+import { getCurrentUser } from '@/lib/auth'
 import KanbanBoard from '@/components/KanbanBoard'
 import { DropResult } from '@hello-pangea/dnd'
 
@@ -244,8 +245,11 @@ export default function PodsPage() {
 
     try {
       setAddingNote(true)
-      // For now, using a placeholder user ID - in real app, get from auth context
-      const userId = 'placeholder-user-id'
+      const currentUser = await getCurrentUser()
+      if (!currentUser) {
+        setError('Please log in to add review notes')
+        return
+      }
       
       await createPodNote({
         pod_id: selectedPod.id,
@@ -256,7 +260,7 @@ export default function PodsPage() {
         deviation_to_plan: newNote.deviation_to_plan || undefined,
         dependencies_risks: newNote.dependencies_risks || undefined,
         misc: newNote.misc || undefined,
-        created_by: userId
+        created_by: currentUser.id
       })
 
       // Refresh notes
@@ -273,7 +277,7 @@ export default function PodsPage() {
         dependencies_risks: '',
         misc: ''
       })
-        } catch (error) {
+    } catch (error) {
       console.error('Error adding review note:', error)
       setError('Failed to add review note. Please try again.')
     } finally {

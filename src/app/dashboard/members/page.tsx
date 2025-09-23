@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -11,20 +11,62 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid
+  Grid,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  IconButton,
+  Alert,
+  CircularProgress
 } from '@mui/material'
 import { DataGrid, GridColDef } from '@mui/x-data-grid'
-import { getMembers } from '@/lib/data'
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon
+} from '@mui/icons-material'
+import { getMembers, createMember, updateMember, deleteMember, isPODCommitteeMember } from '@/lib/data'
 import { type Profile } from '@/lib/supabase'
+import { getCurrentUser } from '@/lib/auth'
 
 export default function MembersPage() {
   const [members, setMembers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [teamFilter, setTeamFilter] = useState('all')
+  const [isPODCommittee, setIsPODCommittee] = useState(false)
+  const [openDialog, setOpenDialog] = useState(false)
+  const [editingMember, setEditingMember] = useState<Profile | null>(null)
+  const [memberForm, setMemberForm] = useState({
+    name: '',
+    email: '',
+    team: '',
+    password: ''
+  })
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   useEffect(() => {
     fetchMembers()
+    checkPODCommitteeStatus()
   }, [])
+
+  const checkPODCommitteeStatus = async () => {
+    try {
+      const currentUser = await getCurrentUser()
+      if (currentUser) {
+        const isCommittee = await isPODCommitteeMember(currentUser.id)
+        setIsPODCommittee(isCommittee)
+      }
+    } catch (error) {
+      console.error('Error checking POD committee status:', error)
+    }
+  }
 
   const fetchMembers = async () => {
     try {
@@ -51,6 +93,97 @@ export default function MembersPage() {
     : members.filter(member => member.team === teamFilter)
 
   const uniqueTeams = Array.from(new Set(members.map(member => member.team)))
+
+  const handleOpenDialog = (member?: Profile) => {
+    if (member) {
+      setEditingMember(member)
+      setMemberForm({
+        name: member.name,
+        email: member.email,
+        team: member.team,
+        password: ''
+      })
+    } else {
+      setEditingMember(null)
+      setMemberForm({
+        name: '',
+        email: '',
+        team: '',
+        password: ''
+      })
+    }
+    setOpenDialog(true)
+    setError('')
+    setSuccess('')
+  }
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false)
+    setEditingMember(null)
+    setMemberForm({
+      name: '',
+      email: '',
+      team: '',
+      password: ''
+    })
+    setError('')
+    setSuccess('')
+  }
+
+  const handleSubmit = async () => {
+    if (!memberForm.name || !memberForm.email || !memberForm.team) {
+      setError('Please fill in all required fields')
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      setError('')
+
+      if (editingMember) {
+        // Update existing member
+        await updateMember(editingMember.id, {
+          name: memberForm.name,
+          email: memberForm.email,
+          team: memberForm.team
+        })
+        setSuccess('Member updated successfully')
+      } else {
+        // Create new member
+        await createMember({
+          name: memberForm.name,
+          email: memberForm.email,
+          team: memberForm.team,
+          password: memberForm.password || undefined
+        })
+        setSuccess('Member created successfully')
+      }
+
+      // Refresh members list
+      await fetchMembers()
+      handleCloseDialog()
+    } catch (error: any) {
+      console.error('Error saving member:', error)
+      setError(error.message || 'Failed to save member')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (memberId: string, memberName: string) => {
+    if (!window.confirm(`Are you sure you want to delete ${memberName}?`)) {
+      return
+    }
+
+    try {
+      await deleteMember(memberId)
+      setSuccess('Member deleted successfully')
+      await fetchMembers()
+    } catch (error: any) {
+      console.error('Error deleting member:', error)
+      setError(error.message || 'Failed to delete member')
+    }
+  }
 
   const getBandwidthColor = (bandwidth: number) => {
     if (bandwidth >= 80) return 'error'
@@ -124,7 +257,31 @@ export default function MembersPage() {
           </Typography>
         )
       }
-    }
+    },
+    ...(isPODCommittee ? [{
+      field: 'actions',
+      headerName: 'Actions',
+      width: 120,
+      renderCell: (params: any) => (
+        <Box>
+          <IconButton
+            size="small"
+            onClick={() => handleOpenDialog(params.row)}
+            title="Edit member"
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => handleDelete(params.row.id, params.row.name)}
+            title="Delete member"
+            color="error"
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      )
+    }] : [])
   ]
 
   if (loading) {
@@ -135,22 +292,45 @@ export default function MembersPage() {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Members</Typography>
-        <FormControl sx={{ minWidth: 200 }}>
-          <InputLabel>Filter by Team</InputLabel>
-          <Select
-            value={teamFilter}
-            onChange={(e) => setTeamFilter(e.target.value)}
-            label="Filter by Team"
-          >
-            <MenuItem value="all">All Teams</MenuItem>
-            {uniqueTeams.map((team) => (
-              <MenuItem key={team} value={team}>
-                {team}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Box display="flex" gap={2} alignItems="center">
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel>Filter by Team</InputLabel>
+            <Select
+              value={teamFilter}
+              onChange={(e) => setTeamFilter(e.target.value)}
+              label="Filter by Team"
+            >
+              <MenuItem value="all">All Teams</MenuItem>
+              {uniqueTeams.map((team) => (
+                <MenuItem key={team} value={team}>
+                  {team}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {isPODCommittee && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+            >
+              Add Member
+            </Button>
+          )}
+        </Box>
       </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      )}
 
       <Card>
         <CardContent>
@@ -237,6 +417,75 @@ export default function MembersPage() {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Add/Edit Member Dialog */}
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {editingMember ? 'Edit Member' : 'Add New Member'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <TextField
+              fullWidth
+              label="Name"
+              value={memberForm.name}
+              onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
+              margin="normal"
+              required
+            />
+            <TextField
+              fullWidth
+              label="Email"
+              type="email"
+              value={memberForm.email}
+              onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
+              margin="normal"
+              required
+              disabled={!!editingMember}
+            />
+            <FormControl fullWidth margin="normal" required>
+              <InputLabel>Team</InputLabel>
+              <Select
+                value={memberForm.team}
+                onChange={(e) => setMemberForm({ ...memberForm, team: e.target.value })}
+                label="Team"
+              >
+                <MenuItem value="Frontend">Frontend</MenuItem>
+                <MenuItem value="Backend">Backend</MenuItem>
+                <MenuItem value="DevOps">DevOps</MenuItem>
+                <MenuItem value="QA">QA</MenuItem>
+                <MenuItem value="Design">Design</MenuItem>
+                <MenuItem value="Product">Product</MenuItem>
+                <MenuItem value="POD committee">POD Committee</MenuItem>
+              </Select>
+            </FormControl>
+            {!editingMember && (
+              <TextField
+                fullWidth
+                label="Password (optional - will use default if not provided)"
+                type="password"
+                value={memberForm.password}
+                onChange={(e) => setMemberForm({ ...memberForm, password: e.target.value })}
+                margin="normal"
+                helperText="If not provided, a temporary password will be generated"
+              />
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            disabled={submitting}
+            startIcon={submitting ? <CircularProgress size={20} /> : <SaveIcon />}
+          >
+            {submitting ? 'Saving...' : editingMember ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

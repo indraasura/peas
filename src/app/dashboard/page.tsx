@@ -31,8 +31,7 @@ import { getPods, getMembers, getAreas, getAvailableMembers } from '@/lib/data'
 
 interface TeamBandwidthData {
   team: string
-  totalCapacity: number
-  requiredCapacity: number
+  assignedCapacity: number
   availableCapacity: number
   members: any[]
 }
@@ -67,29 +66,28 @@ export default function DashboardPage() {
       // Calculate bandwidth for each team
       const teamData: TeamBandwidthData[] = Object.entries(teamGroups).map(([team, teamMembers]: [string, any]) => {
         const totalCapacity = teamMembers.length * 100 // Assuming 100% capacity per member
-        let requiredCapacity = 0
+        let assignedCapacity = 0
 
-        // Calculate required capacity from POD assignments
+        // Calculate assigned capacity from POD assignments
         teamMembers.forEach((member: any) => {
           if (member.pod_members) {
             member.pod_members.forEach((pm: any) => {
-              requiredCapacity += pm.bandwidth_percentage || 0
+              assignedCapacity += pm.bandwidth_percentage || 0
             })
           }
         })
 
-        const availableCapacity = Math.max(0, totalCapacity - requiredCapacity)
+        const availableCapacity = Math.max(0, totalCapacity - assignedCapacity)
 
         return {
           team,
-          totalCapacity,
-          requiredCapacity,
+          assignedCapacity,
           availableCapacity,
           members: teamMembers
         }
       })
 
-      setBandwidthData(teamData.sort((a, b) => b.totalCapacity - a.totalCapacity))
+      setBandwidthData(teamData.sort((a, b) => b.assignedCapacity - a.assignedCapacity))
     } catch (error) {
       console.error('Error fetching bandwidth data:', error)
       setError('Failed to load bandwidth data')
@@ -98,14 +96,16 @@ export default function DashboardPage() {
     }
   }
 
-  const getCapacityColor = (availableCapacity: number, totalCapacity: number) => {
+  const getCapacityColor = (availableCapacity: number, assignedCapacity: number) => {
+    const totalCapacity = assignedCapacity + availableCapacity
     const percentage = (availableCapacity / totalCapacity) * 100
     if (percentage > 30) return '#4caf50' // Green
     if (percentage > 10) return '#ff9800' // Orange
     return '#f44336' // Red
   }
 
-  const getCapacityStatus = (availableCapacity: number, totalCapacity: number) => {
+  const getCapacityStatus = (availableCapacity: number, assignedCapacity: number) => {
+    const totalCapacity = assignedCapacity + availableCapacity
     const percentage = (availableCapacity / totalCapacity) * 100
     if (percentage > 30) return 'Healthy'
     if (percentage > 10) return 'Moderate'
@@ -131,8 +131,8 @@ export default function DashboardPage() {
   }
 
   const totalAvailableCapacity = bandwidthData.reduce((sum, team) => sum + team.availableCapacity, 0)
-  const totalRequiredCapacity = bandwidthData.reduce((sum, team) => sum + team.requiredCapacity, 0)
-  const totalCapacity = bandwidthData.reduce((sum, team) => sum + team.totalCapacity, 0)
+  const totalAssignedCapacity = bandwidthData.reduce((sum, team) => sum + team.assignedCapacity, 0)
+  const totalCapacity = totalAssignedCapacity + totalAvailableCapacity
 
   return (
     <Box>
@@ -151,33 +151,16 @@ export default function DashboardPage() {
 
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
                   <Typography color="text.secondary" gutterBottom>
-                    Total Team Capacity
+                    Assigned Capacity
                   </Typography>
                   <Typography variant="h4">
-                    {totalCapacity}%
-                  </Typography>
-                </Box>
-                <GroupIcon sx={{ fontSize: 40, color: 'primary.main' }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography color="text.secondary" gutterBottom>
-                    Required Capacity
-                  </Typography>
-                  <Typography variant="h4">
-                    {totalRequiredCapacity}%
+                    {totalAssignedCapacity}%
                   </Typography>
                 </Box>
                 <TrendingUpIcon sx={{ fontSize: 40, color: 'warning.main' }} />
@@ -185,7 +168,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -193,7 +176,7 @@ export default function DashboardPage() {
                   <Typography color="text.secondary" gutterBottom>
                     Available Capacity
                   </Typography>
-                  <Typography variant="h4" color={getCapacityColor(totalAvailableCapacity, totalCapacity)}>
+                  <Typography variant="h4" color={getCapacityColor(totalAvailableCapacity, totalAssignedCapacity)}>
                     {totalAvailableCapacity}%
                   </Typography>
                 </Box>
@@ -217,8 +200,7 @@ export default function DashboardPage() {
               <TableHead>
                 <TableRow>
                   <TableCell>Team</TableCell>
-                  <TableCell align="center">Total Available Capacity</TableCell>
-                  <TableCell align="center">Required Capacity</TableCell>
+                  <TableCell align="center">Assigned Capacity</TableCell>
                   <TableCell align="center">Available Capacity</TableCell>
                   <TableCell align="center">Status</TableCell>
                   <TableCell align="center">Utilization</TableCell>
@@ -226,9 +208,10 @@ export default function DashboardPage() {
               </TableHead>
               <TableBody>
                 {bandwidthData.map((team) => {
-                  const utilizationPercentage = (team.requiredCapacity / team.totalCapacity) * 100
-                  const capacityColor = getCapacityColor(team.availableCapacity, team.totalCapacity)
-                  const status = getCapacityStatus(team.availableCapacity, team.totalCapacity)
+                  const totalTeamCapacity = team.assignedCapacity + team.availableCapacity
+                  const utilizationPercentage = (team.assignedCapacity / totalTeamCapacity) * 100
+                  const capacityColor = getCapacityColor(team.availableCapacity, team.assignedCapacity)
+                  const status = getCapacityStatus(team.availableCapacity, team.assignedCapacity)
                   
                   return (
                     <TableRow key={team.team} hover>
@@ -247,12 +230,7 @@ export default function DashboardPage() {
                       </TableCell>
                       <TableCell align="center">
                         <Typography variant="body1" fontWeight="medium">
-                          {team.totalCapacity}%
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Typography variant="body1" fontWeight="medium">
-                          {team.requiredCapacity}%
+                          {team.assignedCapacity}%
                         </Typography>
                       </TableCell>
                       <TableCell align="center">

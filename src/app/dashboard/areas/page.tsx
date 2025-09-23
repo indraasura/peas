@@ -47,6 +47,7 @@ import {
 } from '@mui/icons-material'
 import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, getPods } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
+import { getCurrentUser } from '@/lib/auth'
 import KanbanBoard from '@/components/KanbanBoard'
 import { DropResult } from '@hello-pangea/dnd'
 
@@ -287,12 +288,16 @@ export default function AreasPage() {
 
     try {
       setNewCommentLoading(true)
-      // For now, using a placeholder user ID - in real app, get from auth context
-      const userId = 'placeholder-user-id'
+      const currentUser = await getCurrentUser()
+      if (!currentUser) {
+        setError('Please log in to add comments')
+        return
+      }
+
       await createAreaComment({
         area_id: selectedArea.id,
         content: newComment.trim(),
-        created_by: userId
+        created_by: currentUser.id
       })
       
       const comments = await getAreaComments(selectedArea.id)
@@ -445,7 +450,7 @@ export default function AreasPage() {
             </Box>
           )}
           
-          {/* Upload button */}
+          {/* Upload/View button */}
           <Box>
             <input
               accept=".pdf"
@@ -464,16 +469,28 @@ export default function AreasPage() {
                   p: 0.5,
                   color: area.one_pager_url ? '#4caf50' : '#1976d2'
                 }}
+                title={area.one_pager_url ? 'Replace one-pager' : 'Upload one-pager'}
               >
                 {uploadingFile ? (
                   <CloudUploadIcon sx={{ fontSize: 16 }} />
-                ) : area.one_pager_url ? (
-                  <DownloadIcon sx={{ fontSize: 16 }} />
                 ) : (
                   <UploadIcon sx={{ fontSize: 16 }} />
                 )}
               </IconButton>
             </label>
+            {area.one_pager_url && (
+              <IconButton
+                size="small"
+                onClick={() => window.open(area.one_pager_url, '_blank')}
+                sx={{ 
+                  p: 0.5,
+                  color: '#1976d2'
+                }}
+                title="View one-pager"
+              >
+                <DownloadIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            )}
           </Box>
         </Box>
 

@@ -525,3 +525,110 @@ export async function getPlannedAreas(): Promise<Area[]> {
     return []
   }
 }
+
+// Member Management Functions
+export async function createMember(memberData: {
+  name: string
+  email: string
+  team: string
+  password?: string
+}): Promise<Profile> {
+  try {
+    // First, create the auth user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: memberData.email,
+      password: memberData.password || 'temp123456', // Temporary password
+      options: {
+        data: {
+          name: memberData.name,
+          team: memberData.team
+        }
+      }
+    })
+
+    if (authError) {
+      throw authError
+    }
+
+    if (!authData.user) {
+      throw new Error('Failed to create user account')
+    }
+
+    // Create the profile
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: authData.user.id,
+        name: memberData.name,
+        email: memberData.email,
+        team: memberData.team
+      })
+      .select()
+      .single()
+
+    if (profileError) {
+      throw profileError
+    }
+
+    return profileData
+  } catch (error) {
+    console.error('Error creating member:', error)
+    throw error
+  }
+}
+
+export async function updateMember(memberId: string, updates: {
+  name?: string
+  email?: string
+  team?: string
+}): Promise<Profile> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', memberId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating member:', error)
+    throw error
+  }
+
+  return data
+}
+
+export async function deleteMember(memberId: string): Promise<void> {
+  try {
+    // Delete the profile first
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', memberId)
+
+    if (profileError) {
+      throw profileError
+    }
+
+    // Note: In a real application, you might want to delete the auth user as well
+    // This requires admin privileges and should be done carefully
+    console.log('Profile deleted. Auth user deletion requires admin privileges.')
+  } catch (error) {
+    console.error('Error deleting member:', error)
+    throw error
+  }
+}
+
+export async function isPODCommitteeMember(userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('team')
+    .eq('id', userId)
+    .single()
+
+  if (error) {
+    console.error('Error checking POD committee membership:', error)
+    return false
+  }
+
+  return data?.team === 'POD committee'
+}
