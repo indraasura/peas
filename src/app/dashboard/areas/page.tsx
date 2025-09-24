@@ -41,9 +41,7 @@ import {
   Schedule as ScheduleIcon,
   Assessment as AssessmentIcon,
   Send as SendIcon,
-  Upload as UploadIcon,
-  Download as DownloadIcon,
-  CloudUpload as CloudUploadIcon
+  Download as DownloadIcon
 } from '@mui/icons-material'
 import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, getPods } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
@@ -67,7 +65,7 @@ export default function AreasPage() {
   const [areaComments, setAreaComments] = useState<any[]>([])
   const [newComment, setNewComment] = useState('')
   const [newCommentLoading, setNewCommentLoading] = useState(false)
-  const [uploadingFile, setUploadingFile] = useState(false)
+  const [onePagerUrl, setOnePagerUrl] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -154,7 +152,7 @@ export default function AreasPage() {
         setMoveValidation({
           onePagerRequired: !hasOnePager,
           podsRequired: !hasPods,
-          message: `Cannot move to planned: ${!hasOnePager ? 'One-pager required' : ''}${!hasOnePager && !hasPods ? ' and ' : ''}${!hasPods ? 'At least one POD required' : ''}`
+          message: `Cannot move to planned: ${!hasOnePager ? 'One-pager URL required' : ''}${!hasOnePager && !hasPods ? ' and ' : ''}${!hasPods ? 'At least one POD required' : ''}`
         })
         setOpenMoveDialog(true)
         return
@@ -239,47 +237,23 @@ export default function AreasPage() {
     setOpenDetailsDialog(true)
   }
 
-  const handleFileUpload = async (event: any, area: Area) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    // Validate file type (PDF only)
-    if (file.type !== 'application/pdf') {
-      setError('Please upload a PDF file only')
-      return
-    }
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setError('File size must be less than 10MB')
-      return
-    }
-
+  const handleOnePagerUrlUpdate = async (area: Area, url: string) => {
     try {
-      setUploadingFile(true)
       setError('')
-
-      // In a real implementation, you would upload to a storage service like Supabase Storage
-      // For now, we'll simulate the upload and store a mock URL
-      const mockUrl = `https://storage.example.com/one-pagers/${area.id}/${file.name}`
       
-      await updateArea(area.id, { one_pager_url: mockUrl })
+      await updateArea(area.id, { one_pager_url: url })
       
       // Update local state
       setAreas(prev => prev.map(a => 
-        a.id === area.id ? { ...a, one_pager_url: mockUrl } : a
+        a.id === area.id ? { ...a, one_pager_url: url } : a
       ))
 
       // Show success message
       setError('') // Clear any previous errors
-      alert('One-pager uploaded successfully!')
+      alert('One-pager URL updated successfully!')
     } catch (error) {
-      console.error('Error uploading file:', error)
-      setError('Failed to upload file. Please try again.')
-    } finally {
-      setUploadingFile(false)
-      // Reset file input
-      event.target.value = ''
+      console.error('Error updating one-pager URL:', error)
+      setError('Failed to update one-pager URL. Please try again.')
     }
   }
 
@@ -432,73 +406,46 @@ export default function AreasPage() {
           </Box>
         )}
 
-        {/* One-pager status */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-          {area.one_pager_url ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <AttachFileIcon sx={{ fontSize: 14, color: '#4caf50' }} />
-              <Typography variant="caption" color="success.main">
-                One-pager uploaded
-              </Typography>
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <AttachFileIcon sx={{ fontSize: 14, color: '#f44336' }} />
-              <Typography variant="caption" color="error.main">
-                One-pager required
-              </Typography>
-            </Box>
-          )}
-          
-          {/* Upload/View button */}
-          <Box>
-            <input
-              accept=".pdf"
-              style={{ display: 'none' }}
-              id={`upload-${area.id}`}
-              type="file"
-              onChange={(e) => handleFileUpload(e, area)}
-              disabled={uploadingFile}
-            />
-            <label htmlFor={`upload-${area.id}`}>
-              <IconButton
-                size="small"
-                component="span"
-                disabled={uploadingFile}
-                sx={{ 
-                  p: 0.5,
-                  color: area.one_pager_url ? '#4caf50' : '#1976d2'
-                }}
-                title={area.one_pager_url ? 'Replace one-pager' : 'Upload one-pager'}
-              >
-                {uploadingFile ? (
-                  <CloudUploadIcon sx={{ fontSize: 16 }} />
-                ) : (
-                  <UploadIcon sx={{ fontSize: 16 }} />
-                )}
-              </IconButton>
-            </label>
-            {area.one_pager_url && (
-              <IconButton
-                size="small"
-                onClick={() => {
-                  const link = document.createElement('a')
-                  link.href = area.one_pager_url!
-                  link.download = `${area.name}_one_pager.pdf`
-                  document.body.appendChild(link)
-                  link.click()
-                  document.body.removeChild(link)
-                }}
-                sx={{ 
-                  p: 0.5,
-                  color: '#1976d2'
-                }}
-                title="Download one-pager"
-              >
-                <DownloadIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            )}
+        {/* One-pager URL */}
+        <Box sx={{ mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            <AttachFileIcon sx={{ fontSize: 14, color: area.one_pager_url ? '#4caf50' : '#f44336' }} />
+            <Typography variant="caption" color={area.one_pager_url ? 'success.main' : 'error.main'}>
+              {area.one_pager_url ? 'One-pager URL provided' : 'One-pager URL required'}
+            </Typography>
           </Box>
+          
+          <TextField
+            size="small"
+            fullWidth
+            placeholder="Enter one-pager URL..."
+            value={area.one_pager_url || ''}
+            onChange={(e) => {
+              const newUrl = e.target.value
+              setAreas(prev => prev.map(a => 
+                a.id === area.id ? { ...a, one_pager_url: newUrl } : a
+              ))
+            }}
+            onBlur={() => {
+              if (area.one_pager_url !== (areas.find(a => a.id === area.id)?.one_pager_url || '')) {
+                handleOnePagerUrlUpdate(area, areas.find(a => a.id === area.id)?.one_pager_url || '')
+              }
+            }}
+            InputProps={{
+              endAdornment: area.one_pager_url && (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={() => window.open(area.one_pager_url, '_blank')}
+                    sx={{ p: 0.5 }}
+                    title="Open one-pager"
+                  >
+                    <DownloadIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
+          />
         </Box>
 
         {/* Comments count */}
@@ -794,19 +741,39 @@ export default function AreasPage() {
                     }} 
                   />
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">One-pager</Typography>
-                  {selectedArea.one_pager_url ? (
-                    <Chip 
-                      label="Uploaded" 
-                      sx={{ backgroundColor: '#4caf50', color: 'white' }} 
-                    />
-                  ) : (
-                    <Chip 
-                      label="Required" 
-                      sx={{ backgroundColor: '#f44336', color: 'white' }} 
-                    />
-                  )}
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>One-pager URL</Typography>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Enter one-pager URL..."
+                    value={selectedArea.one_pager_url || ''}
+                    onChange={(e) => {
+                      const newUrl = e.target.value
+                      setAreas(prev => prev.map(a => 
+                        a.id === selectedArea.id ? { ...a, one_pager_url: newUrl } : a
+                      ))
+                    }}
+                    onBlur={() => {
+                      if (selectedArea.one_pager_url !== (areas.find(a => a.id === selectedArea.id)?.one_pager_url || '')) {
+                        handleOnePagerUrlUpdate(selectedArea, areas.find(a => a.id === selectedArea.id)?.one_pager_url || '')
+                      }
+                    }}
+                    InputProps={{
+                      endAdornment: selectedArea.one_pager_url && (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            onClick={() => window.open(selectedArea.one_pager_url, '_blank')}
+                            sx={{ p: 0.5 }}
+                            title="Open one-pager"
+                          >
+                            <DownloadIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }}
+                  />
                 </Grid>
               </Grid>
 
@@ -898,7 +865,7 @@ export default function AreasPage() {
             To move an area from backlog to planned, you need:
           </Typography>
           <ul>
-            <li>Upload a one-pager document</li>
+            <li>Provide a one-pager URL</li>
             <li>Assign at least one POD to the area</li>
           </ul>
         </DialogContent>
