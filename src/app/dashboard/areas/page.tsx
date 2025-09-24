@@ -426,9 +426,10 @@ export default function AreasPage() {
                 a.id === area.id ? { ...a, one_pager_url: newUrl } : a
               ))
             }}
-            onBlur={() => {
-              if (area.one_pager_url !== (areas.find(a => a.id === area.id)?.one_pager_url || '')) {
-                handleOnePagerUrlUpdate(area, areas.find(a => a.id === area.id)?.one_pager_url || '')
+            onBlur={(e) => {
+              const newUrl = e.target.value
+              if (newUrl !== area.one_pager_url) {
+                handleOnePagerUrlUpdate(area, newUrl)
               }
             }}
             InputProps={{
@@ -754,9 +755,10 @@ export default function AreasPage() {
                         a.id === selectedArea.id ? { ...a, one_pager_url: newUrl } : a
                       ))
                     }}
-                    onBlur={() => {
-                      if (selectedArea.one_pager_url !== (areas.find(a => a.id === selectedArea.id)?.one_pager_url || '')) {
-                        handleOnePagerUrlUpdate(selectedArea, areas.find(a => a.id === selectedArea.id)?.one_pager_url || '')
+                    onBlur={(e) => {
+                      const newUrl = e.target.value
+                      if (newUrl !== selectedArea.one_pager_url) {
+                        handleOnePagerUrlUpdate(selectedArea, newUrl)
                       }
                     }}
                     InputProps={{
