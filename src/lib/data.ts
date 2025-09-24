@@ -241,7 +241,7 @@ export async function getPods(): Promise<Pod[]> {
 
 export async function createPod(podData: {
   name: string
-  description: string
+  description?: string
   area_id: string
   start_date?: string
   end_date?: string
@@ -255,10 +255,10 @@ export async function createPod(podData: {
     .from('pods')
     .insert({
       name: podData.name,
-      description: podData.description,
+      description: podData.description || null,
       area_id: podData.area_id,
-      start_date: podData.start_date,
-      end_date: podData.end_date,
+      start_date: podData.start_date || null,
+      end_date: podData.end_date || null,
       status: 'backlog'
     })
     .select()
