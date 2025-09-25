@@ -117,53 +117,66 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       height: '100%', 
       display: 'flex', 
       flexDirection: 'column',
-      backgroundColor: darkMode ? 'background.paper' : 'background.paper'
+      backgroundColor: '#FFFFFF',
+      width: drawerWidth
     }}>
-      <Toolbar sx={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        minHeight: '64px !important'
+      <Box sx={{ 
+        p: 3,
+        borderBottom: '1px solid #E5E7EB'
       }}>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-          POD Management
-        </Typography>
-      </Toolbar>
-      <Divider />
-      <Box sx={{ flex: 1, overflow: 'auto' }}>
-        <List sx={{ px: 1, py: 2 }}>
+        <Box display="flex" alignItems="center" gap={1}>
+          <Box sx={{ 
+            width: 24, 
+            height: 24, 
+            background: '#2196F3',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <Typography sx={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>D</Typography>
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#333333' }}>
+            Dashboard
+          </Typography>
+        </Box>
+      </Box>
+      
+      <Box sx={{ flex: 1, overflow: 'auto', py: 2 }}>
+        <List sx={{ px: 2 }}>
           {menuItems.map((item) => {
             if (item.requirePODCommittee && !isPODCommittee) return null
             
             const isActive = pathname === item.href
             return (
-              <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
+              <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
                 <ListItemButton
                   selected={isActive}
                   onClick={() => router.push(item.href)}
                   sx={{
-                    borderRadius: 2,
-                    mx: 1,
+                    borderRadius: 1,
                     py: 1.5,
+                    px: 2,
                     transition: 'all 0.2s ease-in-out',
                     '&.Mui-selected': {
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      color: 'white',
-                      '&:hover': {
-                        background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
-                      },
+                      backgroundColor: '#E3F2FD',
+                      borderLeft: '4px solid #2196F3',
                       '& .MuiListItemIcon-root': {
-                        color: 'white',
+                        color: '#2196F3',
+                      },
+                      '& .MuiListItemText-primary': {
+                        color: '#2196F3',
+                        fontWeight: 600,
                       }
                     },
                     '&:hover': {
-                      backgroundColor: 'action.hover',
-                      transform: 'translateX(4px)',
+                      backgroundColor: '#F5F5F5',
                     }
                   }}
                 >
                   <ListItemIcon sx={{ 
                     minWidth: 40,
-                    transition: 'color 0.2s ease-in-out'
+                    color: '#666666'
                   }}>
                     <item.icon />
                   </ListItemIcon>
@@ -171,7 +184,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     primary={item.label} 
                     primaryTypographyProps={{ 
                       fontWeight: isActive ? 600 : 400,
-                      fontSize: '0.95rem'
+                      fontSize: '0.95rem',
+                      color: '#333333'
                     }}
                   />
                 </ListItemButton>
@@ -180,17 +194,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           })}
         </List>
       </Box>
-      <Divider />
-      <Box sx={{ p: 2, backgroundColor: 'background.paper' }}>
-        <Paper 
-          elevation={1}
-          sx={{ 
-            p: 2, 
-            borderRadius: 2,
-            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-            color: 'white'
-          }}
-        >
+      
+      <Box sx={{ p: 2, borderTop: '1px solid #E5E7EB' }}>
+        <Box sx={{ mb: 2 }}>
           <FormControlLabel
             control={
               <Switch
@@ -198,31 +204,58 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 onChange={(e) => setDarkMode(e.target.checked)}
                 sx={{
                   '& .MuiSwitch-switchBase.Mui-checked': {
-                    color: 'white',
+                    color: '#2196F3',
                   },
                   '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                    backgroundColor: '#2196F3',
                   },
                 }}
               />
             }
             label={
               <Box display="flex" alignItems="center" gap={1}>
-                <DarkModeIcon sx={{ fontSize: 18 }} />
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {darkMode ? 'Dark' : 'Light'} Mode
+                <DarkModeIcon sx={{ fontSize: 18, color: '#666666' }} />
+                <Typography variant="body2" sx={{ fontWeight: 500, color: '#333333' }}>
+                  Switch to dark mode
                 </Typography>
               </Box>
             }
             sx={{ 
               m: 0,
               '& .MuiFormControlLabel-label': {
-                color: 'white',
+                color: '#333333',
                 fontWeight: 500
               }
             }}
           />
-        </Paper>
+        </Box>
+        
+        <ListItemButton
+          onClick={handleLogout}
+          sx={{
+            borderRadius: 1,
+            py: 1.5,
+            px: 2,
+            '&:hover': {
+              backgroundColor: '#F5F5F5',
+            }
+          }}
+        >
+          <ListItemIcon sx={{ 
+            minWidth: 40,
+            color: '#666666'
+          }}>
+            <LogoutIcon />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Logout" 
+            primaryTypographyProps={{ 
+              fontWeight: 400,
+              fontSize: '0.95rem',
+              color: '#333333'
+            }}
+          />
+        </ListItemButton>
       </Box>
     </Box>
   )
@@ -233,8 +266,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         position="fixed"
         elevation={0}
         sx={{
-          width: { sm: desktopOpen ? `calc(100% - ${drawerWidth}px)` : '100%' },
-          ml: { sm: desktopOpen ? `${drawerWidth}px` : 0 },
+          width: '100%',
+          ml: 0,
           transition: 'all 0.3s ease',
           background: darkMode 
             ? 'linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 100%)'
@@ -397,14 +430,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           {drawer}
         </Drawer>
         <Drawer
-          variant="permanent"
+          variant="persistent"
           sx={{
             display: { xs: 'none', sm: 'block' },
             '& .MuiDrawer-paper': { 
               boxSizing: 'border-box', 
-              width: desktopOpen ? drawerWidth : 0,
-              transition: 'width 0.3s ease',
-              overflow: 'hidden',
+              width: drawerWidth,
+              position: 'fixed',
+              top: 0,
+              left: desktopOpen ? 0 : -drawerWidth,
+              transition: 'left 0.3s ease',
+              zIndex: 1200,
             },
           }}
           open={desktopOpen}
@@ -417,11 +453,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: desktopOpen ? `calc(100% - ${drawerWidth}px)` : '100%' },
+          width: '100%',
           transition: 'all 0.3s ease',
           background: darkMode 
             ? 'linear-gradient(135deg, #000000 0%, #111827 100%)'
-            : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            : '#F5F7FA',
           minHeight: '100vh',
         }}
       >

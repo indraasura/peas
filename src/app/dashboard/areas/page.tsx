@@ -40,10 +40,7 @@ import {
   Group as GroupIcon,
   Schedule as ScheduleIcon,
   Assessment as AssessmentIcon,
-  Send as SendIcon,
-  Upload as UploadIcon,
-  Download as DownloadIcon,
-  CloudUpload as CloudUploadIcon
+  Send as SendIcon
 } from '@mui/icons-material'
 import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, getPods } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
@@ -67,7 +64,6 @@ export default function AreasPage() {
   const [areaComments, setAreaComments] = useState<any[]>([])
   const [newComment, setNewComment] = useState('')
   const [newCommentLoading, setNewCommentLoading] = useState(false)
-  const [uploadingFile, setUploadingFile] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -75,7 +71,8 @@ export default function AreasPage() {
     business_enablement: 'Low',
     efforts: 'Low',
     end_user_impact: 'Low',
-    decision_quorum: [] as string[]
+    decision_quorum: [] as string[],
+    one_pager_url: ''
   })
   const [error, setError] = useState('')
   const [moveValidation, setMoveValidation] = useState({
@@ -127,7 +124,8 @@ export default function AreasPage() {
         business_enablement: 'Low',
         efforts: 'Low',
         end_user_impact: 'Low',
-        decision_quorum: []
+        decision_quorum: [],
+        one_pager_url: ''
       })
       fetchData()
     } catch (error) {
@@ -184,7 +182,8 @@ export default function AreasPage() {
       business_enablement: 'Low',
       efforts: 'Low',
       end_user_impact: 'Low',
-      decision_quorum: []
+      decision_quorum: [],
+      one_pager_url: ''
     })
     setOpenDialog(true)
   }
@@ -198,7 +197,8 @@ export default function AreasPage() {
       business_enablement: area.business_enablement,
       efforts: area.efforts,
       end_user_impact: area.end_user_impact,
-      decision_quorum: area.decision_quorum?.map(q => q.id) || []
+      decision_quorum: area.decision_quorum?.map(q => q.id) || [],
+      one_pager_url: area.one_pager_url || ''
     })
     setOpenDialog(true)
   }
@@ -239,49 +239,6 @@ export default function AreasPage() {
     setOpenDetailsDialog(true)
   }
 
-  const handleFileUpload = async (event: any, area: Area) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    // Validate file type (PDF only)
-    if (file.type !== 'application/pdf') {
-      setError('Please upload a PDF file only')
-      return
-    }
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setError('File size must be less than 10MB')
-      return
-    }
-
-    try {
-      setUploadingFile(true)
-      setError('')
-
-      // In a real implementation, you would upload to a storage service like Supabase Storage
-      // For now, we'll simulate the upload and store a mock URL
-      const mockUrl = `https://storage.example.com/one-pagers/${area.id}/${file.name}`
-      
-      await updateArea(area.id, { one_pager_url: mockUrl })
-      
-      // Update local state
-      setAreas(prev => prev.map(a => 
-        a.id === area.id ? { ...a, one_pager_url: mockUrl } : a
-      ))
-
-      // Show success message
-      setError('') // Clear any previous errors
-      alert('One-pager uploaded successfully!')
-    } catch (error) {
-      console.error('Error uploading file:', error)
-      setError('Failed to upload file. Please try again.')
-    } finally {
-      setUploadingFile(false)
-      // Reset file input
-      event.target.value = ''
-    }
-  }
 
   const handleAddComment = async () => {
     if (!newComment.trim() || !selectedArea) return
@@ -433,7 +390,7 @@ export default function AreasPage() {
         )}
 
         {/* One-pager status */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           {area.one_pager_url ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <AttachFileIcon sx={{ fontSize: 14, color: '#4caf50' }} />
@@ -449,56 +406,6 @@ export default function AreasPage() {
               </Typography>
             </Box>
           )}
-          
-          {/* Upload/View button */}
-          <Box>
-            <input
-              accept=".pdf"
-              style={{ display: 'none' }}
-              id={`upload-${area.id}`}
-              type="file"
-              onChange={(e) => handleFileUpload(e, area)}
-              disabled={uploadingFile}
-            />
-            <label htmlFor={`upload-${area.id}`}>
-              <IconButton
-                size="small"
-                component="span"
-                disabled={uploadingFile}
-                sx={{ 
-                  p: 0.5,
-                  color: area.one_pager_url ? '#4caf50' : '#1976d2'
-                }}
-                title={area.one_pager_url ? 'Replace one-pager' : 'Upload one-pager'}
-              >
-                {uploadingFile ? (
-                  <CloudUploadIcon sx={{ fontSize: 16 }} />
-                ) : (
-                  <UploadIcon sx={{ fontSize: 16 }} />
-                )}
-              </IconButton>
-            </label>
-            {area.one_pager_url && (
-              <IconButton
-                size="small"
-                onClick={() => {
-                  const link = document.createElement('a')
-                  link.href = area.one_pager_url!
-                  link.download = `${area.name}_one_pager.pdf`
-                  document.body.appendChild(link)
-                  link.click()
-                  document.body.removeChild(link)
-                }}
-                sx={{ 
-                  p: 0.5,
-                  color: '#1976d2'
-                }}
-                title="Download one-pager"
-              >
-                <DownloadIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            )}
-          </Box>
         </Box>
 
         {/* Comments count */}
@@ -645,6 +552,16 @@ export default function AreasPage() {
                   ))}
                 </Select>
               </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="One-pager URL"
+                value={formData.one_pager_url}
+                onChange={(e) => setFormData({ ...formData, one_pager_url: e.target.value })}
+                placeholder="https://example.com/one-pager.pdf"
+                helperText="Enter the URL to the one-pager document"
+              />
             </Grid>
             <Grid item xs={12}>
               <FormControl fullWidth>
