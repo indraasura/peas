@@ -123,7 +123,7 @@ export default function AreasPage() {
       // First, remove all PODs from this area
       const currentAreaPods = pods.filter(pod => pod.area_id === areaId)
       for (const pod of currentAreaPods) {
-        await updatePod(pod.id, { area_id: null })
+        await updatePod(pod.id, { area_id: undefined })
       }
 
       // Then, assign selected PODs to this area
