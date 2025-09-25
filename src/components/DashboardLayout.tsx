@@ -117,12 +117,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       height: '100%', 
       display: 'flex', 
       flexDirection: 'column',
-      backgroundColor: '#FFFFFF',
+      backgroundColor: darkMode ? '#1F2937' : '#FFFFFF',
       width: drawerWidth
     }}>
       <Box sx={{ 
         p: 3,
-        borderBottom: '1px solid #E5E7EB'
+        borderBottom: darkMode ? '1px solid #374151' : '1px solid #E5E7EB'
       }}>
         <Box display="flex" alignItems="center" gap={1}>
           <Box sx={{ 
@@ -136,7 +136,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           }}>
             <Typography sx={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>D</Typography>
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: '#333333' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: darkMode ? '#F9FAFB' : '#333333' }}>
             Dashboard
           </Typography>
         </Box>
@@ -159,7 +159,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     px: 2,
                     transition: 'all 0.2s ease-in-out',
                     '&.Mui-selected': {
-                      backgroundColor: '#E3F2FD',
+                      backgroundColor: darkMode ? '#1E40AF' : '#E3F2FD',
                       borderLeft: '4px solid #2196F3',
                       '& .MuiListItemIcon-root': {
                         color: '#2196F3',
@@ -170,13 +170,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       }
                     },
                     '&:hover': {
-                      backgroundColor: '#F5F5F5',
+                      backgroundColor: darkMode ? '#374151' : '#F5F5F5',
                     }
                   }}
                 >
                   <ListItemIcon sx={{ 
                     minWidth: 40,
-                    color: '#666666'
+                    color: darkMode ? '#9CA3AF' : '#666666'
                   }}>
                     <item.icon />
                   </ListItemIcon>
@@ -185,7 +185,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     primaryTypographyProps={{ 
                       fontWeight: isActive ? 600 : 400,
                       fontSize: '0.95rem',
-                      color: '#333333'
+                      color: darkMode ? '#F9FAFB' : '#333333'
                     }}
                   />
                 </ListItemButton>
@@ -195,7 +195,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </List>
       </Box>
       
-      <Box sx={{ p: 2, borderTop: '1px solid #E5E7EB' }}>
+      <Box sx={{ p: 2, borderTop: darkMode ? '1px solid #374151' : '1px solid #E5E7EB' }}>
         <Box sx={{ mb: 2 }}>
           <FormControlLabel
             control={
@@ -214,8 +214,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             }
             label={
               <Box display="flex" alignItems="center" gap={1}>
-                <DarkModeIcon sx={{ fontSize: 18, color: '#666666' }} />
-                <Typography variant="body2" sx={{ fontWeight: 500, color: '#333333' }}>
+                <DarkModeIcon sx={{ fontSize: 18, color: darkMode ? '#9CA3AF' : '#666666' }} />
+                <Typography variant="body2" sx={{ fontWeight: 500, color: darkMode ? '#F9FAFB' : '#333333' }}>
                   Switch to dark mode
                 </Typography>
               </Box>
@@ -223,7 +223,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             sx={{ 
               m: 0,
               '& .MuiFormControlLabel-label': {
-                color: '#333333',
+                color: darkMode ? '#F9FAFB' : '#333333',
                 fontWeight: 500
               }
             }}
@@ -237,13 +237,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             py: 1.5,
             px: 2,
             '&:hover': {
-              backgroundColor: '#F5F5F5',
+              backgroundColor: darkMode ? '#374151' : '#F5F5F5',
             }
           }}
         >
           <ListItemIcon sx={{ 
             minWidth: 40,
-            color: '#666666'
+            color: darkMode ? '#9CA3AF' : '#666666'
           }}>
             <LogoutIcon />
           </ListItemIcon>
@@ -252,7 +252,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             primaryTypographyProps={{ 
               fontWeight: 400,
               fontSize: '0.95rem',
-              color: '#333333'
+              color: darkMode ? '#F9FAFB' : '#333333'
             }}
           />
         </ListItemButton>
