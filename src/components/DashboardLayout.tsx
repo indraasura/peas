@@ -43,7 +43,7 @@ const menuItems = [
   { icon: DashboardIcon, label: 'Dashboard', href: '/dashboard' },
   { icon: AreasIcon, label: 'Areas', href: '/dashboard/areas', requirePODCommittee: true },
   { icon: PodsIcon, label: 'PODs', href: '/dashboard/pods', requirePODCommittee: true },
-  { icon: MyPodsIcon, label: 'My PODs', href: '/dashboard/my-pods' },
+  { icon: MyPodsIcon, label: 'My PODs', href: '/dashboard/my-pods', hideFromPODCommittee: true },
   { icon: MembersIcon, label: 'Members', href: '/dashboard/members', requirePODCommittee: true },
   { icon: ProfileIcon, label: 'Profile', href: '/dashboard/profile' },
 ]
@@ -146,6 +146,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <List sx={{ px: 2 }}>
           {menuItems.map((item) => {
             if (item.requirePODCommittee && !isPODCommittee) return null
+            if (item.hideFromPODCommittee && isPODCommittee) return null
             
             const isActive = pathname === item.href
             return (

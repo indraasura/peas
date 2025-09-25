@@ -28,6 +28,7 @@ import {
   TrendingUp as TrendingUpIcon
 } from '@mui/icons-material'
 import { getPods, getMembers, getAreas, getAvailableMembers } from '@/lib/data'
+import { getCurrentUser, type Profile } from '@/lib/auth'
 
 interface TeamBandwidthData {
   team: string
@@ -41,10 +42,23 @@ export default function DashboardPage() {
   const [bandwidthData, setBandwidthData] = useState<TeamBandwidthData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [user, setUser] = useState<Profile | null>(null)
 
   useEffect(() => {
-    fetchBandwidthData()
+    fetchData()
   }, [])
+
+  const fetchData = async () => {
+    try {
+      const [currentUser] = await Promise.all([
+        getCurrentUser(),
+        fetchBandwidthData()
+      ])
+      setUser(currentUser)
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    }
+  }
 
   const fetchBandwidthData = async () => {
     try {
@@ -318,16 +332,18 @@ export default function DashboardPage() {
               View Members
             </Button>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<TrendingUpIcon />}
-              onClick={() => router.push('/dashboard/my-pods')}
-            >
-              My PODs
-            </Button>
-          </Grid>
+          {user?.team !== 'POD committee' && (
+            <Grid item xs={12} sm={6} md={3}>
+              <Button
+                variant="outlined"
+                fullWidth
+                startIcon={<TrendingUpIcon />}
+                onClick={() => router.push('/dashboard/my-pods')}
+              >
+                My PODs
+              </Button>
+            </Grid>
+          )}
         </Grid>
       </Box>
     </Box>
