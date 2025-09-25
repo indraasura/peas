@@ -1,10 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Hardcoded Supabase configuration for production
-const supabaseUrl = 'https://rveglaunkfhokicqbosf.supabase.co'
+// Supabase configuration
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://rveglaunkfhokicqbosf.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+// Debug logging for production issues
+if (typeof window !== 'undefined') {
+  console.log('Supabase URL:', supabaseUrl)
+  console.log('Supabase Key exists:', !!supabaseAnonKey)
+}
+
 if (!supabaseAnonKey) {
+  console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable is missing')
   throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable is required')
 }
 
