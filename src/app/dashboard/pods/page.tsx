@@ -481,7 +481,21 @@ export default function PodsPage() {
         )}
 
         {/* Notes count */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 0.5,
+            cursor: 'pointer',
+            '&:hover': {
+              backgroundColor: 'action.hover',
+              borderRadius: 1,
+              px: 1,
+              py: 0.5
+            }
+          }}
+          onClick={() => handleViewPodDetails(pod)}
+        >
           <CommentIcon sx={{ fontSize: 14 }} />
           <Typography variant="caption" color="text.secondary">
             {podNotesCounts[pod.id] || 0} review notes

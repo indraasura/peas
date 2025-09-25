@@ -42,7 +42,7 @@ import {
   Assessment as AssessmentIcon,
   Send as SendIcon
 } from '@mui/icons-material'
-import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, getPods } from '@/lib/data'
+import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, getPods, updatePod } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import KanbanBoard from '@/components/KanbanBoard'
@@ -72,7 +72,8 @@ export default function AreasPage() {
     efforts: 'Low',
     end_user_impact: 'Low',
     decision_quorum: [] as string[],
-    one_pager_url: ''
+    one_pager_url: '',
+    selected_pods: [] as string[]
   })
   const [error, setError] = useState('')
   const [moveValidation, setMoveValidation] = useState({
@@ -105,14 +106,29 @@ export default function AreasPage() {
   const handleSubmit = async () => {
     try {
       setError('')
-      const { decision_quorum, ...areaData } = formData
+      const { decision_quorum, selected_pods, ...areaData } = formData
       
+      let areaId: string
       if (editingArea) {
         await updateArea(editingArea.id, areaData)
         await updateAreaDecisionQuorum(editingArea.id, decision_quorum)
+        areaId = editingArea.id
       } else {
         const newArea = await createArea({ ...areaData, status: 'backlog' })
         await updateAreaDecisionQuorum(newArea.id, decision_quorum)
+        areaId = newArea.id
+      }
+
+      // Update POD associations
+      // First, remove all PODs from this area
+      const currentAreaPods = pods.filter(pod => pod.area_id === areaId)
+      for (const pod of currentAreaPods) {
+        await updatePod(pod.id, { area_id: null })
+      }
+
+      // Then, assign selected PODs to this area
+      for (const podId of selected_pods) {
+        await updatePod(podId, { area_id: areaId })
       }
       
       setOpenDialog(false)
@@ -125,7 +141,8 @@ export default function AreasPage() {
         efforts: 'Low',
         end_user_impact: 'Low',
         decision_quorum: [],
-        one_pager_url: ''
+        one_pager_url: '',
+        selected_pods: []
       })
       fetchData()
     } catch (error) {
@@ -183,13 +200,15 @@ export default function AreasPage() {
       efforts: 'Low',
       end_user_impact: 'Low',
       decision_quorum: [],
-      one_pager_url: ''
+      one_pager_url: '',
+      selected_pods: []
     })
     setOpenDialog(true)
   }
 
   const handleEditArea = (area: Area) => {
     setEditingArea(area)
+    const areaPods = pods.filter(pod => pod.area_id === area.id)
     setFormData({
       name: area.name,
       description: area.description || '',
@@ -198,7 +217,8 @@ export default function AreasPage() {
       efforts: area.efforts,
       end_user_impact: area.end_user_impact,
       decision_quorum: area.decision_quorum?.map(q => q.id) || [],
-      one_pager_url: area.one_pager_url || ''
+      one_pager_url: area.one_pager_url || '',
+      selected_pods: areaPods.map(pod => pod.id)
     })
     setOpenDialog(true)
   }
@@ -268,12 +288,7 @@ export default function AreasPage() {
   }
 
   const getImpactColor = (level: string) => {
-    switch (level.toLowerCase()) {
-      case 'high': return '#f44336'
-      case 'medium': return '#ff9800'
-      case 'low': return '#4caf50'
-      default: return '#9e9e9e'
-    }
+    return '#9e9e9e' // Always return grey for all levels
   }
 
   const renderAreaCard = (area: Area) => {
@@ -408,7 +423,21 @@ export default function AreasPage() {
         </Box>
 
         {/* Comments count */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 0.5,
+            cursor: 'pointer',
+            '&:hover': {
+              backgroundColor: 'action.hover',
+              borderRadius: 1,
+              px: 1,
+              py: 0.5
+            }
+          }}
+          onClick={() => handleViewComments(area)}
+        >
           <CommentIcon sx={{ fontSize: 14 }} />
           <Typography variant="caption" color="text.secondary">
             {area.comments?.length || 0} comments
@@ -466,7 +495,6 @@ export default function AreasPage() {
         onItemMove={handleItemMove}
         onItemEdit={handleEditArea}
         onItemDelete={handleDeleteArea}
-        onItemView={handleViewAreaDetails}
         onItemAdd={handleAddArea}
         renderItem={renderAreaCard}
         addButtonText="Add Area"
@@ -573,6 +601,21 @@ export default function AreasPage() {
                 >
                   {podCommitteeMembers.map((member) => (
                     <MenuItem key={member.id} value={member.id}>{member.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Associated PODs</InputLabel>
+                <Select
+                  multiple
+                  value={formData.selected_pods}
+                  onChange={(e) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
+                  label="Associated PODs"
+                >
+                  {pods.map((pod) => (
+                    <MenuItem key={pod.id} value={pod.id}>{pod.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
