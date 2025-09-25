@@ -239,7 +239,6 @@ export default function AreasPage() {
     setOpenDetailsDialog(true)
   }
 
-
   const handleAddComment = async () => {
     if (!newComment.trim() || !selectedArea) return
 

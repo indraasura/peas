@@ -45,7 +45,7 @@ import {
   TrendingUp as TrendingUpIcon,
   Comment as CommentIcon
 } from '@mui/icons-material'
-import { getPods, createPod, updatePod, deletePod, getPlannedAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote } from '@/lib/data'
+import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote } from '@/lib/data'
 import { type Pod, type Area, type Profile, type PodNote } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import KanbanBoard from '@/components/KanbanBoard'
@@ -97,13 +97,14 @@ export default function PodsPage() {
 
   const fetchData = async () => {
     try {
-      const [podsData, areasData, membersData] = await Promise.all([
+      const [podsData, allAreasData, membersData] = await Promise.all([
         getPods(),
-        getPlannedAreas(),
+        getAreas(),
         getAvailableMembers()
       ])
       setPods(podsData)
-      setAreas(areasData)
+      // Filter to show only backlog areas
+      setAreas(allAreasData.filter(area => area.status === 'backlog'))
       setAvailableMembers(membersData)
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -116,6 +117,16 @@ export default function PodsPage() {
     try {
       setError('')
       const { members, dependencies, ...podData } = formData
+
+      // Validate required fields
+      if (!podData.name.trim()) {
+        setError('POD name is required')
+        return
+      }
+      if (!podData.area_id) {
+        setError('Area selection is required')
+        return
+      }
 
       if (editingPod) {
         await updatePod(editingPod.id, podData)
