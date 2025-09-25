@@ -230,7 +230,7 @@ export default function MembersPage() {
         return (
           <Box>
             <Typography variant="body2">
-              {remainingBandwidth}%
+              {(remainingBandwidth / 100).toFixed(2)}
             </Typography>
           </Box>
         )

@@ -354,7 +354,7 @@ export default function PodsPage() {
               {pod.members?.slice(0, 3).map((member) => (
                 <Chip
                   key={member.id}
-                  label={`${member.member?.name || 'Unknown'} (${member.bandwidth_percentage}%)`}
+                  label={`${member.member?.name || 'Unknown'} (${(member.bandwidth_percentage / 100).toFixed(2)})`}
                   size="small"
                   variant="outlined"
                   sx={{ fontSize: '0.7rem' }}
@@ -534,7 +534,7 @@ export default function PodsPage() {
                       >
                         {availableMembers.map((memberOption: Profile) => (
                           <MenuItem key={memberOption.id} value={memberOption.id}>
-                            {memberOption.name} ({memberOption.available_bandwidth || 100}% available)
+                            {memberOption.name} ({(memberOption.available_bandwidth || 100) / 100} available)
                     </MenuItem>
                   ))}
                 </Select>
@@ -664,7 +664,7 @@ export default function PodsPage() {
                     </ListItemAvatar>
                     <ListItemText
                       primary={`${member.member?.name || 'Unknown'} ${member.is_leader ? '(Leader)' : ''}`}
-                      secondary={`${member.member?.team || 'Unknown Team'} • ${member.bandwidth_percentage}% bandwidth`}
+                      secondary={`${member.member?.team || 'Unknown Team'} • ${(member.bandwidth_percentage / 100).toFixed(2)} bandwidth`}
                     />
                   </ListItem>
                 ))}

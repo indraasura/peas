@@ -160,7 +160,7 @@ export default function DashboardPage() {
                     Assigned Capacity
                   </Typography>
                   <Typography variant="h4">
-                    {totalAssignedCapacity}%
+                    {(totalAssignedCapacity / 100).toFixed(2)}
                   </Typography>
                 </Box>
                 <TrendingUpIcon sx={{ fontSize: 40, color: 'warning.main' }} />
@@ -177,7 +177,7 @@ export default function DashboardPage() {
                     Available Capacity
                   </Typography>
                   <Typography variant="h4" color={getCapacityColor(totalAvailableCapacity, totalAssignedCapacity)}>
-                    {totalAvailableCapacity}%
+                    {(totalAvailableCapacity / 100).toFixed(2)}
                   </Typography>
                 </Box>
                 <PersonIcon sx={{ fontSize: 40, color: 'success.main' }} />
@@ -230,7 +230,7 @@ export default function DashboardPage() {
                       </TableCell>
                       <TableCell align="center">
                         <Typography variant="body1" fontWeight="medium">
-                          {team.assignedCapacity}%
+                          {(team.assignedCapacity / 100).toFixed(2)}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
@@ -239,7 +239,7 @@ export default function DashboardPage() {
                           fontWeight="medium"
                           color={capacityColor}
                         >
-                          {team.availableCapacity}%
+                          {(team.availableCapacity / 100).toFixed(2)}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
@@ -269,7 +269,7 @@ export default function DashboardPage() {
                             }}
                           />
                           <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                            {utilizationPercentage.toFixed(1)}%
+                            {(utilizationPercentage / 100).toFixed(3)}
                           </Typography>
                         </Box>
                       </TableCell>
