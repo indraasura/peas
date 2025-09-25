@@ -31,7 +31,8 @@ import {
   ListItemAvatar,
   Paper,
   InputAdornment,
-  Badge
+  Badge,
+  Stack
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -43,9 +44,11 @@ import {
   Schedule as ScheduleIcon,
   Assignment as AssignmentIcon,
   TrendingUp as TrendingUpIcon,
-  Comment as CommentIcon
+  Comment as CommentIcon,
+  Close as CloseIcon,
+  Assessment as AssessmentIcon
 } from '@mui/icons-material'
-import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote } from '@/lib/data'
+import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote, updatePodNote, deletePodNote } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'
 import { type Pod, type Area, type Profile, type PodNote } from '@/lib/supabase'
 import KanbanBoard from '@/components/KanbanBoard'
@@ -66,6 +69,9 @@ export default function PodsPage() {
   const [selectedPod, setSelectedPod] = useState<Pod | null>(null)
   const [podNotes, setPodNotes] = useState<PodNote[]>([])
   const [podNotesCounts, setPodNotesCounts] = useState<Record<string, number>>({})
+  const [openViewDialog, setOpenViewDialog] = useState(false)
+  const [selectedNote, setSelectedNote] = useState<PodNote | null>(null)
+  const [editingNote, setEditingNote] = useState<PodNote | null>(null)
   const [newNote, setNewNote] = useState({
     review_date: '',
     blockers: '',
@@ -283,17 +289,31 @@ export default function PodsPage() {
         return
       }
       
-      await createPodNote({
-        pod_id: selectedPod.id,
-        review_date: newNote.review_date,
-        blockers: newNote.blockers || undefined,
-        learnings: newNote.learnings || undefined,
-        current_state: newNote.current_state || undefined,
-        deviation_to_plan: newNote.deviation_to_plan || undefined,
-        dependencies_risks: newNote.dependencies_risks || undefined,
-        misc: newNote.misc || undefined,
-        created_by: currentUser.id
-      })
+      if (editingNote) {
+        // Update existing note
+        await updatePodNote(editingNote.id, {
+          review_date: newNote.review_date,
+          blockers: newNote.blockers || undefined,
+          learnings: newNote.learnings || undefined,
+          current_state: newNote.current_state || undefined,
+          deviation_to_plan: newNote.deviation_to_plan || undefined,
+          dependencies_risks: newNote.dependencies_risks || undefined,
+          misc: newNote.misc || undefined,
+        })
+      } else {
+        // Create new note
+        await createPodNote({
+          pod_id: selectedPod.id,
+          review_date: newNote.review_date,
+          blockers: newNote.blockers || undefined,
+          learnings: newNote.learnings || undefined,
+          current_state: newNote.current_state || undefined,
+          deviation_to_plan: newNote.deviation_to_plan || undefined,
+          dependencies_risks: newNote.dependencies_risks || undefined,
+          misc: newNote.misc || undefined,
+          created_by: currentUser.id
+        })
+      }
 
       // Refresh notes
       const notes = await getPodNotes(selectedPod.id)
@@ -306,6 +326,7 @@ export default function PodsPage() {
       }))
       
       setOpenNotesDialog(false)
+      setEditingNote(null)
       setNewNote({
         review_date: '',
         blockers: '',
@@ -316,11 +337,59 @@ export default function PodsPage() {
         misc: ''
       })
     } catch (error) {
-      console.error('Error adding review note:', error)
-      setError('Failed to add review note. Please try again.')
+      console.error('Error saving review note:', error)
+      setError('Failed to save review note. Please try again.')
     } finally {
       setAddingNote(false)
     }
+  }
+
+  const handleViewNote = (note: PodNote) => {
+    setSelectedNote(note)
+    setOpenViewDialog(true)
+  }
+
+  const handleEditNote = (note: PodNote) => {
+    setEditingNote(note)
+    setNewNote({
+      review_date: note.review_date,
+      blockers: note.blockers || '',
+      learnings: note.learnings || '',
+      current_state: note.current_state || '',
+      deviation_to_plan: note.deviation_to_plan || '',
+      dependencies_risks: note.dependencies_risks || '',
+      misc: note.misc || ''
+    })
+    setOpenNotesDialog(true)
+  }
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (window.confirm('Are you sure you want to delete this note?')) {
+      try {
+        await deletePodNote(noteId)
+        // Refresh notes
+        if (selectedPod) {
+          const notes = await getPodNotes(selectedPod.id)
+          setPodNotes(notes)
+          
+          // Update notes count
+          setPodNotesCounts(prev => ({
+            ...prev,
+            [selectedPod.id]: notes.length
+          }))
+        }
+      } catch (error) {
+        console.error('Error deleting note:', error)
+      }
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
   }
 
   const getStatusColor = (status: string) => {
@@ -712,75 +781,168 @@ export default function PodsPage() {
               </Box>
               
               {podNotes.length > 0 ? (
-                <List>
+                <Stack spacing={2}>
                   {podNotes.map((note: PodNote) => (
-                    <ListItem key={note.id} alignItems="flex-start">
-                      <ListItemText
-                        primary={`Review Date: ${new Date(note.review_date).toLocaleDateString()}`}
-                        secondary={
-                          <Box>
-                            {note.current_state && (
-                              <Box sx={{ mb: 1 }}>
-                                <Typography variant="subtitle2">Current State:</Typography>
-                                <Typography variant="body2">{note.current_state}</Typography>
-                              </Box>
-                            )}
-                            {note.blockers && (
-                              <Box sx={{ mb: 1 }}>
-                                <Typography variant="subtitle2">Blockers:</Typography>
-                                <Typography variant="body2">{note.blockers}</Typography>
-                              </Box>
-                            )}
-                            {note.learnings && (
-                              <Box sx={{ mb: 1 }}>
-                                <Typography variant="subtitle2">Learnings:</Typography>
-                                <Typography variant="body2">{note.learnings}</Typography>
-                              </Box>
-                            )}
-                            {note.deviation_to_plan && (
-                              <Box sx={{ mb: 1 }}>
-                                <Typography variant="subtitle2">Deviation to Plan:</Typography>
-                                <Typography variant="body2">{note.deviation_to_plan}</Typography>
-                              </Box>
-                            )}
-                            {note.dependencies_risks && (
-                              <Box sx={{ mb: 1 }}>
-                                <Typography variant="subtitle2">Dependencies & Risks:</Typography>
-                                <Typography variant="body2">{note.dependencies_risks}</Typography>
-                              </Box>
-                            )}
-                            {note.misc && (
-                              <Box sx={{ mb: 1 }}>
-                                <Typography variant="subtitle2">Miscellaneous:</Typography>
-                                <Typography variant="body2">{note.misc}</Typography>
-                              </Box>
-                            )}
-                            <Typography variant="caption" color="text.secondary">
-                              Created by {note.creator?.name || 'Unknown'} on {new Date(note.created_at).toLocaleString()}
-                            </Typography>
-                          </Box>
+                    <Paper
+                      key={note.id}
+                      elevation={2}
+                      sx={{
+                        p: 2,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                          elevation: 4,
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                         }
-                      />
-                    </ListItem>
+                      }}
+                    >
+                      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                        <Typography variant="h6" color="primary">
+                          Review: {formatDate(note.review_date)}
+                        </Typography>
+                        <Box display="flex" gap={1}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<ViewIcon />}
+                            onClick={() => handleViewNote(note)}
+                            sx={{
+                              borderColor: 'primary.main',
+                              color: 'primary.main',
+                              '&:hover': {
+                                borderColor: 'primary.dark',
+                                backgroundColor: 'primary.light',
+                                color: 'primary.dark'
+                              }
+                            }}
+                          >
+                            View
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<EditIcon />}
+                            onClick={() => handleEditNote(note)}
+                            sx={{
+                              borderColor: 'info.main',
+                              color: 'info.main',
+                              '&:hover': {
+                                borderColor: 'info.dark',
+                                backgroundColor: 'info.light',
+                                color: 'info.dark'
+                              }
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<DeleteIcon />}
+                            onClick={() => handleDeleteNote(note.id)}
+                            sx={{
+                              borderColor: 'error.main',
+                              color: 'error.main',
+                              '&:hover': {
+                                borderColor: 'error.dark',
+                                backgroundColor: 'error.light',
+                                color: 'error.dark'
+                              }
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </Box>
+                      </Box>
+                      
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Created by {note.creator?.name || 'Unknown'} • {formatDate(note.created_at)}
+                      </Typography>
+
+                      {/* Show only a summary of key fields */}
+                      <Box sx={{ mb: 2 }}>
+                        {note.current_state && (
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            <strong>Current State:</strong> {note.current_state.length > 80 
+                              ? `${note.current_state.substring(0, 80)}...` 
+                              : note.current_state}
+                          </Typography>
+                        )}
+                        {note.blockers && (
+                          <Typography variant="body2" sx={{ mb: 1, color: 'error.main' }}>
+                            <strong>Blockers:</strong> {note.blockers.length > 80 
+                              ? `${note.blockers.substring(0, 80)}...` 
+                              : note.blockers}
+                          </Typography>
+                        )}
+                        {note.learnings && (
+                          <Typography variant="body2" sx={{ mb: 1, color: 'success.main' }}>
+                            <strong>Learnings:</strong> {note.learnings.length > 80 
+                              ? `${note.learnings.substring(0, 80)}...` 
+                              : note.learnings}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Paper>
                   ))}
-                </List>
+                </Stack>
               ) : (
-                <Typography color="text.secondary">No review notes available</Typography>
+                <Box 
+                  textAlign="center" 
+                  py={4}
+                  sx={{
+                    border: '2px dashed',
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    bgcolor: 'action.hover'
+                  }}
+                >
+                  <AssessmentIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    No Review Notes Yet
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Start documenting your POD's progress and insights
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={handleAddReviewNote}
+                    sx={{
+                      background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+                      boxShadow: '0 3px 5px 2px rgba(25, 118, 210, .3)',
+                    }}
+                  >
+                    Add First Note
+                  </Button>
+                </Box>
               )}
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => router.push(`/dashboard/pods/${selectedPod?.id}`)}>
-            View Full Details
-          </Button>
           <Button onClick={() => setOpenDetailsDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Add Review Note Dialog */}
-      <Dialog open={openNotesDialog} onClose={() => setOpenNotesDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Add Review Meeting Note</DialogTitle>
+      {/* Add/Edit Review Note Dialog */}
+      <Dialog open={openNotesDialog} onClose={() => {
+        setOpenNotesDialog(false)
+        setEditingNote(null)
+        setNewNote({
+          review_date: '',
+          blockers: '',
+          learnings: '',
+          current_state: '',
+          deviation_to_plan: '',
+          dependencies_risks: '',
+          misc: ''
+        })
+      }} maxWidth="md" fullWidth>
+        <DialogTitle>{editingNote ? 'Edit Review Meeting Note' : 'Add Review Meeting Note'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -863,13 +1025,161 @@ export default function PodsPage() {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenNotesDialog(false)}>Cancel</Button>
+          <Button onClick={() => {
+            setOpenNotesDialog(false)
+            setEditingNote(null)
+            setNewNote({
+              review_date: '',
+              blockers: '',
+              learnings: '',
+              current_state: '',
+              deviation_to_plan: '',
+              dependencies_risks: '',
+              misc: ''
+            })
+          }}>Cancel</Button>
           <Button 
             onClick={handleSubmitReviewNote} 
             variant="contained"
             disabled={!newNote.review_date || addingNote}
           >
-            {addingNote ? 'Adding...' : 'Add Note'}
+            {addingNote ? (editingNote ? 'Updating...' : 'Adding...') : (editingNote ? 'Update Note' : 'Add Note')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Note Details Dialog */}
+      <Dialog 
+        open={openViewDialog} 
+        onClose={() => setOpenViewDialog(false)} 
+        maxWidth="lg" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          pb: 1
+        }}>
+          <Box>
+            <Typography variant="h5" component="div">
+              Review Note Details
+            </Typography>
+            {selectedNote && (
+              <Typography variant="subtitle1" color="text.secondary">
+                {formatDate(selectedNote.review_date)} • Created by {selectedNote.creator?.name || 'Unknown'}
+              </Typography>
+            )}
+          </Box>
+          <IconButton onClick={() => setOpenViewDialog(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          {selectedNote && (
+            <Grid container spacing={3}>
+              {selectedNote.current_state && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'primary.main' }}>
+                    <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AssessmentIcon />
+                      Current State
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedNote.current_state}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+              
+              {selectedNote.blockers && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'error.main' }}>
+                    <Typography variant="h6" color="error.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AssessmentIcon />
+                      Blockers
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedNote.blockers}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+              
+              {selectedNote.learnings && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'success.main' }}>
+                    <Typography variant="h6" color="success.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AssessmentIcon />
+                      Learnings
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedNote.learnings}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+              
+              {selectedNote.deviation_to_plan && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'warning.main' }}>
+                    <Typography variant="h6" color="warning.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AssessmentIcon />
+                      Deviation to Plan
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedNote.deviation_to_plan}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+              
+              {selectedNote.dependencies_risks && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'info.main' }}>
+                    <Typography variant="h6" color="info.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AssessmentIcon />
+                      Dependencies & Risks
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedNote.dependencies_risks}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+              
+              {selectedNote.misc && (
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'grey.500' }}>
+                    <Typography variant="h6" color="text.primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AssessmentIcon />
+                      Miscellaneous Notes
+                    </Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {selectedNote.misc}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button 
+            onClick={() => setOpenViewDialog(false)} 
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+              boxShadow: '0 3px 5px 2px rgba(25, 118, 210, .3)',
+            }}
+          >
+            Close
           </Button>
         </DialogActions>
       </Dialog>
