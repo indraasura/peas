@@ -233,7 +233,16 @@ export async function getPods(): Promise<Pod[]> {
   const podsWithAreas = (data || []).map(pod => ({
     ...pod,
     area: pod.area || null,
-    members: pod.pod_members || []
+    members: (pod.pod_members || []).map((pm: any) => ({
+      id: pm.id,
+      pod_id: pm.pod_id,
+      member_id: pm.member_id,
+      bandwidth_percentage: pm.bandwidth_percentage,
+      is_leader: pm.is_leader,
+      created_at: pm.created_at,
+      updated_at: pm.updated_at,
+      member: pm.member
+    }))
   }))
 
   return podsWithAreas

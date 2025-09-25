@@ -46,8 +46,8 @@ import {
   Comment as CommentIcon
 } from '@mui/icons-material'
 import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote } from '@/lib/data'
-import { type Pod, type Area, type Profile, type PodNote } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
+import { type Pod, type Area, type Profile, type PodNote } from '@/lib/supabase'
 import KanbanBoard from '@/components/KanbanBoard'
 import { DropResult } from '@hello-pangea/dnd'
 
@@ -65,6 +65,7 @@ export default function PodsPage() {
   const [editingPod, setEditingPod] = useState<Pod | null>(null)
   const [selectedPod, setSelectedPod] = useState<Pod | null>(null)
   const [podNotes, setPodNotes] = useState<PodNote[]>([])
+  const [podNotesCounts, setPodNotesCounts] = useState<Record<string, number>>({})
   const [newNote, setNewNote] = useState({
     review_date: '',
     blockers: '',
@@ -106,10 +107,28 @@ export default function PodsPage() {
       // Filter to show only backlog areas
       setAreas(allAreasData.filter(area => area.status === 'backlog'))
       setAvailableMembers(membersData)
+      
+      // Fetch notes counts for all PODs
+      await fetchPodNotesCounts(podsData)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPodNotesCounts = async (pods: Pod[]) => {
+    try {
+      const counts: Record<string, number> = {}
+      await Promise.all(
+        pods.map(async (pod) => {
+          const notes = await getPodNotes(pod.id)
+          counts[pod.id] = notes.length
+        })
+      )
+      setPodNotesCounts(counts)
+    } catch (error) {
+      console.error('Error fetching pod notes counts:', error)
     }
   }
 
@@ -195,6 +214,8 @@ export default function PodsPage() {
   }
 
   const handleEditPod = (pod: Pod) => {
+    console.log('Editing pod:', pod)
+    console.log('Pod members:', pod.members)
     setEditingPod(pod)
     setFormData({
       name: pod.name,
@@ -277,6 +298,12 @@ export default function PodsPage() {
       // Refresh notes
       const notes = await getPodNotes(selectedPod.id)
       setPodNotes(notes)
+      
+      // Update notes count
+      setPodNotesCounts(prev => ({
+        ...prev,
+        [selectedPod.id]: notes.length
+      }))
       
       setOpenNotesDialog(false)
       setNewNote({
@@ -388,7 +415,7 @@ export default function PodsPage() {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <CommentIcon sx={{ fontSize: 14 }} />
           <Typography variant="caption" color="text.secondary">
-            {podNotes.filter((note: any) => note.pod_id === pod.id).length} review notes
+            {podNotesCounts[pod.id] || 0} review notes
           </Typography>
         </Box>
         </Box>
