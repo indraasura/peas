@@ -40,9 +40,11 @@ import {
   Group as GroupIcon,
   Schedule as ScheduleIcon,
   Assessment as AssessmentIcon,
-  Send as SendIcon
+  Send as SendIcon,
+  Check as CheckIcon,
+  Close as CloseIcon
 } from '@mui/icons-material'
-import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, getPods, updatePod } from '@/lib/data'
+import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, getPods, updatePod } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import KanbanBoard from '@/components/KanbanBoard'
@@ -64,6 +66,8 @@ export default function AreasPage() {
   const [areaComments, setAreaComments] = useState<any[]>([])
   const [newComment, setNewComment] = useState('')
   const [newCommentLoading, setNewCommentLoading] = useState(false)
+  const [editingComment, setEditingComment] = useState<any>(null)
+  const [editCommentText, setEditCommentText] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -79,8 +83,15 @@ export default function AreasPage() {
   const [moveValidation, setMoveValidation] = useState({
     onePagerRequired: false,
     podsRequired: false,
-    message: ''
+    message: '',
+    areaId: '',
+    areaName: ''
   })
+  const [moveFormData, setMoveFormData] = useState({
+    one_pager_url: '',
+    selected_pods: [] as string[]
+  })
+  const [moveArea, setMoveArea] = useState<Area | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -166,10 +177,17 @@ export default function AreasPage() {
       const hasPods = areaPods.length > 0
 
       if (!hasOnePager || !hasPods) {
+        setMoveArea(area)
+        setMoveFormData({
+          one_pager_url: area.one_pager_url || '',
+          selected_pods: areaPods.map(pod => pod.id)
+        })
         setMoveValidation({
           onePagerRequired: !hasOnePager,
           podsRequired: !hasPods,
-          message: `Cannot move to planned: ${!hasOnePager ? 'One-pager required' : ''}${!hasOnePager && !hasPods ? ' and ' : ''}${!hasPods ? 'At least one POD required' : ''}`
+          message: `Cannot move to planned: ${!hasOnePager ? 'One-pager required' : ''}${!hasOnePager && !hasPods ? ' and ' : ''}${!hasPods ? 'At least one POD required' : ''}`,
+          areaId: area.id,
+          areaName: area.name
         })
         setOpenMoveDialog(true)
         return
@@ -235,6 +253,47 @@ export default function AreasPage() {
     }
   }
 
+  const handleMoveToPlanning = async () => {
+    if (!moveArea) return
+
+    try {
+      setError('')
+      
+      // Update the area with one-pager URL
+      await updateArea(moveArea.id, { 
+        one_pager_url: moveFormData.one_pager_url,
+        status: 'planned'
+      })
+
+      // Update POD associations
+      // First, remove all PODs from this area
+      const currentAreaPods = pods.filter(pod => pod.area_id === moveArea.id)
+      for (const pod of currentAreaPods) {
+        await updatePod(pod.id, { area_id: undefined })
+      }
+
+      // Then, assign selected PODs to this area
+      for (const podId of moveFormData.selected_pods) {
+        await updatePod(podId, { area_id: moveArea.id })
+      }
+
+      // Update local state
+      setAreas(prev => prev.map(a => 
+        a.id === moveArea.id ? { ...a, status: 'planned', one_pager_url: moveFormData.one_pager_url } : a
+      ))
+      
+      setOpenMoveDialog(false)
+      setMoveArea(null)
+      setMoveFormData({
+        one_pager_url: '',
+        selected_pods: []
+      })
+    } catch (error) {
+      console.error('Error moving area to planning:', error)
+      setError('Failed to move area to planning. Please try again.')
+    }
+  }
+
   const handleViewComments = async (area: Area) => {
     setSelectedArea(area)
     try {
@@ -279,11 +338,66 @@ export default function AreasPage() {
       const comments = await getAreaComments(selectedArea.id)
       setAreaComments(comments)
       setNewComment('')
+      
+      // Refresh areas data to update comment counts in cards
+      const areasData = await getAreas()
+      setAreas(areasData)
     } catch (error) {
       console.error('Error adding comment:', error)
       setError('Failed to add comment. Please try again.')
     } finally {
       setNewCommentLoading(false)
+    }
+  }
+
+  const handleEditComment = (comment: any) => {
+    setEditingComment(comment)
+    setEditCommentText(comment.content)
+  }
+
+  const handleSaveEditComment = async () => {
+    if (!editingComment || !editCommentText.trim()) return
+
+    try {
+      await updateAreaComment(editingComment.id, {
+        content: editCommentText.trim()
+      })
+      
+      const comments = await getAreaComments(selectedArea!.id)
+      setAreaComments(comments)
+      
+      // Refresh areas data to update comment counts in cards
+      const areasData = await getAreas()
+      setAreas(areasData)
+      
+      setEditingComment(null)
+      setEditCommentText('')
+    } catch (error) {
+      console.error('Error updating comment:', error)
+      setError('Failed to update comment. Please try again.')
+    }
+  }
+
+  const handleCancelEditComment = () => {
+    setEditingComment(null)
+    setEditCommentText('')
+  }
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (window.confirm('Are you sure you want to delete this comment?')) {
+      try {
+        await deleteAreaComment(commentId)
+        
+        const comments = await getAreaComments(selectedArea!.id)
+        setAreaComments(comments)
+        
+        // Refresh areas data to update comment counts in cards
+        const areasData = await getAreas()
+        setAreas(areasData)
+      } catch (error) {
+        console.error('Error deleting comment:', error)
+        setError('Failed to delete comment. Please try again.')
+      }
     }
   }
 
@@ -631,7 +745,11 @@ export default function AreasPage() {
       </Dialog>
 
       {/* Comments Dialog */}
-      <Dialog open={openCommentsDialog} onClose={() => setOpenCommentsDialog(false)} maxWidth="md" fullWidth>
+      <Dialog open={openCommentsDialog} onClose={() => {
+        setOpenCommentsDialog(false)
+        setEditingComment(null)
+        setEditCommentText('')
+      }} maxWidth="md" fullWidth>
         <DialogTitle>
           Comments for {selectedArea?.name}
         </DialogTitle>
@@ -643,15 +761,79 @@ export default function AreasPage() {
                   <Avatar>{comment.creator?.name?.[0] || 'U'}</Avatar>
                 </ListItemAvatar>
                 <ListItemText
-                  primary={comment.creator?.name || 'Unknown User'}
+                  primary={
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="subtitle1">
+                        {comment.creator?.name || 'Unknown User'}
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEditComment(comment)}
+                          sx={{ 
+                            color: 'primary.main',
+                            '&:hover': { backgroundColor: 'primary.light', color: 'primary.dark' }
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteComment(comment.id)}
+                          sx={{ 
+                            color: 'error.main',
+                            '&:hover': { backgroundColor: 'error.light', color: 'error.dark' }
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  }
                   secondary={
                     <Box>
-                      <Typography variant="body2" sx={{ mb: 1 }}>
-                        {comment.content}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(comment.created_at).toLocaleString()}
-                      </Typography>
+                      {editingComment?.id === comment.id ? (
+                        <Box sx={{ mt: 1 }}>
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={2}
+                            value={editCommentText}
+                            onChange={(e) => setEditCommentText(e.target.value)}
+                            variant="outlined"
+                            size="small"
+                            sx={{ mb: 1 }}
+                          />
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              startIcon={<CheckIcon />}
+                              onClick={handleSaveEditComment}
+                              disabled={!editCommentText.trim()}
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<CloseIcon />}
+                              onClick={handleCancelEditComment}
+                            >
+                              Cancel
+                            </Button>
+                          </Box>
+                        </Box>
+                      ) : (
+                        <>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            {comment.content}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(comment.created_at).toLocaleString()}
+                          </Typography>
+                        </>
+                      )}
                     </Box>
                   }
                 />
@@ -847,22 +1029,67 @@ export default function AreasPage() {
       </Dialog>
 
       {/* Move Validation Dialog */}
-      <Dialog open={openMoveDialog} onClose={() => setOpenMoveDialog(false)}>
-        <DialogTitle>Cannot Move to Planned</DialogTitle>
+      <Dialog open={openMoveDialog} onClose={() => setOpenMoveDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Complete Requirements to Move to Planning</DialogTitle>
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>
             {moveValidation.message}
           </Alert>
-          <Typography variant="body2">
-            To move an area from backlog to planned, you need:
+          
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Complete the following requirements for "{moveValidation.areaName}":
           </Typography>
-          <ul>
-            <li>Upload a one-pager document</li>
-            <li>Assign at least one POD to the area</li>
-          </ul>
+
+          <Grid container spacing={2}>
+            {/* One-pager URL field */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="One-pager URL"
+                value={moveFormData.one_pager_url}
+                onChange={(e) => setMoveFormData({ ...moveFormData, one_pager_url: e.target.value })}
+                placeholder="https://example.com/one-pager.pdf"
+                helperText="Enter the URL to the one-pager document"
+                error={moveValidation.onePagerRequired && !moveFormData.one_pager_url}
+              />
+            </Grid>
+
+            {/* PODs selection field */}
+            <Grid item xs={12}>
+              <FormControl fullWidth error={moveValidation.podsRequired && moveFormData.selected_pods.length === 0}>
+                <InputLabel>Associated PODs</InputLabel>
+                <Select
+                  multiple
+                  value={moveFormData.selected_pods}
+                  onChange={(e) => setMoveFormData({ ...moveFormData, selected_pods: e.target.value as string[] })}
+                  label="Associated PODs"
+                >
+                  {pods.map((pod) => (
+                    <MenuItem key={pod.id} value={pod.id}>{pod.name}</MenuItem>
+                  ))}
+                </Select>
+                {moveValidation.podsRequired && moveFormData.selected_pods.length === 0 && (
+                  <Typography variant="caption" color="error" sx={{ mt: 1, ml: 2 }}>
+                    At least one POD is required
+                  </Typography>
+                )}
+              </FormControl>
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenMoveDialog(false)}>OK</Button>
+          <Button onClick={() => setOpenMoveDialog(false)}>Cancel</Button>
+          <Button 
+            onClick={handleMoveToPlanning} 
+            variant="contained"
+            disabled={!moveFormData.one_pager_url || moveFormData.selected_pods.length === 0}
+            sx={{
+              background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)',
+              boxShadow: '0 3px 5px 2px rgba(76, 175, 80, .3)',
+            }}
+          >
+            Move to Planning
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
