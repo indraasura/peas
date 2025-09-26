@@ -703,14 +703,32 @@ export default function AreasPage() {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Typography variant="h4" component="h1" sx={{ 
+          fontWeight: 700, 
+          color: '#0F172A',
+          fontSize: '28px'
+        }}>
           Planning
         </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleAddArea}
+          sx={{
+            backgroundColor: '#3B82F6',
+            borderRadius: '12px',
+            px: 3,
+            py: 1.5,
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: '14px',
+            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+            '&:hover': {
+              backgroundColor: '#2563EB',
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+            },
+          }}
         >
           Add Area
         </Button>

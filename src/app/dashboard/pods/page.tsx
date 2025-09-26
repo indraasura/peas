@@ -545,8 +545,12 @@ export default function PodsPage() {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Typography variant="h4" component="h1" sx={{ 
+          fontWeight: 700, 
+          color: '#0F172A',
+          fontSize: '28px'
+        }}>
           Execution
         </Typography>
         <Button
@@ -554,6 +558,21 @@ export default function PodsPage() {
           startIcon={<RefreshIcon />}
           onClick={fetchData}
           disabled={loading}
+          sx={{
+            borderRadius: '12px',
+            px: 3,
+            py: 1.5,
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: '14px',
+            borderColor: '#E2E8F0',
+            color: '#64748B',
+            '&:hover': {
+              borderColor: '#3B82F6',
+              color: '#3B82F6',
+              backgroundColor: '#EBF8FF',
+            },
+          }}
         >
           Refresh
         </Button>

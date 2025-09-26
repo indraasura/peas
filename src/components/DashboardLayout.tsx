@@ -38,7 +38,8 @@ import {
 import { getCurrentUser, signOut, type Profile } from '@/lib/auth'
 import { useTheme } from './ThemeProvider'
 
-const drawerWidth = 240
+const drawerWidth = 280
+const collapsedDrawerWidth = 64
 
 const menuItems = [
   { icon: DashboardIcon, label: 'Dashboard', href: '/dashboard' },
@@ -55,6 +56,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [desktopOpen, setDesktopOpen] = useState(true)
+  const [collapsed, setCollapsed] = useState(false)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const router = useRouter()
   const pathname = usePathname()
@@ -88,7 +90,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }
 
   const handleDesktopDrawerToggle = () => {
-    setDesktopOpen(!desktopOpen)
+    setCollapsed(!collapsed)
   }
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -119,78 +121,96 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       height: '100%', 
       display: 'flex', 
       flexDirection: 'column',
-      backgroundColor: darkMode ? '#1F2937' : '#FFFFFF',
-      width: drawerWidth
+      backgroundColor: darkMode ? '#0F172A' : '#FAFAFA',
+      width: collapsed ? collapsedDrawerWidth : drawerWidth,
+      transition: 'width 0.3s ease',
+      borderRight: darkMode ? '1px solid #1E293B' : '1px solid #E2E8F0'
     }}>
       <Box sx={{ 
-        p: 3,
-        borderBottom: darkMode ? '1px solid #374151' : '1px solid #E5E7EB'
+        p: collapsed ? 2 : 3,
+        borderBottom: darkMode ? '1px solid #1E293B' : '1px solid #E2E8F0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: collapsed ? 'center' : 'flex-start'
       }}>
-        <Box display="flex" alignItems="center" gap={1}>
-          <Box sx={{ 
-            width: 24, 
-            height: 24, 
-            background: '#2196F3',
-            borderRadius: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Typography sx={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>D</Typography>
-          </Box>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: darkMode ? '#F9FAFB' : '#333333' }}>
-            Dashboard
-          </Typography>
+        <Box sx={{ 
+          width: 32, 
+          height: 32, 
+          background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)'
+        }}>
+          <Typography sx={{ color: 'white', fontSize: '14px', fontWeight: 'bold' }}>P</Typography>
         </Box>
+        {!collapsed && (
+          <Typography variant="h6" sx={{ 
+            fontWeight: 700, 
+            color: darkMode ? '#F8FAFC' : '#0F172A',
+            ml: 2,
+            fontSize: '18px'
+          }}>
+            PEAS
+          </Typography>
+        )}
       </Box>
       
-      <Box sx={{ flex: 1, overflow: 'auto', py: 2 }}>
-        <List sx={{ px: 2 }}>
+      <Box sx={{ flex: 1, overflow: 'auto', py: 1 }}>
+        <List sx={{ px: collapsed ? 1 : 2 }}>
           {menuItems.map((item) => {
             if (item.requirePODCommittee && !isPODCommittee) return null
             if (item.hideFromPODCommittee && isPODCommittee) return null
             
             const isActive = pathname === item.href
             return (
-              <ListItem key={item.label} disablePadding sx={{ mb: 1 }}>
+              <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
                   selected={isActive}
                   onClick={() => router.push(item.href)}
                   sx={{
-                    borderRadius: 1,
-                    py: 1.5,
-                    px: 2,
+                    borderRadius: '12px',
+                    py: collapsed ? 2 : 1.5,
+                    px: collapsed ? 1 : 2,
+                    mx: collapsed ? 0.5 : 0,
+                    minHeight: collapsed ? 48 : 'auto',
                     transition: 'all 0.2s ease-in-out',
                     '&.Mui-selected': {
-                      backgroundColor: darkMode ? '#1E40AF' : '#E3F2FD',
-                      borderLeft: '4px solid #2196F3',
-                      '& .MuiListItemIcon-root': {
-                        color: '#2196F3',
-                      },
-                      '& .MuiListItemText-primary': {
-                        color: '#2196F3',
-                        fontWeight: 600,
+                      backgroundColor: darkMode ? '#1E40AF' : '#EBF8FF',
+                      color: darkMode ? '#60A5FA' : '#1D4ED8',
+                      '&:hover': {
+                        backgroundColor: darkMode ? '#1E40AF' : '#EBF8FF',
                       }
                     },
                     '&:hover': {
-                      backgroundColor: darkMode ? '#374151' : '#F5F5F5',
+                      backgroundColor: darkMode ? '#1E293B' : '#F1F5F9',
                     }
                   }}
                 >
                   <ListItemIcon sx={{ 
-                    minWidth: 40,
-                    color: darkMode ? '#9CA3AF' : '#666666'
+                    minWidth: collapsed ? 'auto' : 40,
+                    color: isActive 
+                      ? (darkMode ? '#60A5FA' : '#1D4ED8')
+                      : (darkMode ? '#94A3B8' : '#64748B'),
+                    justifyContent: collapsed ? 'center' : 'flex-start'
                   }}>
-                    <item.icon />
+                    <item.icon sx={{ fontSize: collapsed ? 20 : 22 }} />
                   </ListItemIcon>
-                  <ListItemText 
-                    primary={item.label} 
-                    primaryTypographyProps={{ 
-                      fontWeight: isActive ? 600 : 400,
-                      fontSize: '0.95rem',
-                      color: darkMode ? '#F9FAFB' : '#333333'
-                    }}
-                  />
+                  {!collapsed && (
+                    <ListItemText 
+                      primary={item.label}
+                      sx={{
+                        '& .MuiListItemText-primary': {
+                          fontSize: '14px',
+                          fontWeight: isActive ? 600 : 500,
+                          color: isActive 
+                            ? (darkMode ? '#60A5FA' : '#1D4ED8')
+                            : (darkMode ? '#94A3B8' : '#64748B')
+                        }
+                      }}
+                    />
+                  )}
                 </ListItemButton>
               </ListItem>
             )
@@ -438,15 +458,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             display: { xs: 'none', sm: 'block' },
             '& .MuiDrawer-paper': { 
               boxSizing: 'border-box', 
-              width: drawerWidth,
+              width: collapsed ? collapsedDrawerWidth : drawerWidth,
               position: 'fixed',
               top: 0,
-              left: desktopOpen ? 0 : -drawerWidth,
-              transition: 'left 0.3s ease',
+              left: 0,
+              transition: 'width 0.3s ease',
               zIndex: 1200,
             },
           }}
-          open={desktopOpen}
+          open={true}
         >
           {drawer}
         </Drawer>
@@ -459,14 +479,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           width: '100%',
           transition: 'all 0.3s ease',
           background: darkMode 
-            ? 'linear-gradient(135deg, #000000 0%, #111827 100%)'
-            : '#F5F7FA',
+            ? 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)'
+            : '#FFFFFF',
           minHeight: '100vh',
+          ml: { sm: collapsed ? `${collapsedDrawerWidth}px` : `${drawerWidth}px` }
         }}
       >
         <Toolbar />
         <Box sx={{ 
-          maxWidth: '1400px', 
+          maxWidth: '100%', 
           mx: 'auto',
           '& > *': {
             animation: 'fadeIn 0.5s ease-in-out'
