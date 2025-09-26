@@ -237,7 +237,7 @@ export default function PodsPage() {
     setFormData({
       name: pod.name,
       description: pod.description || '',
-      area_id: pod.area_id,
+      area_id: pod.area_id || '',
       status: pod.status,
       start_date: pod.start_date || '',
       end_date: pod.end_date || '',
