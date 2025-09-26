@@ -30,7 +30,7 @@ import {
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import { SelectChangeEvent } from '@mui/material'
 import { Pod, Area, Profile } from '@/lib/supabase'
-import { getPods, createPod, updatePod, deletePod, getAreas, getProfiles } from '@/lib/data'
+import { getPods, createPod, updatePod, deletePod, getAreas, getMembers } from '@/lib/data'
 
 export default function PodManagementPage() {
   const [pods, setPods] = useState<Pod[]>([])
@@ -43,7 +43,7 @@ export default function PodManagementPage() {
   const [podFormData, setPodFormData] = useState({
     name: '',
     area_id: '',
-    members: [] as Array<{ id: string; bandwidth: number; is_leader: boolean }>,
+    members: [] as Array<{ id: string; bandwidth_percentage: number; is_leader: boolean }>,
   })
 
   const fetchData = async () => {
@@ -52,7 +52,7 @@ export default function PodManagementPage() {
       const [podsData, areasData, membersData] = await Promise.all([
         getPods(),
         getAreas(),
-        getProfiles(),
+        getMembers(),
       ])
       setPods(podsData)
       setAreas(areasData)
@@ -137,23 +137,23 @@ export default function PodManagementPage() {
   }
 
   const handleAddMember = () => {
-    setPodFormData(prev => ({
+    setPodFormData((prev: typeof podFormData) => ({
       ...prev,
-      members: [...prev.members, { id: '', bandwidth: 50, is_leader: false }],
+      members: [...prev.members, { id: '', bandwidth_percentage: 50, is_leader: false }],
     }))
   }
 
   const handleRemoveMember = (index: number) => {
-    setPodFormData(prev => ({
+    setPodFormData((prev: typeof podFormData) => ({
       ...prev,
-      members: prev.members.filter((_, i) => i !== index),
+      members: prev.members.filter((_: any, i: number) => i !== index),
     }))
   }
 
   const handleMemberChange = (index: number, field: string, value: any) => {
-    setPodFormData(prev => ({
+    setPodFormData((prev: typeof podFormData) => ({
       ...prev,
-      members: prev.members.map((member, i) =>
+      members: prev.members.map((member: any, i: number) =>
         i === index ? { ...member, [field]: value } : member
       ),
     }))
@@ -176,14 +176,14 @@ export default function PodManagementPage() {
 
   const getAreaName = (areaId: string | undefined) => {
     if (!areaId) return 'No Area'
-    const area = areas.find(a => a.id === areaId)
+    const area = areas.find((a: Area) => a.id === areaId)
     return area ? area.name : 'Unknown Area'
   }
 
-  const getMemberNames = (members: Array<{ id: string; bandwidth: number; is_leader: boolean }>) => {
-    return members.map(member => {
-      const profile = availableMembers.find(m => m.id === member.id)
-      return profile ? `${profile.full_name}${member.is_leader ? ' (Leader)' : ''}` : 'Unknown Member'
+  const getMemberNames = (members: Array<{ id: string; bandwidth_percentage: number; is_leader: boolean }>) => {
+    return members.map((member: any) => {
+      const profile = availableMembers.find((m: Profile) => m.id === member.id)
+      return profile ? `${profile.name}${member.is_leader ? ' (Leader)' : ''}` : 'Unknown Member'
     }).join(', ')
   }
 
@@ -226,7 +226,7 @@ export default function PodManagementPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {pods.map((pod) => (
+            {pods.map((pod: Pod) => (
               <TableRow key={pod.id}>
                 <TableCell>{pod.name}</TableCell>
                 <TableCell>{getAreaName(pod.area_id)}</TableCell>
@@ -278,7 +278,7 @@ export default function PodManagementPage() {
             label="POD Name"
             value={podFormData.name}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setPodFormData(prev => ({ ...prev, name: e.target.value }))
+              setPodFormData((prev: typeof podFormData) => ({ ...prev, name: e.target.value }))
             }
             margin="normal"
             required
@@ -289,13 +289,13 @@ export default function PodManagementPage() {
             <Select
               value={podFormData.area_id}
               onChange={(e: SelectChangeEvent<string>) =>
-                setPodFormData(prev => ({ ...prev, area_id: e.target.value }))
+                setPodFormData((prev: typeof podFormData) => ({ ...prev, area_id: e.target.value }))
               }
             >
               <MenuItem value="">
                 <em>No Area</em>
               </MenuItem>
-              {areas.map((area) => (
+              {areas.map((area: Area) => (
                 <MenuItem key={area.id} value={area.id}>
                   {area.name}
                 </MenuItem>
@@ -317,7 +317,7 @@ export default function PodManagementPage() {
               </Button>
             </Box>
 
-            {podFormData.members.map((member, index) => (
+            {podFormData.members.map((member: any, index: number) => (
               <Box key={index} display="flex" gap={2} alignItems="center" mb={2}>
                 <FormControl sx={{ minWidth: 200 }}>
                   <InputLabel>Member</InputLabel>
@@ -327,9 +327,9 @@ export default function PodManagementPage() {
                       handleMemberChange(index, 'id', e.target.value)
                     }
                   >
-                    {availableMembers.map((profile) => (
+                    {availableMembers.map((profile: Profile) => (
                       <MenuItem key={profile.id} value={profile.id}>
-                        {profile.full_name}
+                        {profile.name}
                       </MenuItem>
                     ))}
                   </Select>
@@ -338,9 +338,9 @@ export default function PodManagementPage() {
                 <TextField
                   label="Bandwidth %"
                   type="number"
-                  value={member.bandwidth}
+                  value={member.bandwidth_percentage}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    handleMemberChange(index, 'bandwidth', parseInt(e.target.value) || 0)
+                    handleMemberChange(index, 'bandwidth_percentage', parseInt(e.target.value) || 0)
                   }
                   inputProps={{ min: 0, max: 100 }}
                   sx={{ width: 120 }}
