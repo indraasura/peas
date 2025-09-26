@@ -44,7 +44,7 @@ import {
   Check as CheckIcon,
   Close as CloseIcon
 } from '@mui/icons-material'
-import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, getPods, updatePod } from '@/lib/data'
+import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, getPods, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import KanbanBoard from '@/components/KanbanBoard'
@@ -59,7 +59,6 @@ export default function AreasPage() {
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [openCommentsDialog, setOpenCommentsDialog] = useState(false)
-  const [openMoveDialog, setOpenMoveDialog] = useState(false)
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false)
   const [editingArea, setEditingArea] = useState<Area | null>(null)
   const [selectedArea, setSelectedArea] = useState<Area | null>(null)
@@ -71,27 +70,17 @@ export default function AreasPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    revenue_impact: 'Low',
-    business_enablement: 'Low',
-    efforts: 'Low',
-    end_user_impact: 'Low',
+    revenue_impact: '',
+    business_enablement: '',
+    efforts: '',
+    end_user_impact: '',
+    start_date: '',
+    end_date: '',
     decision_quorum: [] as string[],
     one_pager_url: '',
     selected_pods: [] as string[]
   })
   const [error, setError] = useState('')
-  const [moveValidation, setMoveValidation] = useState({
-    onePagerRequired: false,
-    podsRequired: false,
-    message: '',
-    areaId: '',
-    areaName: ''
-  })
-  const [moveFormData, setMoveFormData] = useState({
-    one_pager_url: '',
-    selected_pods: [] as string[]
-  })
-  const [moveArea, setMoveArea] = useState<Area | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -119,13 +108,19 @@ export default function AreasPage() {
       setError('')
       const { decision_quorum, selected_pods, ...areaData } = formData
       
+      // Only name is required for area creation
+      if (!areaData.name.trim()) {
+        setError('Area name is required')
+        return
+      }
+      
       let areaId: string
       if (editingArea) {
         await updateArea(editingArea.id, areaData)
         await updateAreaDecisionQuorum(editingArea.id, decision_quorum)
         areaId = editingArea.id
       } else {
-        const newArea = await createArea({ ...areaData, status: 'backlog' })
+        const newArea = await createArea({ ...areaData, status: 'Backlog' })
         await updateAreaDecisionQuorum(newArea.id, decision_quorum)
         areaId = newArea.id
       }
@@ -147,10 +142,12 @@ export default function AreasPage() {
       setFormData({
         name: '',
         description: '',
-        revenue_impact: 'Low',
-        business_enablement: 'Low',
-        efforts: 'Low',
-        end_user_impact: 'Low',
+        revenue_impact: '',
+        business_enablement: '',
+        efforts: '',
+        end_user_impact: '',
+        start_date: '',
+        end_date: '',
         decision_quorum: [],
         one_pager_url: '',
         selected_pods: []
@@ -170,32 +167,26 @@ export default function AreasPage() {
     const area = areas.find(a => a.id === draggableId)
     if (!area) return
 
-    // Validate move from backlog to planned
-    if (source.droppableId === 'backlog' && destination.droppableId === 'planned') {
-      const areaPods = pods.filter(pod => pod.area_id === area.id)
-      const hasOnePager = area.one_pager_url
-      const hasPods = areaPods.length > 0
+    // Validate move from Backlog to Planning
+    if (source.droppableId === 'Backlog' && destination.droppableId === 'Planning') {
+      const validation = await validateAreaForPlanning(area.id)
+      if (!validation.valid) {
+        setError(validation.message)
+        return
+      }
+    }
 
-      if (!hasOnePager || !hasPods) {
-        setMoveArea(area)
-        setMoveFormData({
-          one_pager_url: area.one_pager_url || '',
-          selected_pods: areaPods.map(pod => pod.id)
-        })
-        setMoveValidation({
-          onePagerRequired: !hasOnePager,
-          podsRequired: !hasPods,
-          message: `Cannot move to planned: ${!hasOnePager ? 'One-pager required' : ''}${!hasOnePager && !hasPods ? ' and ' : ''}${!hasPods ? 'At least one POD required' : ''}`,
-          areaId: area.id,
-          areaName: area.name
-        })
-        setOpenMoveDialog(true)
+    // Validate move from Planning to Planned
+    if (source.droppableId === 'Planning' && destination.droppableId === 'Planned') {
+      const validation = await validateAreaForPlanned(area.id)
+      if (!validation.valid) {
+        setError(validation.message)
         return
       }
     }
 
     try {
-      const newStatus = destination.droppableId === 'planned' ? 'planned' : 'backlog'
+      const newStatus = destination.droppableId as Area['status']
       await updateArea(area.id, { status: newStatus })
       
       // Update local state
@@ -213,15 +204,29 @@ export default function AreasPage() {
     setFormData({
       name: '',
       description: '',
-      revenue_impact: 'Low',
-      business_enablement: 'Low',
-      efforts: 'Low',
-      end_user_impact: 'Low',
+      revenue_impact: '',
+      business_enablement: '',
+      efforts: '',
+      end_user_impact: '',
+      start_date: '',
+      end_date: '',
       decision_quorum: [],
       one_pager_url: '',
       selected_pods: []
     })
     setOpenDialog(true)
+  }
+
+  const handleKickOff = async (area: Area) => {
+    if (window.confirm(`Are you sure you want to kick off "${area.name}"? This will move all associated PODs to "Awaiting development" status.`)) {
+      try {
+        await kickOffArea(area.id)
+        fetchData() // Refresh data to show updated statuses
+      } catch (error) {
+        console.error('Error kicking off area:', error)
+        setError('Failed to kick off area. Please try again.')
+      }
+    }
   }
 
   const handleEditArea = (area: Area) => {
@@ -230,10 +235,12 @@ export default function AreasPage() {
     setFormData({
       name: area.name,
       description: area.description || '',
-      revenue_impact: area.revenue_impact,
-      business_enablement: area.business_enablement,
-      efforts: area.efforts,
-      end_user_impact: area.end_user_impact,
+      revenue_impact: area.revenue_impact || '',
+      business_enablement: area.business_enablement || '',
+      efforts: area.efforts || '',
+      end_user_impact: area.end_user_impact || '',
+      start_date: area.start_date || '',
+      end_date: area.end_date || '',
       decision_quorum: area.decision_quorum?.map(q => q.id) || [],
       one_pager_url: area.one_pager_url || '',
       selected_pods: areaPods.map(pod => pod.id)
@@ -253,46 +260,6 @@ export default function AreasPage() {
     }
   }
 
-  const handleMoveToPlanning = async () => {
-    if (!moveArea) return
-
-    try {
-      setError('')
-      
-      // Update the area with one-pager URL
-      await updateArea(moveArea.id, { 
-        one_pager_url: moveFormData.one_pager_url,
-        status: 'planned'
-      })
-
-      // Update POD associations
-      // First, remove all PODs from this area
-      const currentAreaPods = pods.filter(pod => pod.area_id === moveArea.id)
-      for (const pod of currentAreaPods) {
-        await updatePod(pod.id, { area_id: undefined })
-      }
-
-      // Then, assign selected PODs to this area
-      for (const podId of moveFormData.selected_pods) {
-        await updatePod(podId, { area_id: moveArea.id })
-      }
-
-      // Update local state
-      setAreas(prev => prev.map(a => 
-        a.id === moveArea.id ? { ...a, status: 'planned', one_pager_url: moveFormData.one_pager_url } : a
-      ))
-      
-      setOpenMoveDialog(false)
-      setMoveArea(null)
-      setMoveFormData({
-        one_pager_url: '',
-        selected_pods: []
-      })
-    } catch (error) {
-      console.error('Error moving area to planning:', error)
-      setError('Failed to move area to planning. Please try again.')
-    }
-  }
 
   const handleViewComments = async (area: Area) => {
     setSelectedArea(area)
@@ -420,73 +387,83 @@ export default function AreasPage() {
           </Typography>
         )}
 
-        {/* Impact Values */}
-        <Grid container spacing={1} sx={{ mb: 2 }}>
-          <Grid item xs={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <AssessmentIcon sx={{ fontSize: 16, color: getImpactColor(area.revenue_impact) }} />
-              <Typography variant="caption">Revenue</Typography>
-              <Chip 
-                label={area.revenue_impact} 
-                size="small" 
-                sx={{ 
-                  backgroundColor: getImpactColor(area.revenue_impact), 
-                  color: 'white',
-                  fontSize: '0.7rem',
-                  height: 20
-                }} 
-              />
-            </Box>
+        {/* Impact Values - only show if they have values */}
+        {(area.revenue_impact || area.business_enablement || area.efforts || area.end_user_impact) && (
+          <Grid container spacing={1} sx={{ mb: 2 }}>
+            {area.revenue_impact && (
+              <Grid item xs={6}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <AssessmentIcon sx={{ fontSize: 16, color: getImpactColor(area.revenue_impact) }} />
+                  <Typography variant="caption">Revenue</Typography>
+                  <Chip 
+                    label={area.revenue_impact} 
+                    size="small" 
+                    sx={{ 
+                      backgroundColor: getImpactColor(area.revenue_impact), 
+                      color: 'white',
+                      fontSize: '0.7rem',
+                      height: 20
+                    }} 
+                  />
+                </Box>
+              </Grid>
+            )}
+            {area.business_enablement && (
+              <Grid item xs={6}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <AssessmentIcon sx={{ fontSize: 16, color: getImpactColor(area.business_enablement) }} />
+                  <Typography variant="caption">Business</Typography>
+                  <Chip 
+                    label={area.business_enablement} 
+                    size="small" 
+                    sx={{ 
+                      backgroundColor: getImpactColor(area.business_enablement), 
+                      color: 'white',
+                      fontSize: '0.7rem',
+                      height: 20
+                    }} 
+                  />
+                </Box>
+              </Grid>
+            )}
+            {area.efforts && (
+              <Grid item xs={6}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <ScheduleIcon sx={{ fontSize: 16, color: getImpactColor(area.efforts) }} />
+                  <Typography variant="caption">Efforts</Typography>
+                  <Chip 
+                    label={area.efforts} 
+                    size="small" 
+                    sx={{ 
+                      backgroundColor: getImpactColor(area.efforts), 
+                      color: 'white',
+                      fontSize: '0.7rem',
+                      height: 20
+                    }} 
+                  />
+                </Box>
+              </Grid>
+            )}
+            {area.end_user_impact && (
+              <Grid item xs={6}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <GroupIcon sx={{ fontSize: 16, color: getImpactColor(area.end_user_impact) }} />
+                  <Typography variant="caption">User Impact</Typography>
+                  <Chip 
+                    label={area.end_user_impact} 
+                    size="small" 
+                    sx={{ 
+                      backgroundColor: getImpactColor(area.end_user_impact), 
+                      color: 'white',
+                      fontSize: '0.7rem',
+                      height: 20
+                    }} 
+                  />
+                </Box>
+              </Grid>
+            )}
           </Grid>
-          <Grid item xs={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <AssessmentIcon sx={{ fontSize: 16, color: getImpactColor(area.business_enablement) }} />
-              <Typography variant="caption">Business</Typography>
-              <Chip 
-                label={area.business_enablement} 
-                size="small" 
-                sx={{ 
-                  backgroundColor: getImpactColor(area.business_enablement), 
-                  color: 'white',
-                  fontSize: '0.7rem',
-                  height: 20
-                }} 
-              />
-            </Box>
-          </Grid>
-          <Grid item xs={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <ScheduleIcon sx={{ fontSize: 16, color: getImpactColor(area.efforts) }} />
-              <Typography variant="caption">Efforts</Typography>
-              <Chip 
-                label={area.efforts} 
-                size="small" 
-                sx={{ 
-                  backgroundColor: getImpactColor(area.efforts), 
-                  color: 'white',
-                  fontSize: '0.7rem',
-                  height: 20
-                }} 
-              />
-            </Box>
-          </Grid>
-          <Grid item xs={6}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <GroupIcon sx={{ fontSize: 16, color: getImpactColor(area.end_user_impact) }} />
-              <Typography variant="caption">User Impact</Typography>
-              <Chip 
-                label={area.end_user_impact} 
-                size="small" 
-                sx={{ 
-                  backgroundColor: getImpactColor(area.end_user_impact), 
-                  color: 'white',
-                  fontSize: '0.7rem',
-                  height: 20
-                }} 
-              />
-            </Box>
-          </Grid>
-        </Grid>
+        )}
 
         {/* Associated PODs */}
         {areaPods.length > 0 && (
@@ -536,6 +513,26 @@ export default function AreasPage() {
           )}
         </Box>
 
+        {/* Kick-off button for Planned areas */}
+        {area.status === 'Planned' && (
+          <Box sx={{ mb: 1 }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => handleKickOff(area)}
+              sx={{
+                background: 'linear-gradient(45deg, #2196f3 30%, #21cbf3 90%)',
+                boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                fontSize: '0.7rem',
+                py: 0.5,
+                px: 1
+              }}
+            >
+              Kick-off
+            </Button>
+          </Box>
+        )}
+
         {/* Comments count */}
         <Box 
           sx={{ 
@@ -559,23 +556,44 @@ export default function AreasPage() {
         </Box>
         </Box>
       )
-  }
+    }
 
-  const backlogAreas = areas.filter(area => area.status === 'backlog')
-  const plannedAreas = areas.filter(area => area.status === 'planned')
+  const backlogAreas = areas.filter(area => area.status === 'Backlog')
+  const planningAreas = areas.filter(area => area.status === 'Planning')
+  const plannedAreas = areas.filter(area => area.status === 'Planned')
+  const executingAreas = areas.filter(area => area.status === 'Executing')
+  const releasedAreas = areas.filter(area => area.status === 'Released')
 
   const columns = [
     {
-      id: 'backlog',
+      id: 'Backlog',
       title: 'Backlog',
       items: backlogAreas,
       color: '#ff9800'
     },
     {
-      id: 'planned',
+      id: 'Planning',
+      title: 'Planning',
+      items: planningAreas,
+      color: '#ffc107'
+    },
+    {
+      id: 'Planned',
       title: 'Planned',
       items: plannedAreas,
       color: '#4caf50'
+    },
+    {
+      id: 'Executing',
+      title: 'Executing',
+      items: executingAreas,
+      color: '#2196f3'
+    },
+    {
+      id: 'Released',
+      title: 'Released',
+      items: releasedAreas,
+      color: '#9c27b0'
     }
   ]
 
@@ -693,6 +711,26 @@ export default function AreasPage() {
                   ))}
                 </Select>
               </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Start Date"
+                type="date"
+                value={formData.start_date}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="End Date"
+                type="date"
+                value={formData.end_date}
+                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
             </Grid>
             <Grid item xs={12}>
               <TextField
@@ -1028,70 +1066,6 @@ export default function AreasPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Move Validation Dialog */}
-      <Dialog open={openMoveDialog} onClose={() => setOpenMoveDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Complete Requirements to Move to Planning</DialogTitle>
-        <DialogContent>
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            {moveValidation.message}
-          </Alert>
-          
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Complete the following requirements for "{moveValidation.areaName}":
-          </Typography>
-
-          <Grid container spacing={2}>
-            {/* One-pager URL field */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="One-pager URL"
-                value={moveFormData.one_pager_url}
-                onChange={(e) => setMoveFormData({ ...moveFormData, one_pager_url: e.target.value })}
-                placeholder="https://example.com/one-pager.pdf"
-                helperText="Enter the URL to the one-pager document"
-                error={moveValidation.onePagerRequired && !moveFormData.one_pager_url}
-              />
-            </Grid>
-
-            {/* PODs selection field */}
-            <Grid item xs={12}>
-              <FormControl fullWidth error={moveValidation.podsRequired && moveFormData.selected_pods.length === 0}>
-                <InputLabel>Associated PODs</InputLabel>
-                <Select
-                  multiple
-                  value={moveFormData.selected_pods}
-                  onChange={(e) => setMoveFormData({ ...moveFormData, selected_pods: e.target.value as string[] })}
-                  label="Associated PODs"
-                >
-                  {pods.map((pod) => (
-                    <MenuItem key={pod.id} value={pod.id}>{pod.name}</MenuItem>
-                  ))}
-                </Select>
-                {moveValidation.podsRequired && moveFormData.selected_pods.length === 0 && (
-                  <Typography variant="caption" color="error" sx={{ mt: 1, ml: 2 }}>
-                    At least one POD is required
-                  </Typography>
-                )}
-              </FormControl>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenMoveDialog(false)}>Cancel</Button>
-          <Button 
-            onClick={handleMoveToPlanning} 
-            variant="contained"
-            disabled={!moveFormData.one_pager_url || moveFormData.selected_pods.length === 0}
-            sx={{
-              background: 'linear-gradient(45deg, #4caf50 30%, #66bb6a 90%)',
-              boxShadow: '0 3px 5px 2px rgba(76, 175, 80, .3)',
-            }}
-          >
-            Move to Planning
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   )
 }

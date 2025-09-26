@@ -48,13 +48,13 @@ import {
   Close as CloseIcon,
   Assessment as AssessmentIcon
 } from '@mui/icons-material'
-import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote, updatePodNote, deletePodNote } from '@/lib/data'
+import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote, updatePodNote, deletePodNote, checkAndUpdateAreaStatus } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'
 import { type Pod, type Area, type Profile, type PodNote } from '@/lib/supabase'
 import KanbanBoard from '@/components/KanbanBoard'
 import { DropResult } from '@hello-pangea/dnd'
 
-const podStatuses = ['backlog', 'planning', 'in development', 'testing', 'released']
+const podStatuses = ['Awaiting development', 'In development', 'In testing', 'Released']
 
 export default function PodsPage() {
   const router = useRouter()
@@ -86,7 +86,7 @@ export default function PodsPage() {
     name: '',
     description: '',
     area_id: '',
-    status: 'backlog',
+    status: 'Awaiting development',
     start_date: '',
     end_date: '',
     members: [] as Array<{
@@ -198,6 +198,16 @@ export default function PodsPage() {
       setPods((prev: Pod[]) => prev.map((p: Pod) => 
         p.id === pod.id ? { ...p, status: newStatus } : p
       ))
+
+      // Check if POD was moved to Released and if so, check area completion
+      if (newStatus === 'Released' && pod.area_id) {
+        try {
+          await checkAndUpdateAreaStatus(pod.area_id)
+        } catch (error) {
+          console.error('Error checking area status:', error)
+          // Don't show error to user as this is a background operation
+        }
+      }
     } catch (error) {
       console.error('Error moving pod:', error)
       setError('Failed to move pod. Please try again.')
@@ -210,7 +220,7 @@ export default function PodsPage() {
       name: '',
       description: '',
       area_id: '',
-      status: 'backlog',
+      status: 'Awaiting development',
       start_date: '',
       end_date: '',
       members: [],

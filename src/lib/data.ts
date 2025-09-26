@@ -57,10 +57,13 @@ export async function getAreas(): Promise<Area[]> {
   }
 }
 
-export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum' | 'comments'>) {
+export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum' | 'comments' | 'pods'>) {
   const { data, error } = await supabase
     .from('areas')
-    .insert(area)
+    .insert({
+      ...area,
+      status: area.status || 'Backlog'
+    })
     .select()
     .single()
 
@@ -68,7 +71,7 @@ export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated
   return data
 }
 
-export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum' | 'comments'>>) {
+export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum' | 'comments' | 'pods'>>) {
   const { data, error } = await supabase
     .from('areas')
     .update(updates)
@@ -640,4 +643,151 @@ export async function isPODCommitteeMember(userId: string): Promise<boolean> {
   }
 
   return data?.team === 'POD committee'
+}
+
+// Area Kick-off and Status Management Functions
+export async function kickOffArea(areaId: string): Promise<void> {
+  try {
+    // Update area status to Executing
+    await updateArea(areaId, { status: 'Executing' })
+    
+    // Get all PODs associated with this area
+    const { data: pods, error: podsError } = await supabase
+      .from('pods')
+      .select('id')
+      .eq('area_id', areaId)
+    
+    if (podsError) {
+      throw podsError
+    }
+    
+    // Update all PODs to "Awaiting development" status
+    if (pods && pods.length > 0) {
+      const podIds = pods.map(pod => pod.id)
+      const { error: updateError } = await supabase
+        .from('pods')
+        .update({ status: 'Awaiting development' })
+        .in('id', podIds)
+      
+      if (updateError) {
+        throw updateError
+      }
+    }
+  } catch (error) {
+    console.error('Error kicking off area:', error)
+    throw error
+  }
+}
+
+export async function checkAndUpdateAreaStatus(areaId: string): Promise<void> {
+  try {
+    // Get all PODs for this area
+    const { data: pods, error: podsError } = await supabase
+      .from('pods')
+      .select('status')
+      .eq('area_id', areaId)
+    
+    if (podsError) {
+      throw podsError
+    }
+    
+    // Check if all PODs are released
+    const allReleased = pods && pods.length > 0 && pods.every(pod => pod.status === 'Released')
+    
+    if (allReleased) {
+      // Update area status to Released
+      await updateArea(areaId, { status: 'Released' })
+    }
+  } catch (error) {
+    console.error('Error checking area status:', error)
+    throw error
+  }
+}
+
+export async function validateAreaForPlanning(areaId: string): Promise<{ valid: boolean; message: string }> {
+  try {
+    const { data: area, error } = await supabase
+      .from('areas')
+      .select('one_pager_url')
+      .eq('id', areaId)
+      .single()
+    
+    if (error) {
+      throw error
+    }
+    
+    if (!area.one_pager_url) {
+      return { valid: false, message: 'One-pager is required to move to Planning' }
+    }
+    
+    return { valid: true, message: 'Area is ready for Planning' }
+  } catch (error) {
+    console.error('Error validating area for planning:', error)
+    return { valid: false, message: 'Error validating area' }
+  }
+}
+
+export async function validateAreaForPlanned(areaId: string): Promise<{ valid: boolean; message: string; missing: string[] }> {
+  try {
+    const { data: area, error } = await supabase
+      .from('areas')
+      .select('*')
+      .eq('id', areaId)
+      .single()
+    
+    if (error) {
+      throw error
+    }
+    
+    const missing: string[] = []
+    
+    // Check one-pager
+    if (!area.one_pager_url) {
+      missing.push('One-pager')
+    }
+    
+    // Check dates
+    if (!area.start_date) {
+      missing.push('Start date')
+    }
+    if (!area.end_date) {
+      missing.push('End date')
+    }
+    
+    // Check impact fields
+    if (!area.revenue_impact) {
+      missing.push('Revenue impact')
+    }
+    if (!area.business_enablement) {
+      missing.push('Business enablement')
+    }
+    if (!area.efforts) {
+      missing.push('Efforts')
+    }
+    if (!area.end_user_impact) {
+      missing.push('End user impact')
+    }
+    
+    // Check if area has PODs
+    const { data: pods, error: podsError } = await supabase
+      .from('pods')
+      .select('id')
+      .eq('area_id', areaId)
+    
+    if (podsError) {
+      throw podsError
+    }
+    
+    if (!pods || pods.length === 0) {
+      missing.push('At least one POD')
+    }
+    
+    const valid = missing.length === 0
+    const message = valid ? 'Area is ready for Planned status' : `Missing: ${missing.join(', ')}`
+    
+    return { valid, message, missing }
+  } catch (error) {
+    console.error('Error validating area for planned:', error)
+    return { valid: false, message: 'Error validating area', missing: [] }
+  }
 }

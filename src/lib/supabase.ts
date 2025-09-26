@@ -34,17 +34,20 @@ export interface Profile {
 export interface Area {
   id: string
   name: string
-  description: string
-  revenue_impact: string
-  business_enablement: string
-  efforts: string
-  end_user_impact: string
-  status: 'backlog' | 'planned'
+  description?: string
+  revenue_impact?: string
+  business_enablement?: string
+  efforts?: string
+  end_user_impact?: string
+  start_date?: string
+  end_date?: string
+  status: 'Backlog' | 'Planning' | 'Planned' | 'Executing' | 'Released'
   one_pager_url?: string
   created_at: string
   updated_at: string
   decision_quorum?: Profile[] // List of POD committee members for this area
   comments?: AreaComment[] // List of comments for this area
+  pods?: Pod[] // Associated PODs
 }
 
 export interface AreaComment {
@@ -60,11 +63,12 @@ export interface AreaComment {
 export interface Pod {
   id: string
   name: string
-  description: string
-  area_id: string
-  start_date: string | null
-  end_date: string | null
-  status: string
+  description?: string
+  area_id?: string
+  start_date?: string | null
+  end_date?: string | null
+  status: 'Awaiting development' | 'In development' | 'In testing' | 'Released'
+  review_notes?: string
   created_at: string
   updated_at: string
   area?: Area
