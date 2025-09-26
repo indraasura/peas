@@ -749,7 +749,7 @@ export default function AreasPage() {
                 <Select
                   multiple
                   value={formData.decision_quorum}
-                  onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, decision_quorum: e.target.value })}
+                  onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, decision_quorum: e.target.value as string[] })}
                   label="Decision Quorum (POD Committee Members)"
                 >
                   {podCommitteeMembers.map((member: Profile) => (
@@ -764,7 +764,7 @@ export default function AreasPage() {
                 <Select
                   multiple
                   value={formData.selected_pods}
-                  onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, selected_pods: e.target.value })}
+                  onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
                   label="Associated PODs"
                 >
                   {pods.map((pod: Pod) => (
