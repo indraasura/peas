@@ -142,27 +142,45 @@ export default function AreasPage() {
         return
       }
       
+      // Clean up areaData to only include defined values
+      const cleanAreaData = {
+        name: areaData.name.trim(),
+        description: areaData.description?.trim() || undefined,
+        revenue_impact: areaData.revenue_impact || undefined,
+        business_enablement: areaData.business_enablement || undefined,
+        efforts: areaData.efforts || undefined,
+        end_user_impact: areaData.end_user_impact || undefined,
+        start_date: areaData.start_date?.trim() || null,
+        end_date: areaData.end_date?.trim() || null,
+        one_pager_url: areaData.one_pager_url?.trim() || undefined,
+        status: 'Backlog' as const
+      }
+      
+      console.log('Creating area with data:', cleanAreaData)
+      
       let areaId: string
       if (editingArea) {
-        await updateArea(editingArea.id, areaData)
+        await updateArea(editingArea.id, cleanAreaData)
         await updateAreaDecisionQuorum(editingArea.id, decision_quorum)
         areaId = editingArea.id
       } else {
-        const newArea = await createArea({ ...areaData, status: 'Backlog' })
+        const newArea = await createArea(cleanAreaData)
         await updateAreaDecisionQuorum(newArea.id, decision_quorum)
         areaId = newArea.id
       }
 
-      // Update POD associations
-      // First, remove all PODs from this area
-      const currentAreaPods = pods.filter((pod: Pod) => pod.area_id === areaId)
-      for (const pod of currentAreaPods) {
-        await updatePod(pod.id, { area_id: undefined })
-      }
+      // Update POD associations (only if there are selected PODs)
+      if (selected_pods.length > 0) {
+        // First, remove all PODs from this area
+        const currentAreaPods = pods.filter((pod: Pod) => pod.area_id === areaId)
+        for (const pod of currentAreaPods) {
+          await updatePod(pod.id, { area_id: undefined })
+        }
 
-      // Then, assign selected PODs to this area
-      for (const podId of selected_pods) {
-        await updatePod(podId, { area_id: areaId })
+        // Then, assign selected PODs to this area
+        for (const podId of selected_pods) {
+          await updatePod(podId, { area_id: areaId })
+        }
       }
       
       setOpenDialog(false)
@@ -183,7 +201,7 @@ export default function AreasPage() {
       fetchData()
     } catch (error) {
       console.error('Error saving area:', error)
-      setError('Failed to save area. Please try again.')
+      setError(`Failed to save area: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
