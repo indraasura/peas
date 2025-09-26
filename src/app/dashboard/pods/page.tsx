@@ -32,7 +32,8 @@ import {
   Paper,
   InputAdornment,
   Badge,
-  Stack
+  Stack,
+  SelectChangeEvent
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -191,7 +192,7 @@ export default function PodsPage() {
     if (!pod) return
 
     try {
-      const newStatus = destination.droppableId
+      const newStatus = destination.droppableId as 'Awaiting development' | 'In development' | 'In testing' | 'Released'
       await updatePod(pod.id, { status: newStatus })
       
       // Update local state
@@ -602,7 +603,7 @@ export default function PodsPage() {
                 <InputLabel>Status</InputLabel>
                 <Select
                   value={formData.status}
-                  onChange={(e: any) => setFormData({ ...formData, status: e.target.value })}
+                  onChange={(e: SelectChangeEvent<string>) => setFormData({ ...formData, status: e.target.value as 'Awaiting development' | 'In development' | 'In testing' | 'Released' })}
                   label="Status"
                 >
                   {podStatuses.map((status: string) => (
