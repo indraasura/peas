@@ -141,7 +141,7 @@ export default function PodsPage() {
   const handleSubmit = async () => {
     try {
       setError('')
-      const { members, dependencies, ...podData } = formData
+      const { members, dependencies, status, ...podData } = formData
 
       // Validate required fields
       if (!podData.name.trim()) {
@@ -154,7 +154,7 @@ export default function PodsPage() {
       }
 
       if (editingPod) {
-        await updatePod(editingPod.id, podData)
+        await updatePod(editingPod.id, { ...podData, status })
         await updatePodMembers(editingPod.id, members)
         await updatePodDependencies(editingPod.id, dependencies)
       } else {
