@@ -29,7 +29,8 @@ import {
   ListItemText,
   ListItemAvatar,
   Paper,
-  InputAdornment
+  InputAdornment,
+  SelectChangeEvent
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -661,7 +662,7 @@ export default function AreasPage() {
                 <InputLabel>Revenue Impact</InputLabel>
                 <Select
                   value={formData.revenue_impact}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, revenue_impact: e.target.value })}
+                  onChange={(e: SelectChangeEvent<string>) => setFormData({ ...formData, revenue_impact: e.target.value })}
                   label="Revenue Impact"
                 >
                   {impactLevels.map((level) => (
@@ -675,7 +676,7 @@ export default function AreasPage() {
                 <InputLabel>Business Enablement</InputLabel>
                 <Select
                   value={formData.business_enablement}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, business_enablement: e.target.value })}
+                  onChange={(e: SelectChangeEvent<string>) => setFormData({ ...formData, business_enablement: e.target.value })}
                   label="Business Enablement"
                 >
                   {impactLevels.map((level) => (
@@ -689,7 +690,7 @@ export default function AreasPage() {
                 <InputLabel>Efforts</InputLabel>
                 <Select
                   value={formData.efforts}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, efforts: e.target.value })}
+                  onChange={(e: SelectChangeEvent<string>) => setFormData({ ...formData, efforts: e.target.value })}
                   label="Efforts"
                 >
                   {impactLevels.map((level) => (
@@ -703,7 +704,7 @@ export default function AreasPage() {
                 <InputLabel>End User Impact</InputLabel>
                 <Select
                   value={formData.end_user_impact}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, end_user_impact: e.target.value })}
+                  onChange={(e: SelectChangeEvent<string>) => setFormData({ ...formData, end_user_impact: e.target.value })}
                   label="End User Impact"
                 >
                   {impactLevels.map((level) => (
@@ -748,7 +749,7 @@ export default function AreasPage() {
                 <Select
                   multiple
                   value={formData.decision_quorum}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, decision_quorum: e.target.value as string[] })}
+                  onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, decision_quorum: e.target.value })}
                   label="Decision Quorum (POD Committee Members)"
                 >
                   {podCommitteeMembers.map((member: Profile) => (
@@ -763,7 +764,7 @@ export default function AreasPage() {
                 <Select
                   multiple
                   value={formData.selected_pods}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
+                  onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, selected_pods: e.target.value })}
                   label="Associated PODs"
                 >
                   {pods.map((pod: Pod) => (
