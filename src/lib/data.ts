@@ -271,7 +271,7 @@ export async function createPod(podData: {
       area_id: podData.area_id,
       start_date: podData.start_date || null,
       end_date: podData.end_date || null,
-      status: 'backlog'
+      status: 'Awaiting development'
     })
     .select()
     .single()
@@ -517,7 +517,7 @@ export async function getPlannedAreas(): Promise<Area[]> {
           member:profiles(*)
         )
       `)
-      .eq('status', 'planned')
+      .eq('status', 'Planned')
       .order('name')
 
     if (error) {

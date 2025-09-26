@@ -53,12 +53,10 @@ export default function MyPodsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'backlog': return 'default'
-      case 'planning': return 'info'
-      case 'in development': return 'primary'
-      case 'testing': return 'warning'
-      case 'ready for release': return 'secondary'
-      case 'released': return 'success'
+      case 'Awaiting development': return 'default'
+      case 'In development': return 'primary'
+      case 'In testing': return 'warning'
+      case 'Released': return 'success'
       default: return 'default'
     }
   }
