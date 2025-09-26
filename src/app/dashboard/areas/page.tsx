@@ -150,8 +150,8 @@ export default function AreasPage() {
         business_enablement: areaData.business_enablement || undefined,
         efforts: areaData.efforts || undefined,
         end_user_impact: areaData.end_user_impact || undefined,
-        start_date: areaData.start_date?.trim() || null,
-        end_date: areaData.end_date?.trim() || null,
+        start_date: areaData.start_date?.trim() || undefined,
+        end_date: areaData.end_date?.trim() || undefined,
         one_pager_url: areaData.one_pager_url?.trim() || undefined,
         status: 'Backlog' as const
       }

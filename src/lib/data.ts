@@ -58,12 +58,17 @@ export async function getAreas(): Promise<Area[]> {
 }
 
 export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum' | 'comments' | 'pods'>) {
+  // Convert empty strings to null for PostgreSQL date fields
+  const cleanArea = {
+    ...area,
+    start_date: area.start_date && area.start_date.trim() !== '' ? area.start_date : null,
+    end_date: area.end_date && area.end_date.trim() !== '' ? area.end_date : null,
+    status: area.status || 'Backlog'
+  }
+
   const { data, error } = await supabase
     .from('areas')
-    .insert({
-      ...area,
-      status: area.status || 'Backlog'
-    })
+    .insert(cleanArea)
     .select()
     .single()
 
@@ -72,9 +77,16 @@ export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated
 }
 
 export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum' | 'comments' | 'pods'>>) {
+  // Convert empty strings to null for PostgreSQL date fields
+  const cleanUpdates = {
+    ...updates,
+    start_date: updates.start_date && updates.start_date.trim() !== '' ? updates.start_date : null,
+    end_date: updates.end_date && updates.end_date.trim() !== '' ? updates.end_date : null,
+  }
+
   const { data, error } = await supabase
     .from('areas')
-    .update(updates)
+    .update(cleanUpdates)
     .eq('id', id)
     .select()
     .single()
