@@ -143,7 +143,7 @@ export default function PodManagementPage() {
   const handleAddMember = () => {
     setPodFormData((prev: typeof podFormData) => ({
       ...prev,
-      members: [...prev.members, { member_id: '', bandwidth_percentage: 50, is_leader: false }],
+      members: [...prev.members, { member_id: '', bandwidth_percentage: 0.5, is_leader: false }],
     }))
   }
 
@@ -360,13 +360,13 @@ export default function PodManagementPage() {
                 </FormControl>
 
                 <TextField
-                  label="Bandwidth %"
+                  label="Bandwidth"
                   type="number"
                   value={member.bandwidth_percentage}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    handleMemberChange(index, 'bandwidth_percentage', parseInt(e.target.value) || 0)
+                    handleMemberChange(index, 'bandwidth_percentage', parseFloat(e.target.value) || 0)
                   }
-                  inputProps={{ min: 0, max: 100 }}
+                  inputProps={{ min: 0, max: 1, step: 0.1 }}
                   sx={{ width: 120 }}
                 />
 

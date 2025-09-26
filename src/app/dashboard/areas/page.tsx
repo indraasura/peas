@@ -245,14 +245,40 @@ export default function AreasPage() {
       }
     }
 
+    // Prevent move from Executing to Released - only PODs should control this
+    if (source.droppableId === 'Executing' && destination.droppableId === 'Released') {
+      setValidationDialog({
+        open: true,
+        title: 'Cannot Move to Released',
+        message: 'Areas cannot be moved directly from "Executing" to "Released". This status change is controlled by the movement of associated PODs.',
+        missingFields: [],
+        area: area,
+        targetStatus: 'Released'
+      })
+      return
+    }
+
     try {
       const newStatus = destination.droppableId as Area['status']
       await updateArea(area.id, { status: newStatus })
+      
+      // If moving from Released to any other status, move PODs to 'In development'
+      if (source.droppableId === 'Released' && destination.droppableId !== 'Released') {
+        const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
+        for (const pod of areaPods) {
+          await updatePod(pod.id, { status: 'In development' })
+        }
+      }
       
       // Update local state
       setAreas((prev: Area[]) => prev.map((a: Area) => 
         a.id === area.id ? { ...a, status: newStatus } : a
       ))
+      
+      // Refresh data to show updated POD statuses
+      if (source.droppableId === 'Released' && destination.droppableId !== 'Released') {
+        fetchData()
+      }
     } catch (error) {
       console.error('Error moving area:', error)
       setError('Failed to move area. Please try again.')
@@ -1250,18 +1276,15 @@ export default function AreasPage() {
                   <Grid item xs={12} sm={3}>
                     <TextField
                       fullWidth
-                      label="Bandwidth %"
+                      label="Bandwidth"
                       type="number"
                       value={member.bandwidth_percentage}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         const newMembers = [...podFormData.members]
-                        newMembers[index].bandwidth_percentage = parseInt(e.target.value) || 0
+                        newMembers[index].bandwidth_percentage = parseFloat(e.target.value) || 0
                         setPodFormData({ ...podFormData, members: newMembers })
                       }}
-                      InputProps={{
-                        endAdornment: <InputAdornment position="end">%</InputAdornment>
-                      }}
-                      inputProps={{ min: 0, max: 100 }}
+                      inputProps={{ min: 0, max: 1, step: 0.1 }}
                     />
                   </Grid>
                   <Grid item xs={12} sm={3}>
@@ -1299,7 +1322,7 @@ export default function AreasPage() {
                 startIcon={<AddIcon />}
                 onClick={() => setPodFormData({
                   ...podFormData,
-                  members: [...podFormData.members, { member_id: '', bandwidth_percentage: 25, is_leader: false }]
+                  members: [...podFormData.members, { member_id: '', bandwidth_percentage: 0.25, is_leader: false }]
                 })}
                 sx={{ mt: 1 }}
               >

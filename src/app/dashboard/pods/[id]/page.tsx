@@ -279,7 +279,7 @@ export default function PodViewPage() {
                       </ListItemIcon>
                       <ListItemText
                         primary={`${member.member?.name || 'Unknown'} ${member.is_leader ? '(Leader)' : ''}`}
-                        secondary={`${(member.bandwidth_percentage / 100).toFixed(2)} bandwidth`}
+                        secondary={`${member.bandwidth_percentage.toFixed(2)} bandwidth`}
                       />
                     </ListItem>
                   ))}

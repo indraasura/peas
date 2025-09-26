@@ -52,6 +52,7 @@ interface KanbanBoardProps {
   onItemAdd?: (columnId: string) => void
   renderItem: (item: any) => React.ReactNode
   addButtonText?: string
+  showActionButtons?: boolean
 }
 
 export default function KanbanBoard({
@@ -62,11 +63,18 @@ export default function KanbanBoard({
   onItemView,
   onItemAdd,
   renderItem,
-  addButtonText = 'Add Item'
+  addButtonText = 'Add Item',
+  showActionButtons = true
 }: KanbanBoardProps) {
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return
     onItemMove(result)
+  }
+
+  const handleCardDoubleClick = (item: any) => {
+    if (onItemView) {
+      onItemView(item)
+    }
   }
 
   return (
@@ -137,6 +145,7 @@ export default function KanbanBoard({
                           }}
                         >
                           <Card
+                            onDoubleClick={() => handleCardDoubleClick(item)}
                             sx={{
                               cursor: 'pointer',
                               backgroundColor: 'background.paper',
@@ -152,7 +161,7 @@ export default function KanbanBoard({
                             <CardContent sx={{ pb: 1 }}>
                               {renderItem(item)}
                             </CardContent>
-                            {(onItemEdit || onItemDelete || onItemView) && (
+                            {showActionButtons && (onItemEdit || onItemDelete || onItemView) && (
                               <CardActions sx={{ pt: 0, pb: 1, px: 2 }}>
                                 <Box sx={{ display: 'flex', gap: 0.5 }}>
                                   {onItemView && (

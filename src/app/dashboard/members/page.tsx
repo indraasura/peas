@@ -38,6 +38,7 @@ export default function MembersPage() {
   const [members, setMembers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [teamFilter, setTeamFilter] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [isPODCommittee, setIsPODCommittee] = useState(false)
   const [openDialog, setOpenDialog] = useState(false)
   const [editingMember, setEditingMember] = useState<Profile | null>(null)
@@ -71,13 +72,13 @@ export default function MembersPage() {
   const fetchMembers = async () => {
     try {
       const membersData = await getMembers()
-      // Calculate bandwidth for each member
+      // Calculate bandwidth for each member (now using 0-1 values instead of percentages)
       const membersWithBandwidth = membersData.map(member => {
         const usedBandwidth = member.pod_members?.reduce((sum: number, pm: any) => 
           sum + (pm.bandwidth_percentage || 0), 0) || 0
         return {
           ...member,
-          bandwidth: usedBandwidth
+          bandwidth: usedBandwidth // This is already in 0-1 format from the database
         }
       })
       setMembers(membersWithBandwidth)
@@ -88,9 +89,13 @@ export default function MembersPage() {
     }
   }
 
-  const filteredMembers = teamFilter === 'all' 
-    ? members 
-    : members.filter(member => member.team === teamFilter)
+  const filteredMembers = members.filter(member => {
+    const matchesTeam = teamFilter === 'all' || member.team === teamFilter
+    const matchesSearch = searchQuery === '' || 
+      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesTeam && matchesSearch
+  })
 
   const uniqueTeams = Array.from(new Set(members.map(member => member.team)))
 
@@ -207,7 +212,6 @@ export default function MembersPage() {
 
   const columns: GridColDef[] = [
     { field: 'name', headerName: 'Name', width: 200 },
-    { field: 'email', headerName: 'Email', width: 250 },
     { 
       field: 'team', 
       headerName: 'Team', 
@@ -221,33 +225,29 @@ export default function MembersPage() {
       )
     },
     { 
-      field: 'remaining_bandwidth', 
-      headerName: 'Remaining Bandwidth', 
+      field: 'assigned_capacity', 
+      headerName: 'Assigned Capacity', 
       width: 150,
       renderCell: (params: any) => {
-        const usedBandwidth = params.row.bandwidth || 0
-        const remainingBandwidth = Math.max(0, 100 - usedBandwidth)
+        const assignedBandwidth = params.row.bandwidth || 0
         return (
-          <Box>
-            <Typography variant="body2">
-              {(remainingBandwidth / 100).toFixed(2)}
-            </Typography>
-          </Box>
+          <Typography variant="body2">
+            {assignedBandwidth.toFixed(2)}
+          </Typography>
         )
       }
     },
     { 
-      field: 'member_usage', 
-      headerName: 'Member Usage', 
-      width: 120,
+      field: 'available_capacity', 
+      headerName: 'Available Capacity', 
+      width: 150,
       renderCell: (params: any) => {
-        const bandwidth = params.row.bandwidth || 0
+        const assignedBandwidth = params.row.bandwidth || 0
+        const availableBandwidth = Math.max(0, 1 - assignedBandwidth)
         return (
-          <Chip 
-            label={getAvailabilityText(bandwidth)}
-            color={getBandwidthColor(bandwidth) as any}
-            size="small"
-          />
+          <Typography variant="body2" color={availableBandwidth < 0 ? 'error.main' : 'text.primary'}>
+            {availableBandwidth.toFixed(2)}
+          </Typography>
         )
       }
     },
@@ -299,6 +299,13 @@ export default function MembersPage() {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Members</Typography>
         <Box display="flex" gap={2} alignItems="center">
+          <TextField
+            placeholder="Search by name or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{ minWidth: 250 }}
+            size="small"
+          />
           <FormControl sx={{ minWidth: 200 }}>
             <InputLabel>Filter by Team</InputLabel>
             <Select

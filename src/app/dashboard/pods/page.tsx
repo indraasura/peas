@@ -476,7 +476,7 @@ export default function PodsPage() {
               {pod.members?.slice(0, 3).map((member) => (
                 <Chip
                   key={member.id}
-                  label={`${member.member?.name || 'Unknown'} (${(member.bandwidth_percentage / 100).toFixed(2)})`}
+                  label={`${member.member?.name || 'Unknown'} (${member.bandwidth_percentage.toFixed(2)})`}
                   size="small"
                   variant="outlined"
                   sx={{ fontSize: '0.7rem' }}
@@ -597,6 +597,7 @@ export default function PodsPage() {
         onItemDelete={handleDeletePod}
         onItemView={handleViewPodDetails}
         renderItem={renderPodCard}
+        showActionButtons={false}
       />
 
       {/* POD Details Dialog */}
@@ -651,7 +652,7 @@ export default function PodsPage() {
                     </ListItemAvatar>
                     <ListItemText
                       primary={`${member.member?.name || 'Unknown'} ${member.is_leader ? '(Leader)' : ''}`}
-                      secondary={`${member.member?.team || 'Unknown Team'} • ${(member.bandwidth_percentage / 100).toFixed(2)} bandwidth`}
+                      secondary={`${member.member?.team || 'Unknown Team'} • ${member.bandwidth_percentage.toFixed(2)} bandwidth`}
                     />
                   </ListItem>
                 ))}
