@@ -127,7 +127,7 @@ export default function AreasPage() {
 
       // Update POD associations
       // First, remove all PODs from this area
-      const currentAreaPods = pods.filter(pod => pod.area_id === areaId)
+      const currentAreaPods = pods.filter((pod: Pod) => pod.area_id === areaId)
       for (const pod of currentAreaPods) {
         await updatePod(pod.id, { area_id: undefined })
       }
@@ -164,7 +164,7 @@ export default function AreasPage() {
     
     if (!destination || destination.droppableId === source.droppableId) return
 
-    const area = areas.find(a => a.id === draggableId)
+    const area = areas.find((a: Area) => a.id === draggableId)
     if (!area) return
 
     // Validate move from Backlog to Planning
@@ -190,7 +190,7 @@ export default function AreasPage() {
       await updateArea(area.id, { status: newStatus })
       
       // Update local state
-      setAreas(prev => prev.map(a => 
+      setAreas((prev: Area[]) => prev.map((a: Area) => 
         a.id === area.id ? { ...a, status: newStatus } : a
       ))
     } catch (error) {
@@ -231,7 +231,7 @@ export default function AreasPage() {
 
   const handleEditArea = (area: Area) => {
     setEditingArea(area)
-    const areaPods = pods.filter(pod => pod.area_id === area.id)
+    const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
     setFormData({
       name: area.name,
       description: area.description || '',
@@ -243,7 +243,7 @@ export default function AreasPage() {
       end_date: area.end_date || '',
       decision_quorum: area.decision_quorum?.map(q => q.id) || [],
       one_pager_url: area.one_pager_url || '',
-      selected_pods: areaPods.map(pod => pod.id)
+      selected_pods: areaPods.map((pod: Pod) => pod.id)
     })
     setOpenDialog(true)
   }
@@ -368,12 +368,12 @@ export default function AreasPage() {
     }
   }
 
-  const getImpactColor = (level: string) => {
+  const getImpactColor = (level: string | undefined) => {
     return '#9e9e9e' // Always return grey for all levels
   }
 
   const renderAreaCard = (area: Area) => {
-    const areaPods = pods.filter(pod => pod.area_id === area.id)
+    const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
     
     return (
         <Box>
@@ -473,7 +473,7 @@ export default function AreasPage() {
               Associated PODs ({areaPods.length})
             </Typography>
             <Box sx={{ mt: 0.5 }}>
-              {areaPods.slice(0, 3).map(pod => (
+              {areaPods.slice(0, 3).map((pod: Pod) => (
                 <Chip 
                   key={pod.id}
                   label={pod.name}
@@ -558,11 +558,11 @@ export default function AreasPage() {
       )
     }
 
-  const backlogAreas = areas.filter(area => area.status === 'Backlog')
-  const planningAreas = areas.filter(area => area.status === 'Planning')
-  const plannedAreas = areas.filter(area => area.status === 'Planned')
-  const executingAreas = areas.filter(area => area.status === 'Executing')
-  const releasedAreas = areas.filter(area => area.status === 'Released')
+  const backlogAreas = areas.filter((area: Area) => area.status === 'Backlog')
+  const planningAreas = areas.filter((area: Area) => area.status === 'Planning')
+  const plannedAreas = areas.filter((area: Area) => area.status === 'Planned')
+  const executingAreas = areas.filter((area: Area) => area.status === 'Executing')
+  const releasedAreas = areas.filter((area: Area) => area.status === 'Released')
 
   const columns = [
     {
@@ -642,7 +642,7 @@ export default function AreasPage() {
                 fullWidth
                 label="Area Name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
                 required
               />
             </Grid>
@@ -651,7 +651,7 @@ export default function AreasPage() {
                 fullWidth
                 label="Description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, description: e.target.value })}
                 multiline
                 rows={3}
               />
@@ -661,7 +661,7 @@ export default function AreasPage() {
                 <InputLabel>Revenue Impact</InputLabel>
                 <Select
                   value={formData.revenue_impact}
-                  onChange={(e) => setFormData({ ...formData, revenue_impact: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, revenue_impact: e.target.value })}
                   label="Revenue Impact"
                 >
                   {impactLevels.map((level) => (
@@ -675,7 +675,7 @@ export default function AreasPage() {
                 <InputLabel>Business Enablement</InputLabel>
                 <Select
                   value={formData.business_enablement}
-                  onChange={(e) => setFormData({ ...formData, business_enablement: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, business_enablement: e.target.value })}
                   label="Business Enablement"
                 >
                   {impactLevels.map((level) => (
@@ -689,7 +689,7 @@ export default function AreasPage() {
                 <InputLabel>Efforts</InputLabel>
                 <Select
                   value={formData.efforts}
-                  onChange={(e) => setFormData({ ...formData, efforts: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, efforts: e.target.value })}
                   label="Efforts"
                 >
                   {impactLevels.map((level) => (
@@ -703,7 +703,7 @@ export default function AreasPage() {
                 <InputLabel>End User Impact</InputLabel>
                 <Select
                   value={formData.end_user_impact}
-                  onChange={(e) => setFormData({ ...formData, end_user_impact: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, end_user_impact: e.target.value })}
                   label="End User Impact"
                 >
                   {impactLevels.map((level) => (
@@ -718,7 +718,7 @@ export default function AreasPage() {
                 label="Start Date"
                 type="date"
                 value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, start_date: e.target.value })}
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
@@ -728,7 +728,7 @@ export default function AreasPage() {
                 label="End Date"
                 type="date"
                 value={formData.end_date}
-                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, end_date: e.target.value })}
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
@@ -737,7 +737,7 @@ export default function AreasPage() {
                 fullWidth
                 label="One-pager URL"
                 value={formData.one_pager_url}
-                onChange={(e) => setFormData({ ...formData, one_pager_url: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, one_pager_url: e.target.value })}
                 placeholder="https://example.com/one-pager.pdf"
                 helperText="Enter the URL to the one-pager document"
               />
@@ -748,10 +748,10 @@ export default function AreasPage() {
                 <Select
                   multiple
                   value={formData.decision_quorum}
-                  onChange={(e) => setFormData({ ...formData, decision_quorum: e.target.value as string[] })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, decision_quorum: e.target.value as string[] })}
                   label="Decision Quorum (POD Committee Members)"
                 >
-                  {podCommitteeMembers.map((member) => (
+                  {podCommitteeMembers.map((member: Profile) => (
                     <MenuItem key={member.id} value={member.id}>{member.name}</MenuItem>
                   ))}
                 </Select>
@@ -763,10 +763,10 @@ export default function AreasPage() {
                 <Select
                   multiple
                   value={formData.selected_pods}
-                  onChange={(e) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
                   label="Associated PODs"
                 >
-                  {pods.map((pod) => (
+                  {pods.map((pod: Pod) => (
                     <MenuItem key={pod.id} value={pod.id}>{pod.name}</MenuItem>
                   ))}
                 </Select>
@@ -793,7 +793,7 @@ export default function AreasPage() {
         </DialogTitle>
         <DialogContent>
           <List>
-            {areaComments.map((comment) => (
+            {areaComments.map((comment: any) => (
               <ListItem key={comment.id} alignItems="flex-start">
                 <ListItemAvatar>
                   <Avatar>{comment.creator?.name?.[0] || 'U'}</Avatar>
@@ -837,7 +837,7 @@ export default function AreasPage() {
                             multiline
                             rows={2}
                             value={editCommentText}
-                            onChange={(e) => setEditCommentText(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditCommentText(e.target.value)}
                             variant="outlined"
                             size="small"
                             sx={{ mb: 1 }}
@@ -886,7 +886,7 @@ export default function AreasPage() {
               fullWidth
               placeholder="Add a comment..."
               value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewComment(e.target.value)}
               multiline
               rows={2}
               InputProps={{
@@ -923,52 +923,63 @@ export default function AreasPage() {
               </Typography>
               
               <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Revenue Impact</Typography>
-                  <Chip 
-                    label={selectedArea.revenue_impact} 
-                    sx={{ 
-                      backgroundColor: getImpactColor(selectedArea.revenue_impact), 
-                      color: 'white' 
-                    }} 
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Business Enablement</Typography>
-                  <Chip 
-                    label={selectedArea.business_enablement} 
-                    sx={{ 
-                      backgroundColor: getImpactColor(selectedArea.business_enablement), 
-                      color: 'white' 
-                    }} 
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Efforts</Typography>
-                  <Chip 
-                    label={selectedArea.efforts} 
-                    sx={{ 
-                      backgroundColor: getImpactColor(selectedArea.efforts), 
-                      color: 'white' 
-                    }} 
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">End User Impact</Typography>
-                  <Chip 
-                    label={selectedArea.end_user_impact} 
-                    sx={{ 
-                      backgroundColor: getImpactColor(selectedArea.end_user_impact), 
-                      color: 'white' 
-                    }} 
-                  />
-                </Grid>
+                {selectedArea.revenue_impact && (
+                  <Grid item xs={6}>
+                    <Typography variant="subtitle2" color="text.secondary">Revenue Impact</Typography>
+                    <Chip 
+                      label={selectedArea.revenue_impact} 
+                      sx={{ 
+                        backgroundColor: getImpactColor(selectedArea.revenue_impact), 
+                        color: 'white' 
+                      }} 
+                    />
+                  </Grid>
+                )}
+                {selectedArea.business_enablement && (
+                  <Grid item xs={6}>
+                    <Typography variant="subtitle2" color="text.secondary">Business Enablement</Typography>
+                    <Chip 
+                      label={selectedArea.business_enablement} 
+                      sx={{ 
+                        backgroundColor: getImpactColor(selectedArea.business_enablement), 
+                        color: 'white' 
+                      }} 
+                    />
+                  </Grid>
+                )}
+                {selectedArea.efforts && (
+                  <Grid item xs={6}>
+                    <Typography variant="subtitle2" color="text.secondary">Efforts</Typography>
+                    <Chip 
+                      label={selectedArea.efforts} 
+                      sx={{ 
+                        backgroundColor: getImpactColor(selectedArea.efforts), 
+                        color: 'white' 
+                      }} 
+                    />
+                  </Grid>
+                )}
+                {selectedArea.end_user_impact && (
+                  <Grid item xs={6}>
+                    <Typography variant="subtitle2" color="text.secondary">End User Impact</Typography>
+                    <Chip 
+                      label={selectedArea.end_user_impact} 
+                      sx={{ 
+                        backgroundColor: getImpactColor(selectedArea.end_user_impact), 
+                        color: 'white' 
+                      }} 
+                    />
+                  </Grid>
+                )}
                 <Grid item xs={6}>
                   <Typography variant="subtitle2" color="text.secondary">Status</Typography>
                   <Chip 
                     label={selectedArea.status} 
                     sx={{ 
-                      backgroundColor: selectedArea.status === 'planned' ? '#4caf50' : '#ff9800', 
+                      backgroundColor: selectedArea.status === 'Planned' ? '#4caf50' : 
+                                      selectedArea.status === 'Executing' ? '#2196f3' :
+                                      selectedArea.status === 'Released' ? '#9c27b0' :
+                                      selectedArea.status === 'Planning' ? '#ffc107' : '#ff9800', 
                       color: 'white' 
                     }} 
                   />
@@ -992,9 +1003,9 @@ export default function AreasPage() {
               <Divider sx={{ my: 2 }} />
 
               <Typography variant="h6" sx={{ mb: 2 }}>Associated PODs</Typography>
-              {pods.filter(pod => pod.area_id === selectedArea.id).length > 0 ? (
+              {pods.filter((pod: Pod) => pod.area_id === selectedArea.id).length > 0 ? (
                 <List>
-                  {pods.filter(pod => pod.area_id === selectedArea.id).map((pod) => (
+                  {pods.filter((pod: Pod) => pod.area_id === selectedArea.id).map((pod: Pod) => (
                     <ListItem key={pod.id}>
                       <ListItemText
                         primary={pod.name}
@@ -1011,7 +1022,7 @@ export default function AreasPage() {
 
               <Typography variant="h6" sx={{ mb: 2 }}>Comments</Typography>
               <List>
-                {areaComments.map((comment) => (
+                {areaComments.map((comment: any) => (
                   <ListItem key={comment.id} alignItems="flex-start">
                     <ListItemAvatar>
                       <Avatar>{comment.creator?.name?.[0] || 'U'}</Avatar>
@@ -1040,7 +1051,7 @@ export default function AreasPage() {
                   fullWidth
                   placeholder="Add a comment..."
                   value={newComment}
-                  onChange={(e: any) => setNewComment(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewComment(e.target.value)}
                   multiline
                   rows={2}
                   InputProps={{
