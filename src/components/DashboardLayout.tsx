@@ -453,10 +453,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </Box>
         </Toolbar>
       </AppBar>
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-      >
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -485,7 +481,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         >
           {drawer}
         </Drawer>
-      </Box>
       <Box
         component="main"
         sx={{
