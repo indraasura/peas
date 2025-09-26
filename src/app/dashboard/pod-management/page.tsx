@@ -43,7 +43,7 @@ export default function PodManagementPage() {
   const [podFormData, setPodFormData] = useState({
     name: '',
     area_id: '',
-    members: [] as Array<{ id: string; bandwidth_percentage: number; is_leader: boolean }>,
+    members: [] as Array<{ member_id: string; bandwidth_percentage: number; is_leader: boolean }>,
   })
 
   const fetchData = async () => {
@@ -118,7 +118,11 @@ export default function PodManagementPage() {
     setPodFormData({
       name: pod.name,
       area_id: pod.area_id || '',
-      members: pod.members || [],
+      members: (pod.members || []).map((member: any) => ({
+        member_id: member.member_id,
+        bandwidth_percentage: member.bandwidth_percentage,
+        is_leader: member.is_leader,
+      })),
     })
     setEditingPod(pod)
     setOpenDialog(true)
@@ -139,7 +143,7 @@ export default function PodManagementPage() {
   const handleAddMember = () => {
     setPodFormData((prev: typeof podFormData) => ({
       ...prev,
-      members: [...prev.members, { id: '', bandwidth_percentage: 50, is_leader: false }],
+      members: [...prev.members, { member_id: '', bandwidth_percentage: 50, is_leader: false }],
     }))
   }
 
@@ -180,9 +184,9 @@ export default function PodManagementPage() {
     return area ? area.name : 'Unknown Area'
   }
 
-  const getMemberNames = (members: Array<{ id: string; bandwidth_percentage: number; is_leader: boolean }>) => {
+  const getMemberNames = (members: Array<{ member_id: string; bandwidth_percentage: number; is_leader: boolean }>) => {
     return members.map((member: any) => {
-      const profile = availableMembers.find((m: Profile) => m.id === member.id)
+      const profile = availableMembers.find((m: Profile) => m.id === member.member_id)
       return profile ? `${profile.name}${member.is_leader ? ' (Leader)' : ''}` : 'Unknown Member'
     }).join(', ')
   }
@@ -322,9 +326,9 @@ export default function PodManagementPage() {
                 <FormControl sx={{ minWidth: 200 }}>
                   <InputLabel>Member</InputLabel>
                   <Select
-                    value={member.id}
+                    value={member.member_id}
                     onChange={(e: SelectChangeEvent<string>) =>
-                      handleMemberChange(index, 'id', e.target.value)
+                      handleMemberChange(index, 'member_id', e.target.value)
                     }
                   >
                     {availableMembers.map((profile: Profile) => (
