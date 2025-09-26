@@ -716,7 +716,7 @@ export async function validateAreaForPlanning(areaId: string): Promise<{ valid: 
       throw error
     }
     
-    if (!area.one_pager_url) {
+    if (!area.one_pager_url || area.one_pager_url.trim() === '') {
       return { valid: false, message: 'One-pager is required to move to Planning' }
     }
     
@@ -742,7 +742,7 @@ export async function validateAreaForPlanned(areaId: string): Promise<{ valid: b
     const missing: string[] = []
     
     // Check one-pager
-    if (!area.one_pager_url) {
+    if (!area.one_pager_url || area.one_pager_url.trim() === '') {
       missing.push('One-pager')
     }
     
@@ -755,16 +755,16 @@ export async function validateAreaForPlanned(areaId: string): Promise<{ valid: b
     }
     
     // Check impact fields
-    if (!area.revenue_impact) {
+    if (!area.revenue_impact || area.revenue_impact.trim() === '') {
       missing.push('Revenue impact')
     }
-    if (!area.business_enablement) {
+    if (!area.business_enablement || area.business_enablement.trim() === '') {
       missing.push('Business enablement')
     }
-    if (!area.efforts) {
+    if (!area.efforts || area.efforts.trim() === '') {
       missing.push('Efforts')
     }
-    if (!area.end_user_impact) {
+    if (!area.end_user_impact || area.end_user_impact.trim() === '') {
       missing.push('End user impact')
     }
     
