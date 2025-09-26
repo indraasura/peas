@@ -47,7 +47,8 @@ import {
   TrendingUp as TrendingUpIcon,
   Comment as CommentIcon,
   Close as CloseIcon,
-  Assessment as AssessmentIcon
+  Assessment as AssessmentIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material'
 import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote, updatePodNote, deletePodNote, checkAndUpdateAreaStatus } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'
@@ -101,6 +102,11 @@ export default function PodsPage() {
 
   useEffect(() => {
     fetchData()
+    
+    // Set up interval to refresh data every 30 seconds to catch area status changes
+    const interval = setInterval(fetchData, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   const fetchData = async () => {
@@ -110,13 +116,23 @@ export default function PodsPage() {
         getAreas(),
         getAvailableMembers()
       ])
-      setPods(podsData)
-      // Filter to show only backlog areas
+      
+      // Filter PODs to only show those from areas that are in "Executing" status (kicked off)
+      const executingAreas = allAreasData.filter(area => area.status === 'Executing')
+      const executingAreaIds = executingAreas.map(area => area.id)
+      
+      // Only show PODs that have an area_id and that area is in "Executing" status
+      const filteredPods = podsData.filter(pod => 
+        pod.area_id && executingAreaIds.includes(pod.area_id)
+      )
+      
+      setPods(filteredPods)
+      // Filter to show only backlog areas for the area dropdown
       setAreas(allAreasData.filter(area => area.status === 'Backlog'))
       setAvailableMembers(membersData)
       
-      // Fetch notes counts for all PODs
-      await fetchPodNotesCounts(podsData)
+      // Fetch notes counts for filtered PODs
+      await fetchPodNotesCounts(filteredPods)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -533,11 +549,25 @@ export default function PodsPage() {
         <Typography variant="h4" component="h1">
           Execution
         </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={fetchData}
+          disabled={loading}
+        >
+          Refresh
+        </Button>
       </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
           {error}
+        </Alert>
+      )}
+
+      {pods.length === 0 && !loading && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          No PODs are currently visible in the Execution section. PODs will only appear here when their associated area has been kicked off (moved to "Executing" status) in the Planning section.
         </Alert>
       )}
 

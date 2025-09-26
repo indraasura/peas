@@ -92,6 +92,21 @@ export default function AreasPage() {
     }>
   })
   const [error, setError] = useState('')
+  const [validationDialog, setValidationDialog] = useState<{
+    open: boolean
+    title: string
+    message: string
+    missingFields: string[]
+    area: Area | null
+    targetStatus: string
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    missingFields: [],
+    area: null,
+    targetStatus: ''
+  })
 
   useEffect(() => {
     fetchData()
@@ -184,7 +199,14 @@ export default function AreasPage() {
     if (source.droppableId === 'Backlog' && destination.droppableId === 'Planning') {
       const validation = await validateAreaForPlanning(area.id)
       if (!validation.valid) {
-        setError(validation.message)
+        setValidationDialog({
+          open: true,
+          title: 'Cannot Move to Planning',
+          message: validation.message,
+          missingFields: ['One Pager'],
+          area: area,
+          targetStatus: 'Planning'
+        })
         return
       }
     }
@@ -193,7 +215,14 @@ export default function AreasPage() {
     if (source.droppableId === 'Planning' && destination.droppableId === 'Planned') {
       const validation = await validateAreaForPlanned(area.id)
       if (!validation.valid) {
-        setError(validation.message)
+        setValidationDialog({
+          open: true,
+          title: 'Cannot Move to Planned',
+          message: validation.message,
+          missingFields: validation.missing || [],
+          area: area,
+          targetStatus: 'Planned'
+        })
         return
       }
     }
@@ -617,31 +646,36 @@ export default function AreasPage() {
       id: 'Backlog',
       title: 'Backlog',
       items: backlogAreas,
-      color: '#ff9800'
+      color: '#ff9800',
+      showAddButton: true
     },
     {
       id: 'Planning',
       title: 'Planning',
       items: planningAreas,
-      color: '#ffc107'
+      color: '#ffc107',
+      showAddButton: false
     },
     {
       id: 'Planned',
       title: 'Planned',
       items: plannedAreas,
-      color: '#4caf50'
+      color: '#4caf50',
+      showAddButton: false
     },
     {
       id: 'Executing',
       title: 'Executing',
       items: executingAreas,
-      color: '#2196f3'
+      color: '#2196f3',
+      showAddButton: false
     },
     {
       id: 'Released',
       title: 'Released',
       items: releasedAreas,
-      color: '#9c27b0'
+      color: '#9c27b0',
+      showAddButton: false
     }
   ]
 
@@ -1242,6 +1276,55 @@ export default function AreasPage() {
           <Button onClick={() => setOpenPodDialog(false)}>Cancel</Button>
           <Button onClick={handleCreatePod} variant="contained">
             Create POD
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Validation Error Dialog */}
+      <Dialog 
+        open={validationDialog.open} 
+        onClose={() => setValidationDialog({ ...validationDialog, open: false })}
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>{validationDialog.title}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            {validationDialog.message}
+          </Typography>
+          
+          {validationDialog.area && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                Missing Required Fields:
+              </Typography>
+              <List>
+                {validationDialog.missingFields.map((field: string, index: number) => (
+                  <ListItem key={index}>
+                    <ListItemText primary={field} />
+                  </ListItem>
+                ))}
+              </List>
+              
+              <Typography variant="body2" sx={{ mt: 2, mb: 1 }}>
+                Please edit the area to add the required information:
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<EditIcon />}
+                onClick={() => {
+                  setValidationDialog({ ...validationDialog, open: false })
+                  handleEditArea(validationDialog.area!)
+                }}
+              >
+                Edit Area
+              </Button>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setValidationDialog({ ...validationDialog, open: false })}>
+            Close
           </Button>
         </DialogActions>
       </Dialog>

@@ -40,6 +40,7 @@ interface KanbanColumn {
   title: string
   items: any[]
   color?: string
+  showAddButton?: boolean
 }
 
 interface KanbanBoardProps {
@@ -96,7 +97,7 @@ export default function KanbanBoard({
                   sx={{ backgroundColor: column.color || '#1976d2', color: 'white' }}
                 />
               </Box>
-              {onItemAdd && (
+              {onItemAdd && column.showAddButton && (
                 <Button
                   startIcon={<AddIcon />}
                   onClick={() => onItemAdd(column.id)}
