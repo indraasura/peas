@@ -21,7 +21,8 @@ import {
   MenuItem,
   Divider,
   Chip,
-  Paper
+  Paper,
+  Tooltip
 } from '@mui/material'
 import {
   Dashboard as DashboardIcon,
@@ -55,8 +56,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [desktopOpen, setDesktopOpen] = useState(true)
-  const [collapsed, setCollapsed] = useState(false)
+  const [desktopOpen, setDesktopOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const router = useRouter()
   const pathname = usePathname()
@@ -91,6 +92,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const handleDesktopDrawerToggle = () => {
     setCollapsed(!collapsed)
+    setDesktopOpen(!collapsed) // When collapsing, also close the drawer
   }
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -324,22 +326,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           >
             <MenuIcon />
           </IconButton>
-          <IconButton
-            color="inherit"
-            aria-label="toggle drawer"
-            edge="start"
-            onClick={handleDesktopDrawerToggle}
-            sx={{ 
-              mr: 2, 
-              display: { xs: 'none', sm: 'block' },
-              backgroundColor: 'rgba(0,0,0,0.04)',
-              '&:hover': {
-                backgroundColor: 'rgba(0,0,0,0.08)',
-              }
-            }}
-          >
-            <MenuIcon />
-          </IconButton>
+          <Tooltip title={collapsed ? "Open sidebar" : "Close sidebar"}>
+            <IconButton
+              color="inherit"
+              aria-label="toggle drawer"
+              edge="start"
+              onClick={handleDesktopDrawerToggle}
+              sx={{ 
+                mr: 2, 
+                display: { xs: 'none', sm: 'block' },
+                backgroundColor: darkMode ? '#1E293B' : '#F1F5F9',
+                color: darkMode ? '#F8FAFC' : '#0F172A',
+                borderRadius: '8px',
+                '&:hover': {
+                  backgroundColor: darkMode ? '#334155' : '#E2E8F0',
+                }
+              }}
+            >
+              <MenuIcon />
+            </IconButton>
+          </Tooltip>
           <Typography 
             variant="h6" 
             noWrap 
@@ -461,12 +467,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               width: collapsed ? collapsedDrawerWidth : drawerWidth,
               position: 'fixed',
               top: 0,
-              left: 0,
-              transition: 'width 0.3s ease',
+              left: collapsed ? -drawerWidth : 0,
+              transition: 'all 0.3s ease',
               zIndex: 1200,
             },
           }}
-          open={true}
+          open={!collapsed}
         >
           {drawer}
         </Drawer>
@@ -482,7 +488,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             ? 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)'
             : '#FFFFFF',
           minHeight: '100vh',
-          ml: { sm: collapsed ? `${collapsedDrawerWidth}px` : `${drawerWidth}px` }
+          ml: { sm: collapsed ? 0 : `${drawerWidth}px` }
         }}
       >
         <Toolbar />
