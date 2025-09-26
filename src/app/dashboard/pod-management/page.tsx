@@ -29,8 +29,8 @@ import {
 } from '@mui/material'
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material'
 import { SelectChangeEvent } from '@mui/material'
-import { Pod, Area, Profile } from '@/lib/supabase'
-import { getPods, createPod, updatePod, deletePod, getAreas, getMembers } from '@/lib/data'
+import { Pod, Area, Profile, PodMember } from '@/lib/supabase'
+import { getPods, createPod, updatePod, deletePod, getAreas, getMembers, updatePodMembers } from '@/lib/data'
 
 export default function PodManagementPage() {
   const [pods, setPods] = useState<Pod[]>([])
@@ -89,8 +89,8 @@ export default function PodManagementPage() {
         await updatePod(editingPod.id, {
           name: podFormData.name,
           area_id: podFormData.area_id || undefined,
-          members: podFormData.members,
         })
+        await updatePodMembers(editingPod.id, podFormData.members)
       } else {
         await createPod({
           name: podFormData.name,
@@ -118,7 +118,7 @@ export default function PodManagementPage() {
     setPodFormData({
       name: pod.name,
       area_id: pod.area_id || '',
-      members: (pod.members || []).map((member: any) => ({
+      members: (pod.members || []).map((member: PodMember) => ({
         member_id: member.member_id,
         bandwidth_percentage: member.bandwidth_percentage,
         is_leader: member.is_leader,
@@ -184,8 +184,8 @@ export default function PodManagementPage() {
     return area ? area.name : 'Unknown Area'
   }
 
-  const getMemberNames = (members: Array<{ member_id: string; bandwidth_percentage: number; is_leader: boolean }>) => {
-    return members.map((member: any) => {
+  const getMemberNames = (members: PodMember[]) => {
+    return members.map((member: PodMember) => {
       const profile = availableMembers.find((m: Profile) => m.id === member.member_id)
       return profile ? `${profile.name}${member.is_leader ? ' (Leader)' : ''}` : 'Unknown Member'
     }).join(', ')
