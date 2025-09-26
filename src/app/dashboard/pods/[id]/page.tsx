@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   Box,
@@ -272,7 +272,7 @@ export default function PodViewPage() {
               
               {pod.members && pod.members.length > 0 ? (
                 <List>
-                  {pod.members.map((member) => (
+                  {pod.members.map((member: any) => (
                     <ListItem key={member.id}>
                       <ListItemIcon>
                         <PersonIcon />
@@ -316,7 +316,7 @@ export default function PodViewPage() {
               
               {notes.length > 0 ? (
                 <Stack spacing={2}>
-                  {notes.map((note) => (
+                  {notes.map((note: any) => (
                     <Paper
                       key={note.id}
                       elevation={2}
@@ -503,7 +503,7 @@ export default function PodViewPage() {
               <Box display="flex" justifyContent="space-between" mb={1}>
                 <Typography variant="body2">Total Bandwidth</Typography>
                 <Typography variant="body2" fontWeight="bold">
-                  {(pod.members?.reduce((sum, member) => sum + member.bandwidth_percentage, 0) || 0) / 100}
+                  {(pod.members?.reduce((sum: number, member: any) => sum + member.bandwidth_percentage, 0) || 0) / 100}
                 </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between" mb={1}>
@@ -528,7 +528,7 @@ export default function PodViewPage() {
                 label="Review Date"
                 type="date"
                 value={noteForm.review_date}
-                onChange={(e) => setNoteForm({ ...noteForm, review_date: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, review_date: e.target.value })}
                 InputLabelProps={{ shrink: true }}
                 required
               />
@@ -540,7 +540,7 @@ export default function PodViewPage() {
                 multiline
                 rows={3}
                 value={noteForm.current_state}
-                onChange={(e) => setNoteForm({ ...noteForm, current_state: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, current_state: e.target.value })}
               />
             </Grid>
             <Grid item xs={12}>
@@ -550,7 +550,7 @@ export default function PodViewPage() {
                 multiline
                 rows={2}
                 value={noteForm.blockers}
-                onChange={(e) => setNoteForm({ ...noteForm, blockers: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, blockers: e.target.value })}
               />
             </Grid>
             <Grid item xs={12}>
@@ -560,7 +560,7 @@ export default function PodViewPage() {
                 multiline
                 rows={2}
                 value={noteForm.learnings}
-                onChange={(e) => setNoteForm({ ...noteForm, learnings: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, learnings: e.target.value })}
               />
             </Grid>
             <Grid item xs={12}>
@@ -570,7 +570,7 @@ export default function PodViewPage() {
                 multiline
                 rows={2}
                 value={noteForm.deviation_to_plan}
-                onChange={(e) => setNoteForm({ ...noteForm, deviation_to_plan: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, deviation_to_plan: e.target.value })}
               />
             </Grid>
             <Grid item xs={12}>
@@ -580,7 +580,7 @@ export default function PodViewPage() {
                 multiline
                 rows={2}
                 value={noteForm.dependencies_risks}
-                onChange={(e) => setNoteForm({ ...noteForm, dependencies_risks: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, dependencies_risks: e.target.value })}
               />
             </Grid>
             <Grid item xs={12}>
@@ -590,7 +590,7 @@ export default function PodViewPage() {
                 multiline
                 rows={2}
                 value={noteForm.misc}
-                onChange={(e) => setNoteForm({ ...noteForm, misc: e.target.value })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, misc: e.target.value })}
               />
             </Grid>
           </Grid>

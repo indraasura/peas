@@ -254,7 +254,7 @@ export async function getPods(): Promise<Pod[]> {
 export async function createPod(podData: {
   name: string
   description?: string
-  area_id: string
+  area_id?: string
   start_date?: string
   end_date?: string
   members?: Array<{
@@ -268,7 +268,7 @@ export async function createPod(podData: {
     .insert({
       name: podData.name,
       description: podData.description || null,
-      area_id: podData.area_id,
+      area_id: podData.area_id || null,
       start_date: podData.start_date || null,
       end_date: podData.end_date || null,
       status: 'Awaiting development'
