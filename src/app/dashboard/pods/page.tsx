@@ -86,7 +86,7 @@ export default function PodsPage() {
     name: '',
     description: '',
     area_id: '',
-    status: 'Awaiting development',
+    status: 'Awaiting development' as 'Awaiting development' | 'In development' | 'In testing' | 'Released',
     start_date: '',
     end_date: '',
     members: [] as Array<{
@@ -220,7 +220,7 @@ export default function PodsPage() {
       name: '',
       description: '',
       area_id: '',
-      status: 'Awaiting development',
+      status: 'Awaiting development' as 'Awaiting development' | 'In development' | 'In testing' | 'Released',
       start_date: '',
       end_date: '',
       members: [],
