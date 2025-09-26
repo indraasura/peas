@@ -34,7 +34,8 @@ import {
   DarkMode as DarkModeIcon,
   Logout as LogoutIcon,
   Menu as MenuIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Close as CloseIcon
 } from '@mui/icons-material'
 import { getCurrentUser, signOut, type Profile } from '@/lib/auth'
 import { useTheme } from './ThemeProvider'
@@ -57,7 +58,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [desktopOpen, setDesktopOpen] = useState(false)
-  const [collapsed, setCollapsed] = useState(true)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const router = useRouter()
   const pathname = usePathname()
@@ -91,8 +91,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }
 
   const handleDesktopDrawerToggle = () => {
-    setCollapsed(!collapsed)
-    setDesktopOpen(!collapsed) // When collapsing, also close the drawer
+    setDesktopOpen(!desktopOpen)
   }
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -124,43 +123,62 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       display: 'flex', 
       flexDirection: 'column',
       backgroundColor: darkMode ? '#0F172A' : '#FAFAFA',
-      width: collapsed ? collapsedDrawerWidth : drawerWidth,
-      transition: 'width 0.3s ease',
+      width: drawerWidth,
       borderRight: darkMode ? '1px solid #1E293B' : '1px solid #E2E8F0'
     }}>
+      {/* Header */}
       <Box sx={{ 
-        p: collapsed ? 2 : 3,
+        p: 3,
         borderBottom: darkMode ? '1px solid #1E293B' : '1px solid #E2E8F0',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: collapsed ? 'center' : 'flex-start'
+        justifyContent: 'space-between'
       }}>
-        <Box sx={{ 
-          width: 32, 
-          height: 32, 
-          background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)'
-        }}>
-          <Typography sx={{ color: 'white', fontSize: '14px', fontWeight: 'bold' }}>P</Typography>
-        </Box>
-        {!collapsed && (
+        <Box display="flex" alignItems="center">
+          <Box sx={{ 
+            width: 32, 
+            height: 32, 
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden'
+          }}>
+            <img 
+              src="/images/logo.png" 
+              alt="Kynetik Logo" 
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                objectFit: 'contain' 
+              }} 
+            />
+          </Box>
           <Typography variant="h6" sx={{ 
             fontWeight: 700, 
             color: darkMode ? '#F8FAFC' : '#0F172A',
             ml: 2,
             fontSize: '18px'
           }}>
-            PEAS
+            Kynetik
           </Typography>
-        )}
+        </Box>
+        <IconButton
+          onClick={handleDesktopDrawerToggle}
+          sx={{
+            color: darkMode ? '#94A3B8' : '#64748B',
+            '&:hover': {
+              backgroundColor: darkMode ? '#1E293B' : '#F1F5F9',
+            }
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
       </Box>
       
+      {/* Navigation */}
       <Box sx={{ flex: 1, overflow: 'auto', py: 1 }}>
-        <List sx={{ px: collapsed ? 1 : 2 }}>
+        <List sx={{ px: 2 }}>
           {menuItems.map((item) => {
             if (item.requirePODCommittee && !isPODCommittee) return null
             if (item.hideFromPODCommittee && isPODCommittee) return null
@@ -173,10 +191,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   onClick={() => router.push(item.href)}
                   sx={{
                     borderRadius: '12px',
-                    py: collapsed ? 2 : 1.5,
-                    px: collapsed ? 1 : 2,
-                    mx: collapsed ? 0.5 : 0,
-                    minHeight: collapsed ? 48 : 'auto',
+                    py: 1.5,
+                    px: 2,
                     transition: 'all 0.2s ease-in-out',
                     '&.Mui-selected': {
                       backgroundColor: darkMode ? '#1E40AF' : '#EBF8FF',
@@ -191,28 +207,25 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   }}
                 >
                   <ListItemIcon sx={{ 
-                    minWidth: collapsed ? 'auto' : 40,
+                    minWidth: 40,
                     color: isActive 
                       ? (darkMode ? '#60A5FA' : '#1D4ED8')
                       : (darkMode ? '#94A3B8' : '#64748B'),
-                    justifyContent: collapsed ? 'center' : 'flex-start'
                   }}>
-                    <item.icon sx={{ fontSize: collapsed ? 20 : 22 }} />
+                    <item.icon sx={{ fontSize: 22 }} />
                   </ListItemIcon>
-                  {!collapsed && (
-                    <ListItemText 
-                      primary={item.label}
-                      sx={{
-                        '& .MuiListItemText-primary': {
-                          fontSize: '14px',
-                          fontWeight: isActive ? 600 : 500,
-                          color: isActive 
-                            ? (darkMode ? '#60A5FA' : '#1D4ED8')
-                            : (darkMode ? '#94A3B8' : '#64748B')
-                        }
-                      }}
-                    />
-                  )}
+                  <ListItemText 
+                    primary={item.label}
+                    sx={{
+                      '& .MuiListItemText-primary': {
+                        fontSize: '14px',
+                        fontWeight: isActive ? 600 : 500,
+                        color: isActive 
+                          ? (darkMode ? '#60A5FA' : '#1D4ED8')
+                          : (darkMode ? '#94A3B8' : '#64748B')
+                      }
+                    }}
+                  />
                 </ListItemButton>
               </ListItem>
             )
@@ -326,7 +339,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           >
             <MenuIcon />
           </IconButton>
-          <Tooltip title={collapsed ? "Open sidebar" : "Close sidebar"}>
+          <Tooltip title={desktopOpen ? "Close sidebar" : "Open sidebar"}>
             <IconButton
               color="inherit"
               aria-label="toggle drawer"
@@ -459,20 +472,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           {drawer}
         </Drawer>
         <Drawer
-          variant="persistent"
+          variant="temporary"
           sx={{
             display: { xs: 'none', sm: 'block' },
             '& .MuiDrawer-paper': { 
               boxSizing: 'border-box', 
-              width: collapsed ? collapsedDrawerWidth : drawerWidth,
-              position: 'fixed',
-              top: 0,
-              left: collapsed ? -drawerWidth : 0,
-              transition: 'all 0.3s ease',
-              zIndex: 1200,
+              width: drawerWidth,
             },
           }}
-          open={!collapsed}
+          open={desktopOpen}
+          onClose={handleDesktopDrawerToggle}
         >
           {drawer}
         </Drawer>
@@ -483,12 +492,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           flexGrow: 1,
           p: 3,
           width: '100%',
-          transition: 'all 0.3s ease',
           background: darkMode 
             ? 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)'
             : '#FFFFFF',
           minHeight: '100vh',
-          ml: { sm: collapsed ? 0 : `${drawerWidth}px` }
         }}
       >
         <Toolbar />
