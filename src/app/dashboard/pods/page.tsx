@@ -111,7 +111,7 @@ export default function PodsPage() {
       ])
       setPods(podsData)
       // Filter to show only backlog areas
-      setAreas(allAreasData.filter(area => area.status === 'backlog'))
+      setAreas(allAreasData.filter(area => area.status === 'Backlog'))
       setAvailableMembers(membersData)
       
       // Fetch notes counts for all PODs
@@ -169,7 +169,7 @@ export default function PodsPage() {
         name: '',
         description: '',
         area_id: '',
-        status: 'backlog',
+        status: 'Awaiting development',
         start_date: '',
         end_date: '',
         members: [],
@@ -404,11 +404,10 @@ export default function PodsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'backlog': return '#9e9e9e'
-      case 'planning': return '#2196f3'
-      case 'in development': return '#ff9800'
-      case 'testing': return '#9c27b0'
-      case 'released': return '#4caf50'
+      case 'Awaiting development': return '#9e9e9e'
+      case 'In development': return '#ff9800'
+      case 'In testing': return '#9c27b0'
+      case 'Released': return '#4caf50'
       default: return '#9e9e9e'
     }
   }
