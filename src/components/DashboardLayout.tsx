@@ -32,7 +32,8 @@ import {
   Person as ProfileIcon,
   DarkMode as DarkModeIcon,
   Logout as LogoutIcon,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material'
 import { getCurrentUser, signOut, type Profile } from '@/lib/auth'
 import { useTheme } from './ThemeProvider'
@@ -41,8 +42,9 @@ const drawerWidth = 240
 
 const menuItems = [
   { icon: DashboardIcon, label: 'Dashboard', href: '/dashboard' },
-  { icon: AreasIcon, label: 'Areas', href: '/dashboard/areas', requirePODCommittee: true },
-  { icon: PodsIcon, label: 'PODs', href: '/dashboard/pods', requirePODCommittee: true },
+  { icon: AreasIcon, label: 'Planning', href: '/dashboard/areas', requirePODCommittee: true },
+  { icon: PodsIcon, label: 'Execution', href: '/dashboard/pods', requirePODCommittee: true },
+  { icon: SettingsIcon, label: 'POD Management', href: '/dashboard/pod-management', requirePODCommittee: true },
   { icon: MyPodsIcon, label: 'My PODs', href: '/dashboard/my-pods', hideFromPODCommittee: true },
   { icon: MembersIcon, label: 'Members', href: '/dashboard/members', requirePODCommittee: true },
   { icon: ProfileIcon, label: 'Profile', href: '/dashboard/profile' },

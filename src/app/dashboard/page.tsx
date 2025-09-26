@@ -309,7 +309,7 @@ export default function DashboardPage() {
               startIcon={<AssessmentIcon />}
               onClick={() => router.push('/dashboard/areas')}
             >
-              Manage Areas
+              Manage Planning
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
@@ -319,7 +319,7 @@ export default function DashboardPage() {
               startIcon={<GroupIcon />}
               onClick={() => router.push('/dashboard/pods')}
             >
-              Manage PODs
+              Manage Execution
             </Button>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>

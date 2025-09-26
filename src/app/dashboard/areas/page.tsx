@@ -45,7 +45,7 @@ import {
   Check as CheckIcon,
   Close as CloseIcon
 } from '@mui/icons-material'
-import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, getPods, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus } from '@/lib/data'
+import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, getPods, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, getAvailableMembers } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import KanbanBoard from '@/components/KanbanBoard'
@@ -57,8 +57,10 @@ export default function AreasPage() {
   const [areas, setAreas] = useState<Area[]>([])
   const [pods, setPods] = useState<Pod[]>([])
   const [podCommitteeMembers, setPodCommitteeMembers] = useState<Profile[]>([])
+  const [availableMembers, setAvailableMembers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
+  const [openPodDialog, setOpenPodDialog] = useState(false)
   const [openCommentsDialog, setOpenCommentsDialog] = useState(false)
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false)
   const [editingArea, setEditingArea] = useState<Area | null>(null)
@@ -81,6 +83,14 @@ export default function AreasPage() {
     one_pager_url: '',
     selected_pods: [] as string[]
   })
+  const [podFormData, setPodFormData] = useState({
+    name: '',
+    members: [] as Array<{
+      member_id: string
+      bandwidth_percentage: number
+      is_leader: boolean
+    }>
+  })
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -89,14 +99,16 @@ export default function AreasPage() {
 
   const fetchData = async () => {
     try {
-      const [areasData, podsData, membersData] = await Promise.all([
+      const [areasData, podsData, membersData, availableMembersData] = await Promise.all([
         getAreas(),
         getPods(),
-        getMembers()
+        getMembers(),
+        getAvailableMembers()
       ])
       setAreas(areasData)
       setPods(podsData)
       setPodCommitteeMembers(membersData.filter(member => member.team === 'POD committee'))
+      setAvailableMembers(availableMembersData)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -227,6 +239,41 @@ export default function AreasPage() {
         console.error('Error kicking off area:', error)
         setError('Failed to kick off area. Please try again.')
       }
+    }
+  }
+
+  const handleCreatePod = async () => {
+    try {
+      setError('')
+      const { members, ...podData } = podFormData
+
+      // Validate required fields
+      if (!podData.name.trim()) {
+        setError('POD name is required')
+        return
+      }
+
+      const newPod = await createPod(podData)
+      await updatePodMembers(newPod.id, members)
+      
+      // Add the new POD to the selected pods
+      setFormData((prev: typeof formData) => ({
+        ...prev,
+        selected_pods: [...prev.selected_pods, newPod.id]
+      }))
+
+      // Reset form and close dialog
+      setPodFormData({
+        name: '',
+        members: []
+      })
+      setOpenPodDialog(false)
+      
+      // Refresh data
+      await fetchData()
+    } catch (error) {
+      console.error('Error creating POD:', error)
+      setError('Failed to create POD. Please try again.')
     }
   }
 
@@ -606,7 +653,7 @@ export default function AreasPage() {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" component="h1">
-          Areas
+          Planning
         </Typography>
         <Button
           variant="contained"
@@ -759,19 +806,29 @@ export default function AreasPage() {
               </FormControl>
             </Grid>
             <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Associated PODs</InputLabel>
-                <Select
-                  multiple
-                  value={formData.selected_pods}
-                  onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
-                  label="Associated PODs"
+              <Box display="flex" alignItems="center" gap={2}>
+                <FormControl fullWidth>
+                  <InputLabel>Associated PODs</InputLabel>
+                  <Select
+                    multiple
+                    value={formData.selected_pods}
+                    onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
+                    label="Associated PODs"
+                  >
+                    {pods.map((pod: Pod) => (
+                      <MenuItem key={pod.id} value={pod.id}>{pod.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => setOpenPodDialog(true)}
+                  sx={{ minWidth: 150 }}
                 >
-                  {pods.map((pod: Pod) => (
-                    <MenuItem key={pod.id} value={pod.id}>{pod.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                  Create POD
+                </Button>
+              </Box>
             </Grid>
           </Grid>
         </DialogContent>
@@ -1075,6 +1132,117 @@ export default function AreasPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDetailsDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Create POD Dialog */}
+      <Dialog open={openPodDialog} onClose={() => setOpenPodDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Create New POD</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="POD Name"
+                value={podFormData.name}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPodFormData({ ...podFormData, name: e.target.value })}
+                required
+              />
+            </Grid>
+            
+            {/* Members Section */}
+            <Grid item xs={12}>
+              <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+                Members
+              </Typography>
+              {podFormData.members.map((member: any, index: number) => (
+                <Grid container spacing={2} key={index} sx={{ mb: 2 }}>
+                  <Grid item xs={12} sm={5}>
+                    <FormControl fullWidth>
+                      <InputLabel>Member</InputLabel>
+                      <Select
+                        value={member.member_id}
+                        onChange={(e: SelectChangeEvent<string>) => {
+                          const newMembers = [...podFormData.members]
+                          newMembers[index].member_id = e.target.value
+                          setPodFormData({ ...podFormData, members: newMembers })
+                        }}
+                        label="Member"
+                      >
+                        {availableMembers.map((memberOption: Profile) => (
+                          <MenuItem key={memberOption.id} value={memberOption.id}>
+                            {memberOption.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      fullWidth
+                      label="Bandwidth %"
+                      type="number"
+                      value={member.bandwidth_percentage}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const newMembers = [...podFormData.members]
+                        newMembers[index].bandwidth_percentage = parseInt(e.target.value) || 0
+                        setPodFormData({ ...podFormData, members: newMembers })
+                      }}
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">%</InputAdornment>
+                      }}
+                      inputProps={{ min: 0, max: 100 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <FormControl fullWidth>
+                      <InputLabel>Role</InputLabel>
+                      <Select
+                        value={member.is_leader ? 'leader' : 'member'}
+                        onChange={(e: SelectChangeEvent<string>) => {
+                          const newMembers = [...podFormData.members]
+                          newMembers[index].is_leader = e.target.value === 'leader'
+                          setPodFormData({ ...podFormData, members: newMembers })
+                        }}
+                        label="Role"
+                      >
+                        <MenuItem value="member">Member</MenuItem>
+                        <MenuItem value="leader">Leader</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={1}>
+                    <IconButton
+                      color="error"
+                      onClick={() => {
+                        const newMembers = podFormData.members.filter((_: any, i: number) => i !== index)
+                        setPodFormData({ ...podFormData, members: newMembers })
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Grid>
+                </Grid>
+              ))}
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => setPodFormData({
+                  ...podFormData,
+                  members: [...podFormData.members, { member_id: '', bandwidth_percentage: 25, is_leader: false }]
+                })}
+                sx={{ mt: 1 }}
+              >
+                Add Member
+              </Button>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenPodDialog(false)}>Cancel</Button>
+          <Button onClick={handleCreatePod} variant="contained">
+            Create POD
+          </Button>
         </DialogActions>
       </Dialog>
 
