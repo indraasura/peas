@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import './globals.css'
 
 export const metadata: Metadata = {
   title: 'POD Management Tool',

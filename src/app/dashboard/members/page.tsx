@@ -1,35 +1,28 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Grid,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  IconButton,
-  Alert,
-  CircularProgress
-} from '@mui/material'
-import { DataGrid, GridColDef } from '@mui/x-data-grid'
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon
-} from '@mui/icons-material'
+  Plus,
+  Edit,
+  Trash2,
+  Users,
+  Search,
+  AlertCircle,
+  CheckCircle,
+  User,
+  Building2,
+  BarChart3,
+} from 'lucide-react'
 import { getMembers, createMember, updateMember, deleteMember, isPODCommitteeMember } from '@/lib/data'
 import { type Profile } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
@@ -99,421 +92,364 @@ export default function MembersPage() {
 
   const uniqueTeams = Array.from(new Set(members.map(member => member.team)))
 
-  const handleOpenDialog = (member?: Profile) => {
-    if (member) {
-      setEditingMember(member)
-      setMemberForm({
-        name: member.name,
-        email: member.email,
-        team: member.team,
-        password: ''
-      })
-    } else {
-      setEditingMember(null)
-      setMemberForm({
-        name: '',
-        email: '',
-        team: '',
-        password: ''
-      })
-    }
-    setOpenDialog(true)
-    setError('')
-    setSuccess('')
+  const getBandwidthColor = (bandwidth: number) => {
+    if (bandwidth >= 0.8) return 'bg-red-100 text-red-800'
+    if (bandwidth >= 0.6) return 'bg-yellow-100 text-yellow-800'
+    if (bandwidth >= 0.4) return 'bg-blue-100 text-blue-800'
+    return 'bg-green-100 text-green-800'
   }
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false)
-    setEditingMember(null)
+  const getAvailabilityText = (bandwidth: number) => {
+    if (bandwidth >= 0.8) return 'High Utilization'
+    if (bandwidth >= 0.6) return 'Medium-High Utilization'
+    if (bandwidth >= 0.4) return 'Medium Utilization'
+    return 'Low Utilization'
+  }
+
+  const handleSubmit = async () => {
+    setSubmitting(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      if (editingMember) {
+        await updateMember(editingMember.id, memberForm)
+        setSuccess('Member updated successfully!')
+      } else {
+        await createMember(memberForm)
+        setSuccess('Member created successfully!')
+      }
+      
+      setOpenDialog(false)
+      setEditingMember(null)
+      resetForm()
+      fetchMembers()
+    } catch (error) {
+      console.error('Error saving member:', error)
+      setError('Failed to save member. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const resetForm = () => {
     setMemberForm({
       name: '',
       email: '',
       team: '',
       password: ''
     })
-    setError('')
-    setSuccess('')
   }
 
-  const handleSubmit = async () => {
-    // For POD committee members, email is required. For others, it's optional
-    const isEmailRequired = memberForm.team === 'POD committee'
-    
-    if (!memberForm.name || !memberForm.team || (isEmailRequired && !memberForm.email)) {
-      setError(isEmailRequired 
-        ? 'Please fill in all required fields (Name, Email, Team)' 
-        : 'Please fill in Name and Team'
-      )
-      return
-    }
+  const handleAddMember = () => {
+    setEditingMember(null)
+    resetForm()
+    setOpenDialog(true)
+  }
 
-    try {
-      setSubmitting(true)
-      setError('')
+  const handleEditMember = (member: Profile) => {
+    setEditingMember(member)
+    setMemberForm({
+      name: member.name || '',
+      email: member.email || '',
+      team: member.team || '',
+      password: ''
+    })
+    setOpenDialog(true)
+  }
 
-      if (editingMember) {
-        // Update existing member
-        await updateMember(editingMember.id, {
-          name: memberForm.name,
-          email: memberForm.email || '',
-          team: memberForm.team
-        })
-        setSuccess('Member updated successfully')
-      } else {
-        // Create new member
-        await createMember({
-          name: memberForm.name,
-          email: memberForm.email || `${memberForm.name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
-          team: memberForm.team,
-          password: memberForm.password || undefined
-        })
-        setSuccess('Member created successfully')
+  const handleDeleteMember = async (member: Profile) => {
+    if (window.confirm(`Are you sure you want to delete "${member.name}"?`)) {
+      try {
+        await deleteMember(member.id)
+        fetchMembers()
+      } catch (error) {
+        console.error('Error deleting member:', error)
+        setError('Failed to delete member. Please try again.')
       }
-
-      // Refresh members list
-      await fetchMembers()
-      handleCloseDialog()
-    } catch (error: any) {
-      console.error('Error saving member:', error)
-      setError(error.message || 'Failed to save member')
-    } finally {
-      setSubmitting(false)
     }
   }
-
-  const handleDelete = async (memberId: string, memberName: string) => {
-    if (!window.confirm(`Are you sure you want to delete ${memberName}?`)) {
-      return
-    }
-
-    try {
-      await deleteMember(memberId)
-      setSuccess('Member deleted successfully')
-      await fetchMembers()
-    } catch (error: any) {
-      console.error('Error deleting member:', error)
-      setError(error.message || 'Failed to delete member')
-    }
-  }
-
-  const getBandwidthColor = (bandwidth: number) => {
-    if (bandwidth >= 0.8) return 'error'
-    if (bandwidth >= 0.6) return 'warning'
-    if (bandwidth >= 0.4) return 'info'
-    return 'success'
-  }
-
-  const getAvailabilityText = (bandwidth: number) => {
-    if (bandwidth >= 0.8) return 'High'
-    if (bandwidth >= 0.6) return 'Medium'
-    if (bandwidth >= 0.4) return 'Low'
-    return 'Available'
-  }
-
-  const columns: GridColDef[] = [
-    { field: 'name', headerName: 'Name', width: 200 },
-    { 
-      field: 'team', 
-      headerName: 'Team', 
-      width: 150,
-      renderCell: (params: any) => (
-        <Chip 
-          label={params.value} 
-          color={params.value === 'POD committee' ? 'primary' : 'default'}
-          size="small"
-        />
-      )
-    },
-    { 
-      field: 'assigned_capacity', 
-      headerName: 'Assigned Capacity', 
-      width: 150,
-      renderCell: (params: any) => {
-        const assignedBandwidth = params.row.bandwidth || 0
-        return (
-          <Typography variant="body2">
-            {assignedBandwidth.toFixed(2)}
-          </Typography>
-        )
-      }
-    },
-    { 
-      field: 'available_capacity', 
-      headerName: 'Available Capacity', 
-      width: 150,
-      renderCell: (params: any) => {
-        const assignedBandwidth = params.row.bandwidth || 0
-        const availableBandwidth = Math.max(0, 1 - assignedBandwidth)
-        return (
-          <Typography variant="body2" color={availableBandwidth < 0 ? 'error.main' : 'text.primary'}>
-            {availableBandwidth.toFixed(2)}
-          </Typography>
-        )
-      }
-    },
-    { 
-      field: 'assigned_pods', 
-      headerName: 'Assigned PODs', 
-      width: 200,
-      renderCell: (params: any) => {
-        const podNames = params.row.pod_members?.map((pm: any) => pm.pod?.name).filter(Boolean) || []
-        return (
-          <Typography variant="body2">
-            {podNames.length > 0 ? podNames.join(', ') : 'No PODs'}
-          </Typography>
-        )
-      }
-    },
-    ...(isPODCommittee ? [{
-      field: 'actions',
-      headerName: 'Actions',
-      width: 120,
-      renderCell: (params: any) => (
-        <Box>
-          <IconButton
-            size="small"
-            onClick={() => handleOpenDialog(params.row)}
-            title="Edit member"
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => handleDelete(params.row.id, params.row.name)}
-            title="Delete member"
-            color="error"
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </Box>
-      )
-    }] : [])
-  ]
 
   if (loading) {
-    return <Typography>Loading...</Typography>
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <Skeleton className="h-96" />
+      </div>
+    )
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Members</Typography>
-        <Box display="flex" gap={2} alignItems="center">
-          <TextField
-            placeholder="Search by name or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ minWidth: 250 }}
-            size="small"
-          />
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel>Filter by Team</InputLabel>
-            <Select
-              value={teamFilter}
-              onChange={(e) => setTeamFilter(e.target.value)}
-              label="Filter by Team"
-            >
-              <MenuItem value="all">All Teams</MenuItem>
-              {uniqueTeams.map((team) => (
-                <MenuItem key={team} value={team}>
-                  {team}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          {isPODCommittee && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
-            >
-              Add Member
-            </Button>
-          )}
-        </Box>
-      </Box>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight">Members</h1>
+        {isPODCommittee && (
+          <Button onClick={handleAddMember}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Member
+          </Button>
+        )}
+      </div>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-          {error}
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
-          {success}
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
 
+      {/* Summary Cards */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{members.length}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Teams</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{uniqueTeams.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Low Utilization</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {members.filter(m => (m.bandwidth || 0) > 0 && (m.bandwidth || 0) < 0.4).length}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">High Utilization</CardTitle>
+            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {members.filter(m => (m.bandwidth || 0) >= 0.8).length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Filter Members
+          </CardTitle>
+        </CardHeader>
         <CardContent>
-          <DataGrid
-            rows={filteredMembers}
-            columns={columns}
-            pageSizeOptions={[5, 10, 25]}
-            initialState={{
-              pagination: { paginationModel: { pageSize: 10 } }
-            }}
-            disableRowSelectionOnClick
-            autoHeight
-          />
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <Input
+                placeholder="Search members..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Select value={teamFilter} onValueChange={setTeamFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by team" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Teams</SelectItem>
+                {uniqueTeams.map((team) => (
+                  <SelectItem key={team} value={team}>
+                    {team}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
-      <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Team Distribution
-              </Typography>
-              {uniqueTeams.map((team) => {
-                const count = members.filter(m => m.team === team).length
+      {/* Members Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Members List</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Team</TableHead>
+                <TableHead>Assigned Capacity</TableHead>
+                <TableHead>Available Capacity</TableHead>
+                <TableHead>Status</TableHead>
+                {isPODCommittee && <TableHead>Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredMembers.map((member) => {
+                const assignedBandwidth = member.bandwidth || 0
+                const availableBandwidth = 1 - assignedBandwidth // Allow negative values for over-allocation
+                
                 return (
-                  <Box key={team} display="flex" justifyContent="space-between" mb={1}>
-                    <Typography variant="body2">{team}</Typography>
-                    <Typography variant="body2" fontWeight="bold">{count}</Typography>
-                  </Box>
+                  <TableRow key={member.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
+                          {member.name?.charAt(0)}
+                        </div>
+                        <span className="font-medium">{member.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{member.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{member.team}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">
+                        {assignedBandwidth.toFixed(2)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className={`text-sm font-medium ${availableBandwidth < 0 ? 'text-red-600' : ''}`}>
+                        {availableBandwidth.toFixed(2)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getBandwidthColor(assignedBandwidth)}>
+                        {getAvailabilityText(assignedBandwidth)}
+                      </Badge>
+                    </TableCell>
+                    {isPODCommittee && (
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditMember(member)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteMember(member)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
                 )
               })}
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Availability Status
-              </Typography>
-              <Box display="flex" justifyContent="space-between" mb={1}>
-                <Typography variant="body2">Available</Typography>
-                <Typography variant="body2" fontWeight="bold">
-                  {members.filter(m => (m.bandwidth || 0) === 0).length}
-                </Typography>
-              </Box>
-              <Box display="flex" justifyContent="space-between" mb={1}>
-                <Typography variant="body2">Low Utilization</Typography>
-                <Typography variant="body2" fontWeight="bold">
-                  {members.filter(m => (m.bandwidth || 0) > 0 && (m.bandwidth || 0) < 0.4).length}
-                </Typography>
-              </Box>
-              <Box display="flex" justifyContent="space-between" mb={1}>
-                <Typography variant="body2">Medium Utilization</Typography>
-                <Typography variant="body2" fontWeight="bold">
-                  {members.filter(m => (m.bandwidth || 0) >= 0.4 && (m.bandwidth || 0) < 0.8).length}
-                </Typography>
-              </Box>
-              <Box display="flex" justifyContent="space-between" mb={1}>
-                <Typography variant="body2">High Utilization</Typography>
-                <Typography variant="body2" fontWeight="bold">
-                  {members.filter(m => (m.bandwidth || 0) >= 0.8).length}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Total Members
-              </Typography>
-              <Typography variant="h3" color="primary">
-                {members.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Across {uniqueTeams.length} teams
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Add/Edit Member Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingMember ? 'Edit Member' : 'Add New Member'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <TextField
-              fullWidth
-              label="Name"
-              value={memberForm.name}
-              onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
-              margin="normal"
-              required
-            />
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              value={memberForm.email}
-              onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
-              margin="normal"
-              required={memberForm.team === 'POD committee'}
-              disabled={!!editingMember}
-              helperText={
-                memberForm.team === 'POD committee' 
-                  ? 'Email is required for POD committee members' 
-                  : 'Email is optional for team members'
-              }
-            />
-            <FormControl fullWidth margin="normal" required>
-              <InputLabel>Team</InputLabel>
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingMember ? 'Edit Member' : 'Add New Member'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={memberForm.name}
+                onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
+                placeholder="Enter member name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={memberForm.email}
+                onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
+                placeholder="Enter email address"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="team">Team</Label>
               <Select
                 value={memberForm.team}
-                onChange={(e) => setMemberForm({ ...memberForm, team: e.target.value })}
-                label="Team"
+                onValueChange={(value) => setMemberForm({ ...memberForm, team: value })}
               >
-                <MenuItem value="Product (PM/UX/QA)">Product (PM/UX/QA)</MenuItem>
-                <MenuItem value="Engineering">Engineering</MenuItem>
-                <MenuItem value="Configuration">Configuration</MenuItem>
-                <MenuItem value="Customer success">Customer Success</MenuItem>
-                <MenuItem value="BD/Sales">BD/Sales</MenuItem>
-                <MenuItem value="POD committee">POD Committee</MenuItem>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select team" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="POD committee">POD Committee</SelectItem>
+                  <SelectItem value="Engineering">Engineering</SelectItem>
+                  <SelectItem value="Product">Product</SelectItem>
+                  <SelectItem value="Design">Design</SelectItem>
+                  <SelectItem value="QA">QA</SelectItem>
+                  <SelectItem value="DevOps">DevOps</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
               </Select>
-            </FormControl>
-            {!editingMember && memberForm.team === 'POD committee' && (
-              <TextField
-                fullWidth
-                label="Password (optional - will use default if not provided)"
-                type="password"
-                value={memberForm.password}
-                onChange={(e) => setMemberForm({ ...memberForm, password: e.target.value })}
-                margin="normal"
-                helperText="If not provided, a temporary password will be generated"
-              />
+            </div>
+
+            {!editingMember && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={memberForm.password}
+                  onChange={(e) => setMemberForm({ ...memberForm, password: e.target.value })}
+                  placeholder="Enter password"
+                />
+              </div>
             )}
-            {!editingMember && memberForm.team !== 'POD committee' && (
-              <TextField
-                fullWidth
-                label="Password (not needed for team members)"
-                type="password"
-                value=""
-                disabled
-                margin="normal"
-                helperText="Team members don't need passwords - they can log in with email only"
-              />
-            )}
-          </Box>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting ? 'Saving...' : (editingMember ? 'Update' : 'Create')} Member
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={submitting}
-            startIcon={submitting ? <CircularProgress size={20} /> : <SaveIcon />}
-          >
-            {submitting ? 'Saving...' : editingMember ? 'Update' : 'Create'}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   )
 }

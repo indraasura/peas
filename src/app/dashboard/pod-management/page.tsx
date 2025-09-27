@@ -1,405 +1,587 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
-  Box,
-  Typography,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  IconButton,
-  Chip,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Alert,
-  CircularProgress,
-  Tooltip,
-} from '@mui/material'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material'
-import { SelectChangeEvent } from '@mui/material'
-import { Pod, Area, Profile, PodMember } from '@/lib/supabase'
-import { getPods, createPod, updatePod, deletePod, getAreas, getMembers, updatePodMembers } from '@/lib/data'
+  Plus,
+  Edit,
+  Trash2,
+  Users,
+  Calendar,
+  BarChart3,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Play,
+  Package,
+  Settings,
+  Building2,
+} from 'lucide-react'
+import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies } from '@/lib/data'
+import { getCurrentUser, type Profile } from '@/lib/auth'
+import { type Pod, type Area } from '@/lib/supabase'
+
+const podStatuses = ['Awaiting development', 'In development', 'In testing', 'Released']
 
 export default function PodManagementPage() {
   const [pods, setPods] = useState<Pod[]>([])
   const [areas, setAreas] = useState<Area[]>([])
   const [availableMembers, setAvailableMembers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [openDialog, setOpenDialog] = useState(false)
   const [editingPod, setEditingPod] = useState<Pod | null>(null)
-  const [podFormData, setPodFormData] = useState({
+  const [formData, setFormData] = useState({
     name: '',
+    description: '',
     area_id: '',
-    members: [] as Array<{ member_id: string; bandwidth_percentage: number; is_leader: boolean }>,
+    status: 'Awaiting development' as 'Awaiting development' | 'In development' | 'In testing' | 'Released',
+    start_date: '',
+    end_date: '',
+    members: [] as Array<{
+      member_id: string
+      bandwidth_percentage: number
+      is_leader: boolean
+    }>,
+    dependencies: [] as string[]
   })
-
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      const [podsData, areasData, membersData] = await Promise.all([
-        getPods(),
-        getAreas(),
-        getMembers(),
-      ])
-      setPods(podsData)
-      setAreas(areasData)
-      setAvailableMembers(membersData)
-    } catch (err) {
-      setError('Failed to fetch data')
-      console.error('Error fetching data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [error, setError] = useState('')
+  const [user, setUser] = useState<Profile | null>(null)
 
   useEffect(() => {
     fetchData()
   }, [])
 
-  const resetForm = () => {
-    setPodFormData({
-      name: '',
-      area_id: '',
-      members: [],
-    })
-    setEditingPod(null)
+  const fetchData = async () => {
+    try {
+      const [currentUser, podsData, areasData, membersData] = await Promise.all([
+        getCurrentUser(),
+        getPods(),
+        getAreas(),
+        getAvailableMembers()
+      ])
+      
+      setUser(currentUser)
+      setPods(podsData)
+      setAreas(areasData)
+      setAvailableMembers(membersData)
+    } catch (error) {
+      console.error('Error fetching data:', error)
+      setError('Failed to load data')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSubmit = async () => {
-    if (!podFormData.name.trim()) {
-      setError('POD name is required')
-      return
-    }
-
     try {
+      setError('')
+      const { members, dependencies, ...podData } = formData
+
       if (editingPod) {
-        await updatePod(editingPod.id, {
-          name: podFormData.name,
-          area_id: podFormData.area_id || undefined,
-        })
-        await updatePodMembers(editingPod.id, podFormData.members)
+        await updatePod(editingPod.id, podData)
+        await updatePodMembers(editingPod.id, members)
+        await updatePodDependencies(editingPod.id, dependencies)
       } else {
-        await createPod({
-          name: podFormData.name,
-          area_id: podFormData.area_id || undefined,
-          members: podFormData.members,
-        })
+        const newPod = await createPod(podData)
+        await updatePodMembers(newPod.id, members)
+        await updatePodDependencies(newPod.id, dependencies)
       }
-      
-      await fetchData()
+
       setOpenDialog(false)
+      setEditingPod(null)
       resetForm()
-      setError(null)
-    } catch (err) {
-      setError('Failed to save POD')
-      console.error('Error saving POD:', err)
+      fetchData()
+    } catch (error) {
+      console.error('Error saving pod:', error)
+      setError('Failed to save pod. Please try again.')
     }
   }
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      area_id: '',
+      status: 'Awaiting development',
+      start_date: '',
+      end_date: '',
+      members: [],
+      dependencies: []
+    })
+  }
+
   const handleAddPod = () => {
+    setEditingPod(null)
     resetForm()
     setOpenDialog(true)
   }
 
   const handleEditPod = (pod: Pod) => {
-    setPodFormData({
-      name: pod.name,
-      area_id: pod.area_id || '',
-      members: (pod.members || []).map((member: PodMember) => ({
-        member_id: member.member_id,
-        bandwidth_percentage: member.bandwidth_percentage,
-        is_leader: member.is_leader,
-      })),
-    })
     setEditingPod(pod)
+    setFormData({
+      name: pod.name,
+      description: pod.description || '',
+      area_id: pod.area_id || '',
+      status: pod.status || 'Awaiting development',
+      start_date: pod.start_date || '',
+      end_date: pod.end_date || '',
+      members: pod.members?.map(m => ({
+        member_id: m.member_id,
+        bandwidth_percentage: m.bandwidth_percentage,
+        is_leader: m.is_leader
+      })) || [],
+      dependencies: pod.dependencies?.map(d => d.id) || []
+    })
     setOpenDialog(true)
   }
 
-  const handleDeletePod = async (podId: string) => {
-    if (window.confirm('Are you sure you want to delete this POD?')) {
+  const handleDeletePod = async (pod: Pod) => {
+    if (window.confirm(`Are you sure you want to delete "${pod.name}"?`)) {
       try {
-        await deletePod(podId)
-        await fetchData()
-      } catch (err) {
-        setError('Failed to delete POD')
-        console.error('Error deleting POD:', err)
+        await deletePod(pod.id)
+        fetchData()
+      } catch (error) {
+        console.error('Error deleting pod:', error)
+        setError('Failed to delete pod. Please try again.')
       }
     }
   }
 
-  const handleAddMember = () => {
-    setPodFormData((prev: typeof podFormData) => ({
-      ...prev,
-      members: [...prev.members, { member_id: '', bandwidth_percentage: 0.5, is_leader: false }],
-    }))
-  }
-
-  const handleRemoveMember = (index: number) => {
-    setPodFormData((prev: typeof podFormData) => ({
-      ...prev,
-      members: prev.members.filter((_: any, i: number) => i !== index),
-    }))
-  }
-
-  const handleMemberChange = (index: number, field: string, value: any) => {
-    setPodFormData((prev: typeof podFormData) => ({
-      ...prev,
-      members: prev.members.map((member: any, i: number) =>
-        i === index ? { ...member, [field]: value } : member
-      ),
-    }))
-  }
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Awaiting development':
-        return 'default'
-      case 'In development':
-        return 'primary'
-      case 'In testing':
-        return 'warning'
-      case 'Released':
-        return 'success'
-      default:
-        return 'default'
+      case 'Awaiting development': return 'bg-gray-100 text-gray-800'
+      case 'In development': return 'bg-blue-100 text-blue-800'
+      case 'In testing': return 'bg-yellow-100 text-yellow-800'
+      case 'Released': return 'bg-green-100 text-green-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const getAreaName = (areaId: string | undefined) => {
-    if (!areaId) return 'No Area'
-    const area = areas.find((a: Area) => a.id === areaId)
-    return area ? area.name : 'Unknown Area'
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Awaiting development': return <Clock className="h-4 w-4" />
+      case 'In development': return <Play className="h-4 w-4" />
+      case 'In testing': return <CheckCircle className="h-4 w-4" />
+      case 'Released': return <Package className="h-4 w-4" />
+      default: return <Clock className="h-4 w-4" />
+    }
   }
 
-  const getMemberNames = (members: PodMember[]) => {
-    return members.map((member: PodMember) => {
-      const profile = availableMembers.find((m: Profile) => m.id === member.member_id)
-      return profile ? `${profile.name}${member.is_leader ? ' (Leader)' : ''}` : 'Unknown Member'
-    }).join(', ')
+  const addMember = () => {
+    setFormData({
+      ...formData,
+      members: [
+        ...formData.members,
+        {
+          member_id: '',
+          bandwidth_percentage: 0,
+          is_leader: false
+        }
+      ]
+    })
+  }
+
+  const removeMember = (index: number) => {
+    setFormData({
+      ...formData,
+      members: formData.members.filter((_, i) => i !== index)
+    })
+  }
+
+  const updateMember = (index: number, field: string, value: any) => {
+    const newMembers = [...formData.members]
+    newMembers[index] = { ...newMembers[index], [field]: value }
+    setFormData({ ...formData, members: newMembers })
   }
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <Skeleton className="h-96" />
+      </div>
     )
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4" component="h1" sx={{ 
-          fontWeight: 700, 
-          color: '#0F172A',
-          fontSize: '28px'
-        }}>
-          POD Management
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddPod}
-          sx={{
-            backgroundColor: '#3B82F6',
-            borderRadius: '12px',
-            px: 3,
-            py: 1.5,
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '14px',
-            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
-            '&:hover': {
-              backgroundColor: '#2563EB',
-              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
-            },
-          }}
-        >
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight">POD Management</h1>
+        <Button onClick={handleAddPod}>
+          <Plus className="mr-2 h-4 w-4" />
           Add POD
         </Button>
-      </Box>
+      </div>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Area</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Members</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {pods.map((pod: Pod) => (
-              <TableRow key={pod.id}>
-                <TableCell>{pod.name}</TableCell>
-                <TableCell>{getAreaName(pod.area_id)}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={pod.status}
-                    color={getStatusColor(pod.status)}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" sx={{ maxWidth: 300 }}>
-                    {getMemberNames(pod.members || [])}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Tooltip title="Edit POD">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleEditPod(pod)}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Delete POD">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeletePod(pod.id)}
-                      color="error"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
+      {/* Summary Cards */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total PODs</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pods.length}</div>
+            <p className="text-xs text-muted-foreground">
+              All PODs in the system
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active PODs</CardTitle>
+            <Play className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {pods.filter(pod => pod.status === 'In development').length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Currently in development
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Released PODs</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {pods.filter(pod => pod.status === 'Released').length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Successfully completed
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* PODs Management Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            POD Management
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>POD Name</TableHead>
+                <TableHead>Area</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Members</TableHead>
+                <TableHead>Bandwidth</TableHead>
+                <TableHead>Timeline</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHeader>
+            <TableBody>
+              {pods.map((pod) => {
+                const totalBandwidth = pod.members?.reduce((sum, member) =>
+                  sum + (member.bandwidth_percentage || 0), 0) || 0
+                
+                return (
+                  <TableRow key={pod.id}>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-medium">{pod.name}</div>
+                        {pod.description && (
+                          <div className="text-sm text-muted-foreground line-clamp-2">
+                            {pod.description}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {pod.area?.name || 'No Area'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(pod.status || 'Awaiting development')}
+                        <Badge className={getStatusColor(pod.status || 'Awaiting development')}>
+                          {pod.status || 'Awaiting development'}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="flex -space-x-2">
+                          {pod.members?.slice(0, 3).map((member) => (
+                            <Avatar key={member.id} className="h-6 w-6 border-2 border-background">
+                              <AvatarFallback className="text-xs">
+                                {member.member?.name?.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                          ))}
+                          {pod.members && pod.members.length > 3 && (
+                            <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
+                              +{pod.members.length - 3}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {pod.members?.length || 0}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">
+                        {totalBandwidth.toFixed(2)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm space-y-1">
+                        {pod.start_date && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>{new Date(pod.start_date).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                        {pod.end_date && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>{new Date(pod.end_date).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditPod(pod)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeletePod(pod)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Add/Edit POD Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingPod ? 'Edit POD' : 'Add New POD'}
-        </DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            label="POD Name"
-            value={podFormData.name}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setPodFormData((prev: typeof podFormData) => ({ ...prev, name: e.target.value }))
-            }
-            margin="normal"
-            required
-          />
-
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Associated Area</InputLabel>
-            <Select
-              value={podFormData.area_id}
-              onChange={(e: SelectChangeEvent<string>) =>
-                setPodFormData((prev: typeof podFormData) => ({ ...prev, area_id: e.target.value }))
-              }
-            >
-              <MenuItem value="">
-                <em>No Area</em>
-              </MenuItem>
-              {areas.map((area: Area) => (
-                <MenuItem key={area.id} value={area.id}>
-                  {area.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {/* Members Section */}
-          <Box mt={3}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6">Members</Typography>
-              <Button
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={handleAddMember}
-                size="small"
-              >
-                Add Member
-              </Button>
-            </Box>
-
-            {podFormData.members.map((member: any, index: number) => (
-              <Box key={index} display="flex" gap={2} alignItems="center" mb={2}>
-                <FormControl sx={{ minWidth: 200 }}>
-                  <InputLabel>Member</InputLabel>
-                  <Select
-                    value={member.member_id}
-                    onChange={(e: SelectChangeEvent<string>) =>
-                      handleMemberChange(index, 'member_id', e.target.value)
-                    }
-                  >
-                    {availableMembers.map((profile: Profile) => (
-                      <MenuItem key={profile.id} value={profile.id}>
-                        {profile.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                <TextField
-                  label="Bandwidth"
-                  type="number"
-                  value={member.bandwidth_percentage}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    handleMemberChange(index, 'bandwidth_percentage', parseFloat(e.target.value) || 0)
-                  }
-                  inputProps={{ min: 0, max: 1, step: 0.1 }}
-                  sx={{ width: 120 }}
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingPod ? 'Edit POD' : 'Add New POD'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">POD Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter POD name"
                 />
+              </div>
 
-                <FormControl sx={{ minWidth: 100 }}>
-                  <InputLabel>Role</InputLabel>
-                  <Select
-                    value={member.is_leader ? 'leader' : 'member'}
-                    onChange={(e: SelectChangeEvent<string>) =>
-                      handleMemberChange(index, 'is_leader', e.target.value === 'leader')
-                    }
-                  >
-                    <MenuItem value="member">Member</MenuItem>
-                    <MenuItem value="leader">Leader</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <IconButton
-                  color="error"
-                  onClick={() => handleRemoveMember(index)}
+              <div className="space-y-2">
+                <Label htmlFor="area_id">Area</Label>
+                <Select
+                  value={formData.area_id}
+                  onValueChange={(value) => setFormData({ ...formData, area_id: value })}
                 >
-                  <DeleteIcon />
-                </IconButton>
-              </Box>
-            ))}
-          </Box>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select area" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {areas.map((area) => (
+                      <SelectItem key={area.id} value={area.id}>
+                        {area.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Enter POD description"
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => setFormData({ ...formData, status: value as any })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {podStatuses.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="start_date">Start Date</Label>
+                <Input
+                  id="start_date"
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="end_date">End Date</Label>
+                <Input
+                  id="end_date"
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>Team Members</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addMember}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Member
+                </Button>
+              </div>
+
+              <div className="space-y-3 max-h-64 overflow-y-auto border rounded-md p-3">
+                {formData.members.map((member, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
+                    <div className="flex-1 space-y-2">
+                      <Select
+                        value={member.member_id}
+                        onValueChange={(value) => updateMember(index, 'member_id', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select member" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableMembers.map((availableMember) => (
+                            <SelectItem key={availableMember.id} value={availableMember.id}>
+                              {availableMember.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`bandwidth-${index}`} className="text-sm">
+                          Bandwidth:
+                        </Label>
+                        <Input
+                          id={`bandwidth-${index}`}
+                          type="number"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={member.bandwidth_percentage}
+                          onChange={(e) => updateMember(index, 'bandwidth_percentage', parseFloat(e.target.value) || 0)}
+                          className="w-20"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`leader-${index}`}
+                          checked={member.is_leader}
+                          onCheckedChange={(checked) => updateMember(index, 'is_leader', checked)}
+                        />
+                        <Label htmlFor={`leader-${index}`} className="text-sm">
+                          Leader
+                        </Label>
+                      </div>
+                      
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeMember(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit}>
+              {editingPod ? 'Update' : 'Create'} POD
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingPod ? 'Update' : 'Create'}
-          </Button>
-        </DialogActions>
       </Dialog>
-    </Box>
+    </div>
   )
 }

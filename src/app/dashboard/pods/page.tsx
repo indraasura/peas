@@ -2,54 +2,37 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
-  Box,
-  Typography,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Grid,
-  Card,
-  CardContent,
-  Chip,
-  IconButton,
-  Alert,
-  Avatar,
-  AvatarGroup,
-  Tooltip,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  Paper,
-  InputAdornment,
-  Badge,
-  Stack,
-  SelectChangeEvent
-} from '@mui/material'
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-  Group as GroupIcon,
-  Person as PersonIcon,
-  Schedule as ScheduleIcon,
-  Assignment as AssignmentIcon,
-  TrendingUp as TrendingUpIcon,
-  Comment as CommentIcon,
-  Close as CloseIcon,
-  Assessment as AssessmentIcon,
-  Refresh as RefreshIcon
-} from '@mui/icons-material'
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Users,
+  Calendar,
+  BarChart3,
+  AlertCircle,
+  Refresh,
+  MessageSquare,
+  FileText,
+  CheckCircle,
+  Clock,
+  Play,
+  Package,
+} from 'lucide-react'
 import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote, updatePodNote, deletePodNote, checkAndUpdateAreaStatus } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'
 import { type Pod, type Area, type Profile, type PodNote } from '@/lib/supabase'
@@ -66,24 +49,8 @@ export default function PodsPage() {
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false)
-  const [openNotesDialog, setOpenNotesDialog] = useState(false)
   const [editingPod, setEditingPod] = useState<Pod | null>(null)
   const [selectedPod, setSelectedPod] = useState<Pod | null>(null)
-  const [podNotes, setPodNotes] = useState<PodNote[]>([])
-  const [podNotesCounts, setPodNotesCounts] = useState<Record<string, number>>({})
-  const [openViewDialog, setOpenViewDialog] = useState(false)
-  const [selectedNote, setSelectedNote] = useState<PodNote | null>(null)
-  const [editingNote, setEditingNote] = useState<PodNote | null>(null)
-  const [newNote, setNewNote] = useState({
-    review_date: '',
-    blockers: '',
-    learnings: '',
-    current_state: '',
-    deviation_to_plan: '',
-    dependencies_risks: '',
-    misc: ''
-  })
-  const [addingNote, setAddingNote] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -99,79 +66,40 @@ export default function PodsPage() {
     dependencies: [] as string[]
   })
   const [error, setError] = useState('')
+  const [user, setUser] = useState<Profile | null>(null)
 
   useEffect(() => {
     fetchData()
-    
-    // Set up interval to refresh data every 30 seconds to catch area status changes
-    const interval = setInterval(fetchData, 30000)
-    
-    return () => clearInterval(interval)
   }, [])
 
   const fetchData = async () => {
     try {
-      const [podsData, allAreasData, membersData] = await Promise.all([
+      const [currentUser, podsData, areasData, membersData] = await Promise.all([
+        getCurrentUser(),
         getPods(),
         getAreas(),
         getAvailableMembers()
       ])
       
-      // Filter PODs to only show those from areas that are in "Executing" status (kicked off)
-      const executingAreas = allAreasData.filter(area => area.status === 'Executing')
-      const executingAreaIds = executingAreas.map(area => area.id)
-      
-      // Only show PODs that have an area_id and that area is in "Executing" status
-      const filteredPods = podsData.filter(pod => 
-        pod.area_id && executingAreaIds.includes(pod.area_id)
-      )
-      
-      setPods(filteredPods)
-      // Filter to show only backlog areas for the area dropdown
-      setAreas(allAreasData.filter(area => area.status === 'Backlog'))
+      setUser(currentUser)
+      setPods(podsData)
+      setAreas(areasData)
       setAvailableMembers(membersData)
-      
-      // Fetch notes counts for filtered PODs
-      await fetchPodNotesCounts(filteredPods)
     } catch (error) {
       console.error('Error fetching data:', error)
+      setError('Failed to load data')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const fetchPodNotesCounts = async (pods: Pod[]) => {
-    try {
-      const counts: Record<string, number> = {}
-      await Promise.all(
-        pods.map(async (pod) => {
-          const notes = await getPodNotes(pod.id)
-          counts[pod.id] = notes.length
-        })
-      )
-      setPodNotesCounts(counts)
-    } catch (error) {
-      console.error('Error fetching pod notes counts:', error)
     }
   }
 
   const handleSubmit = async () => {
     try {
       setError('')
-      const { members, dependencies, status, ...podData } = formData
-
-      // Validate required fields
-      if (!podData.name.trim()) {
-        setError('POD name is required')
-        return
-      }
-      if (!podData.area_id) {
-        setError('Area selection is required')
-        return
-      }
+      const { members, dependencies, ...podData } = formData
 
       if (editingPod) {
-        await updatePod(editingPod.id, { ...podData, status })
+        await updatePod(editingPod.id, podData)
         await updatePodMembers(editingPod.id, members)
         await updatePodDependencies(editingPod.id, dependencies)
       } else {
@@ -182,16 +110,7 @@ export default function PodsPage() {
 
       setOpenDialog(false)
       setEditingPod(null)
-      setFormData({
-        name: '',
-        description: '',
-        area_id: '',
-        status: 'Awaiting development',
-        start_date: '',
-        end_date: '',
-        members: [],
-        dependencies: []
-      })
+      resetForm()
       fetchData()
     } catch (error) {
       console.error('Error saving pod:', error)
@@ -199,62 +118,32 @@ export default function PodsPage() {
     }
   }
 
-  const handleItemMove = async (result: DropResult) => {
-    const { destination, source, draggableId } = result
-    
-    if (!destination || destination.droppableId === source.droppableId) return
-
-    const pod = pods.find((p: Pod) => p.id === draggableId)
-    if (!pod) return
-
-    try {
-      const newStatus = destination.droppableId as 'Awaiting development' | 'In development' | 'In testing' | 'Released'
-      await updatePod(pod.id, { status: newStatus })
-      
-      // Update local state
-      setPods((prev: Pod[]) => prev.map((p: Pod) => 
-        p.id === pod.id ? { ...p, status: newStatus } : p
-      ))
-
-      // Check if POD was moved to Released and if so, check area completion
-      if (newStatus === 'Released' && pod.area_id) {
-        try {
-          await checkAndUpdateAreaStatus(pod.area_id)
-        } catch (error) {
-          console.error('Error checking area status:', error)
-          // Don't show error to user as this is a background operation
-        }
-      }
-    } catch (error) {
-      console.error('Error moving pod:', error)
-      setError('Failed to move pod. Please try again.')
-    }
-  }
-
-  const handleAddPod = () => {
-    setEditingPod(null)
+  const resetForm = () => {
     setFormData({
       name: '',
       description: '',
       area_id: '',
-      status: 'Awaiting development' as 'Awaiting development' | 'In development' | 'In testing' | 'Released',
+      status: 'Awaiting development',
       start_date: '',
       end_date: '',
       members: [],
       dependencies: []
     })
+  }
+
+  const handleAddPod = () => {
+    setEditingPod(null)
+    resetForm()
     setOpenDialog(true)
   }
 
   const handleEditPod = (pod: Pod) => {
-    console.log('Editing pod:', pod)
-    console.log('Pod members:', pod.members)
     setEditingPod(pod)
     setFormData({
       name: pod.name,
       description: pod.description || '',
       area_id: pod.area_id || '',
-      status: pod.status,
+      status: pod.status || 'Awaiting development',
       start_date: pod.start_date || '',
       end_date: pod.end_date || '',
       members: pod.members?.map(m => ({
@@ -262,7 +151,7 @@ export default function PodsPage() {
         bandwidth_percentage: m.bandwidth_percentage,
         is_leader: m.is_leader
       })) || [],
-      dependencies: [] // Will be fetched separately
+      dependencies: pod.dependencies?.map(d => d.id) || []
     })
     setOpenDialog(true)
   }
@@ -279,802 +168,484 @@ export default function PodsPage() {
     }
   }
 
-  const handleViewPodDetails = async (pod: Pod) => {
-    setSelectedPod(pod)
-    try {
-      const notes = await getPodNotes(pod.id)
-      setPodNotes(notes)
-        } catch (error) {
-      console.error('Error fetching pod notes:', error)
-      setPodNotes([])
-    }
-    setOpenDetailsDialog(true)
-  }
-
-  const handleAddReviewNote = () => {
-    if (!selectedPod) return
-    setNewNote({
-      review_date: '',
-      blockers: '',
-      learnings: '',
-      current_state: '',
-      deviation_to_plan: '',
-      dependencies_risks: '',
-      misc: ''
-    })
-    setOpenNotesDialog(true)
-  }
-
-  const handleSubmitReviewNote = async () => {
-    if (!selectedPod || !newNote.review_date) return
-
-    try {
-      setAddingNote(true)
-      const currentUser = await getCurrentUser()
-      if (!currentUser) {
-        setError('Please log in to add review notes')
-        return
-      }
-      
-      if (editingNote) {
-        // Update existing note
-        await updatePodNote(editingNote.id, {
-          review_date: newNote.review_date,
-          blockers: newNote.blockers || undefined,
-          learnings: newNote.learnings || undefined,
-          current_state: newNote.current_state || undefined,
-          deviation_to_plan: newNote.deviation_to_plan || undefined,
-          dependencies_risks: newNote.dependencies_risks || undefined,
-          misc: newNote.misc || undefined,
-        })
-      } else {
-        // Create new note
-        await createPodNote({
-          pod_id: selectedPod.id,
-          review_date: newNote.review_date,
-          blockers: newNote.blockers || undefined,
-          learnings: newNote.learnings || undefined,
-          current_state: newNote.current_state || undefined,
-          deviation_to_plan: newNote.deviation_to_plan || undefined,
-          dependencies_risks: newNote.dependencies_risks || undefined,
-          misc: newNote.misc || undefined,
-          created_by: currentUser.id
-        })
-      }
-
-      // Refresh notes
-      const notes = await getPodNotes(selectedPod.id)
-      setPodNotes(notes)
-      
-      // Update notes count
-      setPodNotesCounts(prev => ({
-        ...prev,
-        [selectedPod.id]: notes.length
-      }))
-      
-      setOpenNotesDialog(false)
-      setEditingNote(null)
-      setNewNote({
-        review_date: '',
-        blockers: '',
-        learnings: '',
-        current_state: '',
-        deviation_to_plan: '',
-        dependencies_risks: '',
-        misc: ''
-      })
-    } catch (error) {
-      console.error('Error saving review note:', error)
-      setError('Failed to save review note. Please try again.')
-    } finally {
-      setAddingNote(false)
-    }
-  }
-
-  const handleViewNote = (note: PodNote) => {
-    setSelectedNote(note)
-    setOpenViewDialog(true)
-  }
-
-  const handleEditNote = (note: PodNote) => {
-    setEditingNote(note)
-    setNewNote({
-      review_date: note.review_date,
-      blockers: note.blockers || '',
-      learnings: note.learnings || '',
-      current_state: note.current_state || '',
-      deviation_to_plan: note.deviation_to_plan || '',
-      dependencies_risks: note.dependencies_risks || '',
-      misc: note.misc || ''
-    })
-    setOpenNotesDialog(true)
-  }
-
-  const handleDeleteNote = async (noteId: string) => {
-    if (window.confirm('Are you sure you want to delete this note?')) {
-      try {
-        await deletePodNote(noteId)
-        // Refresh notes
-        if (selectedPod) {
-          const notes = await getPodNotes(selectedPod.id)
-          setPodNotes(notes)
-          
-          // Update notes count
-          setPodNotesCounts(prev => ({
-            ...prev,
-            [selectedPod.id]: notes.length
-          }))
-        }
-      } catch (error) {
-        console.error('Error deleting note:', error)
-      }
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Awaiting development': return '#9e9e9e'
-      case 'In development': return '#ff9800'
-      case 'In testing': return '#9c27b0'
-      case 'Released': return '#4caf50'
-      default: return '#9e9e9e'
+      case 'Awaiting development': return 'bg-gray-100 text-gray-800'
+      case 'In development': return 'bg-blue-100 text-blue-800'
+      case 'In testing': return 'bg-yellow-100 text-yellow-800'
+      case 'Released': return 'bg-green-100 text-green-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const renderPodCard = (pod: Pod) => {
-    const leader = pod.members?.find(m => m.is_leader)
-    const memberCount = pod.members?.length || 0
-    
-    return (
-        <Box>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-          {pod.name}
-        </Typography>
-        
-        {pod.description && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {pod.description}
-          </Typography>
-        )}
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Awaiting development': return <Clock className="h-4 w-4" />
+      case 'In development': return <Play className="h-4 w-4" />
+      case 'In testing': return <CheckCircle className="h-4 w-4" />
+      case 'Released': return <Package className="h-4 w-4" />
+      default: return <Clock className="h-4 w-4" />
+    }
+  }
 
-        {/* Area */}
-        {pod.area && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <AssignmentIcon sx={{ fontSize: 14 }} />
-              Area: {pod.area.name}
-            </Typography>
-          </Box>
-        )}
+  const addMember = () => {
+    setFormData({
+      ...formData,
+      members: [
+        ...formData.members,
+        {
+          member_id: '',
+          bandwidth_percentage: 0,
+          is_leader: false
+        }
+      ]
+    })
+  }
 
-        {/* Leader */}
-        {leader && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <PersonIcon sx={{ fontSize: 14 }} />
-              Leader: {leader.member?.name || 'Unknown'}
-            </Typography>
-          </Box>
-        )}
+  const removeMember = (index: number) => {
+    setFormData({
+      ...formData,
+      members: formData.members.filter((_, i) => i !== index)
+    })
+  }
 
-        {/* Members */}
-        {memberCount > 0 && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-              <GroupIcon sx={{ fontSize: 14 }} />
-              Members ({memberCount})
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {pod.members?.slice(0, 3).map((member) => (
-                <Chip
-                  key={member.id}
-                  label={`${member.member?.name || 'Unknown'} (${member.bandwidth_percentage.toFixed(2)})`}
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: '0.7rem' }}
-                />
-              ))}
-              {memberCount > 3 && (
-                <Chip
-                  label={`+${memberCount - 3} more`}
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: '0.7rem' }}
-                />
-              )}
-            </Box>
-          </Box>
-        )}
+  const updateMember = (index: number, field: string, value: any) => {
+    const newMembers = [...formData.members]
+    newMembers[index] = { ...newMembers[index], [field]: value }
+    setFormData({ ...formData, members: newMembers })
+  }
 
-        {/* Dates */}
-        {(pod.start_date || pod.end_date) && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <ScheduleIcon sx={{ fontSize: 14 }} />
-              {pod.start_date && `Start: ${new Date(pod.start_date).toLocaleDateString()}`}
-              {pod.start_date && pod.end_date && ' • '}
-              {pod.end_date && `End: ${new Date(pod.end_date).toLocaleDateString()}`}
-            </Typography>
-          </Box>
-        )}
+  const handleStatusChange = async (pod: Pod, newStatus: string) => {
+    try {
+      await updatePod(pod.id, { status: newStatus as any })
+      fetchData()
+    } catch (error) {
+      console.error('Error updating pod status:', error)
+      setError('Failed to update pod status. Please try again.')
+    }
+  }
 
-        {/* Notes count */}
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 0.5,
-            cursor: 'pointer',
-            '&:hover': {
-              backgroundColor: 'action.hover',
-              borderRadius: 1,
-              px: 1,
-              py: 0.5
-            }
-          }}
-          onClick={() => handleViewPodDetails(pod)}
-        >
-          <CommentIcon sx={{ fontSize: 14 }} />
-          <Typography variant="caption" color="text.secondary">
-            {podNotesCounts[pod.id] || 0} review notes
-          </Typography>
-        </Box>
-        </Box>
-      )
+  const handleKanbanDrop = async (result: DropResult) => {
+    const { destination, source, draggableId } = result
+
+    if (!destination) return
+
+    if (destination.droppableId === source.droppableId && destination.index === source.index) {
+      return
     }
 
-  // Group pods by status
-  const podsByStatus = podStatuses.map((status: string) => ({
-    id: status,
-    title: status.charAt(0).toUpperCase() + status.slice(1).replace(/([A-Z])/g, ' $1'),
-    items: pods.filter((pod: Pod) => pod.status === status),
-    color: getStatusColor(status)
-  }))
+    const newStatus = destination.droppableId
+    const pod = pods.find(p => p.id === draggableId)
+
+    if (pod) {
+      await handleStatusChange(pod, newStatus)
+    }
+  }
 
   if (loading) {
-    return <Typography>Loading...</Typography>
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <Skeleton className="h-96" />
+      </div>
+    )
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4" component="h1" sx={{ 
-          fontWeight: 700, 
-          color: '#0F172A',
-          fontSize: '28px'
-        }}>
-          Execution
-        </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={fetchData}
-          disabled={loading}
-          sx={{
-            borderRadius: '12px',
-            px: 3,
-            py: 1.5,
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '14px',
-            borderColor: '#E2E8F0',
-            color: '#64748B',
-            '&:hover': {
-              borderColor: '#3B82F6',
-              color: '#3B82F6',
-              backgroundColor: '#EBF8FF',
-            },
-          }}
-        >
-          Refresh
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight">Execution</h1>
+        <Button onClick={handleAddPod}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add POD
         </Button>
-      </Box>
+      </div>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-          {error}
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      {pods.length === 0 && !loading && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          No PODs are currently visible in the Execution section. PODs will only appear here when their associated area has been kicked off (moved to "Executing" status) in the Planning section.
-        </Alert>
-      )}
+      {/* Kanban Board */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            POD Status Board
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <KanbanBoard pods={pods} onDrop={handleKanbanDrop} />
+        </CardContent>
+      </Card>
 
-      <KanbanBoard
-        columns={podsByStatus}
-        onItemMove={handleItemMove}
-        onItemEdit={handleEditPod}
-        onItemDelete={handleDeletePod}
-        onItemView={handleViewPodDetails}
-        renderItem={renderPodCard}
-        showActionButtons={false}
-      />
+      {/* PODs List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            All PODs
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Area</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Members</TableHead>
+                <TableHead>Bandwidth</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pods.map((pod) => (
+                <TableRow key={pod.id}>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <div className="font-medium">{pod.name}</div>
+                      {pod.description && (
+                        <div className="text-sm text-muted-foreground line-clamp-2">
+                          {pod.description}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {pod.area?.name || 'No Area'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(pod.status || 'Awaiting development')}
+                      <Badge className={getStatusColor(pod.status || 'Awaiting development')}>
+                        {pod.status || 'Awaiting development'}
+                      </Badge>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex -space-x-2">
+                      {pod.members?.slice(0, 3).map((member) => (
+                        <Avatar key={member.id} className="h-6 w-6 border-2 border-background">
+                          <AvatarFallback className="text-xs">
+                            {member.member?.name?.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                      {pod.members && pod.members.length > 3 && (
+                        <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
+                          +{pod.members.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {pod.members?.reduce((sum, member) => sum + (member.bandwidth_percentage || 0), 0).toFixed(2) || '0.00'}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedPod(pod)
+                          setOpenDetailsDialog(true)
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditPod(pod)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeletePod(pod)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit POD Dialog */}
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingPod ? 'Edit POD' : 'Add New POD'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">POD Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Enter POD name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Enter POD description"
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="area_id">Area</Label>
+                <Select
+                  value={formData.area_id}
+                  onValueChange={(value) => setFormData({ ...formData, area_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select area" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {areas.map((area) => (
+                      <SelectItem key={area.id} value={area.id}>
+                        {area.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => setFormData({ ...formData, status: value as any })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {podStatuses.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start_date">Start Date</Label>
+                <Input
+                  id="start_date"
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="end_date">End Date</Label>
+                <Input
+                  id="end_date"
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>Members</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addMember}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Member
+                </Button>
+              </div>
+
+              <div className="space-y-3 max-h-64 overflow-y-auto border rounded-md p-3">
+                {formData.members.map((member, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
+                    <div className="flex-1 space-y-2">
+                      <Select
+                        value={member.member_id}
+                        onValueChange={(value) => updateMember(index, 'member_id', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select member" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableMembers.map((availableMember) => (
+                            <SelectItem key={availableMember.id} value={availableMember.id}>
+                              {availableMember.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`bandwidth-${index}`} className="text-sm">
+                          Bandwidth:
+                        </Label>
+                        <Input
+                          id={`bandwidth-${index}`}
+                          type="number"
+                          min="0"
+                          max="1"
+                          step="0.1"
+                          value={member.bandwidth_percentage}
+                          onChange={(e) => updateMember(index, 'bandwidth_percentage', parseFloat(e.target.value) || 0)}
+                          className="w-20"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`leader-${index}`}
+                          checked={member.is_leader}
+                          onCheckedChange={(checked) => updateMember(index, 'is_leader', checked)}
+                        />
+                        <Label htmlFor={`leader-${index}`} className="text-sm">
+                          Leader
+                        </Label>
+                      </div>
+                      
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeMember(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit}>
+              {editingPod ? 'Update' : 'Create'} POD
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* POD Details Dialog */}
-      <Dialog open={openDetailsDialog} onClose={() => setOpenDetailsDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedPod?.name} - Details
-        </DialogTitle>
-        <DialogContent>
+      <Dialog open={openDetailsDialog} onOpenChange={setOpenDetailsDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>POD Details</DialogTitle>
+          </DialogHeader>
+          
           {selectedPod && (
-            <Box>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                {selectedPod.description}
-              </Typography>
-              
-              <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Area</Typography>
-                  <Typography>{selectedPod.area?.name || 'N/A'}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                  <Chip 
-                    label={selectedPod.status} 
-                    sx={{ 
-                      backgroundColor: getStatusColor(selectedPod.status), 
-                      color: 'white' 
-                    }} 
-                  />
-                </Grid>
-                {selectedPod.start_date && (
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Start Date</Typography>
-                    <Typography>{new Date(selectedPod.start_date).toLocaleDateString()}</Typography>
-                  </Grid>
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-lg">{selectedPod.name}</h3>
+                {selectedPod.description && (
+                  <p className="text-muted-foreground mt-1">{selectedPod.description}</p>
                 )}
-                {selectedPod.end_date && (
-                  <Grid item xs={6}>
-                    <Typography variant="subtitle2" color="text.secondary">End Date</Typography>
-                    <Typography>{new Date(selectedPod.end_date).toLocaleDateString()}</Typography>
-                  </Grid>
-                )}
-              </Grid>
+              </div>
 
-              <Divider sx={{ my: 2 }} />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">Area</Label>
+                  <p className="text-sm">{selectedPod.area?.name || 'No Area'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Status</Label>
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(selectedPod.status || 'Awaiting development')}
+                    <Badge className={getStatusColor(selectedPod.status || 'Awaiting development')}>
+                      {selectedPod.status || 'Awaiting development'}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">Start Date</Label>
+                  <p className="text-sm">{selectedPod.start_date || 'Not set'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">End Date</Label>
+                  <p className="text-sm">{selectedPod.end_date || 'Not set'}</p>
+                </div>
+              </div>
 
-              <Typography variant="h6" sx={{ mb: 2 }}>Team Members</Typography>
-              <List>
-                {selectedPod.members?.map((member: any) => (
-                  <ListItem key={member.id}>
-                    <ListItemAvatar>
-                      <Avatar>{member.member?.name?.[0] || 'U'}</Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={`${member.member?.name || 'Unknown'} ${member.is_leader ? '(Leader)' : ''}`}
-                      secondary={`${member.member?.team || 'Unknown Team'} • ${member.bandwidth_percentage.toFixed(2)} bandwidth`}
-                    />
-                  </ListItem>
-                ))}
-              </List>
+              {selectedPod.members && selectedPod.members.length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium">Members</Label>
+                  <div className="mt-2 space-y-2">
+                    {selectedPod.members.map((member) => (
+                      <div key={member.id} className="flex items-center justify-between p-2 border rounded">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="text-xs">
+                              {member.member?.name?.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm">{member.member?.name}</span>
+                          {member.is_leader && (
+                            <Badge variant="secondary" className="text-xs">Leader</Badge>
+                          )}
+                        </div>
+                        <span className="text-sm font-medium">
+                          {(member.bandwidth_percentage || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              <Divider sx={{ my: 2 }} />
-
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">Review Meeting Notes</Typography>
+              <div className="flex gap-2">
                 <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddReviewNote}
+                  variant="outline"
+                  onClick={() => router.push(`/dashboard/pods/${selectedPod.id}`)}
                 >
-                  Add Review Note
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Details
                 </Button>
-              </Box>
-              
-              {podNotes.length > 0 ? (
-                <Stack spacing={2}>
-                  {podNotes.map((note: PodNote) => (
-                    <Paper
-                      key={note.id}
-                      elevation={2}
-                      sx={{
-                        p: 2,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 2,
-                        transition: 'all 0.2s ease-in-out',
-                        '&:hover': {
-                          elevation: 4,
-                          transform: 'translateY(-2px)',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                        }
-                      }}
-                    >
-                      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
-                        <Typography variant="h6" color="primary">
-                          Review: {formatDate(note.review_date)}
-                        </Typography>
-                        <Box display="flex" gap={1}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<ViewIcon />}
-                            onClick={() => handleViewNote(note)}
-                            sx={{
-                              borderColor: 'primary.main',
-                              color: 'primary.main',
-                              '&:hover': {
-                                borderColor: 'primary.dark',
-                                backgroundColor: 'primary.light',
-                                color: 'primary.dark'
-                              }
-                            }}
-                          >
-                            View
-                          </Button>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<EditIcon />}
-                            onClick={() => handleEditNote(note)}
-                            sx={{
-                              borderColor: 'info.main',
-                              color: 'info.main',
-                              '&:hover': {
-                                borderColor: 'info.dark',
-                                backgroundColor: 'info.light',
-                                color: 'info.dark'
-                              }
-                            }}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<DeleteIcon />}
-                            onClick={() => handleDeleteNote(note.id)}
-                            sx={{
-                              borderColor: 'error.main',
-                              color: 'error.main',
-                              '&:hover': {
-                                borderColor: 'error.dark',
-                                backgroundColor: 'error.light',
-                                color: 'error.dark'
-                              }
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </Box>
-                      </Box>
-                      
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Created by {note.creator?.name || 'Unknown'} • {formatDate(note.created_at)}
-                      </Typography>
-
-                      {/* Show only a summary of key fields */}
-                      <Box sx={{ mb: 2 }}>
-                        {note.current_state && (
-                          <Typography variant="body2" sx={{ mb: 1 }}>
-                            <strong>Current State:</strong> {note.current_state.length > 80 
-                              ? `${note.current_state.substring(0, 80)}...` 
-                              : note.current_state}
-                          </Typography>
-                        )}
-                        {note.blockers && (
-                          <Typography variant="body2" sx={{ mb: 1, color: 'error.main' }}>
-                            <strong>Blockers:</strong> {note.blockers.length > 80 
-                              ? `${note.blockers.substring(0, 80)}...` 
-                              : note.blockers}
-                          </Typography>
-                        )}
-                        {note.learnings && (
-                          <Typography variant="body2" sx={{ mb: 1, color: 'success.main' }}>
-                            <strong>Learnings:</strong> {note.learnings.length > 80 
-                              ? `${note.learnings.substring(0, 80)}...` 
-                              : note.learnings}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Paper>
-                  ))}
-                </Stack>
-              ) : (
-                <Box 
-                  textAlign="center" 
-                  py={4}
-                  sx={{
-                    border: '2px dashed',
-                    borderColor: 'divider',
-                    borderRadius: 2,
-                    bgcolor: 'action.hover'
-                  }}
-                >
-                  <AssessmentIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    No Review Notes Yet
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Start documenting your POD's progress and insights
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={handleAddReviewNote}
-                    sx={{
-                      background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-                      boxShadow: '0 3px 5px 2px rgba(25, 118, 210, .3)',
-                    }}
-                  >
-                    Add First Note
-                  </Button>
-                </Box>
-              )}
-            </Box>
+                <Button onClick={() => handleEditPod(selectedPod)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit POD
+                </Button>
+              </div>
+            </div>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDetailsDialog(false)}>Close</Button>
-        </DialogActions>
       </Dialog>
-
-      {/* Add/Edit Review Note Dialog */}
-      <Dialog open={openNotesDialog} onClose={() => {
-        setOpenNotesDialog(false)
-        setEditingNote(null)
-        setNewNote({
-          review_date: '',
-          blockers: '',
-          learnings: '',
-          current_state: '',
-          deviation_to_plan: '',
-          dependencies_risks: '',
-          misc: ''
-        })
-      }} maxWidth="md" fullWidth>
-        <DialogTitle>{editingNote ? 'Edit Review Meeting Note' : 'Add Review Meeting Note'}</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Review Date"
-                type="date"
-                value={newNote.review_date}
-                onChange={(e: any) => setNewNote({ ...newNote, review_date: e.target.value })}
-                InputLabelProps={{ shrink: true }}
-                required
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Current State"
-                value={newNote.current_state}
-                onChange={(e: any) => setNewNote({ ...newNote, current_state: e.target.value })}
-                multiline
-                rows={3}
-                placeholder="Describe the current state of the POD..."
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Blockers"
-                value={newNote.blockers}
-                onChange={(e: any) => setNewNote({ ...newNote, blockers: e.target.value })}
-                multiline
-                rows={2}
-                placeholder="List any blockers or impediments..."
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Learnings"
-                value={newNote.learnings}
-                onChange={(e: any) => setNewNote({ ...newNote, learnings: e.target.value })}
-                multiline
-                rows={2}
-                placeholder="What did the team learn during this period?"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Deviation to Plan"
-                value={newNote.deviation_to_plan}
-                onChange={(e: any) => setNewNote({ ...newNote, deviation_to_plan: e.target.value })}
-                multiline
-                rows={2}
-                placeholder="Any deviations from the original plan..."
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Dependencies & Risks"
-                value={newNote.dependencies_risks}
-                onChange={(e: any) => setNewNote({ ...newNote, dependencies_risks: e.target.value })}
-                multiline
-                rows={2}
-                placeholder="External dependencies and potential risks..."
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Miscellaneous"
-                value={newNote.misc}
-                onChange={(e: any) => setNewNote({ ...newNote, misc: e.target.value })}
-                multiline
-                rows={2}
-                placeholder="Any other notes or observations..."
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setOpenNotesDialog(false)
-            setEditingNote(null)
-            setNewNote({
-              review_date: '',
-              blockers: '',
-              learnings: '',
-              current_state: '',
-              deviation_to_plan: '',
-              dependencies_risks: '',
-              misc: ''
-            })
-          }}>Cancel</Button>
-          <Button 
-            onClick={handleSubmitReviewNote} 
-            variant="contained"
-            disabled={!newNote.review_date || addingNote}
-          >
-            {addingNote ? (editingNote ? 'Updating...' : 'Adding...') : (editingNote ? 'Update Note' : 'Add Note')}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* View Note Details Dialog */}
-      <Dialog 
-        open={openViewDialog} 
-        onClose={() => setOpenViewDialog(false)} 
-        maxWidth="lg" 
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          pb: 1
-        }}>
-          <Box>
-            <Typography variant="h5" component="div">
-              Review Note Details
-            </Typography>
-            {selectedNote && (
-              <Typography variant="subtitle1" color="text.secondary">
-                {formatDate(selectedNote.review_date)} • Created by {selectedNote.creator?.name || 'Unknown'}
-              </Typography>
-            )}
-          </Box>
-          <IconButton onClick={() => setOpenViewDialog(false)}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          {selectedNote && (
-            <Grid container spacing={3}>
-              {selectedNote.current_state && (
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'primary.main' }}>
-                    <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AssessmentIcon />
-                      Current State
-                    </Typography>
-                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {selectedNote.current_state}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              )}
-              
-              {selectedNote.blockers && (
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'error.main' }}>
-                    <Typography variant="h6" color="error.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AssessmentIcon />
-                      Blockers
-                    </Typography>
-                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {selectedNote.blockers}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              )}
-              
-              {selectedNote.learnings && (
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'success.main' }}>
-                    <Typography variant="h6" color="success.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AssessmentIcon />
-                      Learnings
-                    </Typography>
-                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {selectedNote.learnings}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              )}
-              
-              {selectedNote.deviation_to_plan && (
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'warning.main' }}>
-                    <Typography variant="h6" color="warning.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AssessmentIcon />
-                      Deviation to Plan
-                    </Typography>
-                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {selectedNote.deviation_to_plan}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              )}
-              
-              {selectedNote.dependencies_risks && (
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'info.main' }}>
-                    <Typography variant="h6" color="info.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AssessmentIcon />
-                      Dependencies & Risks
-                    </Typography>
-                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {selectedNote.dependencies_risks}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              )}
-              
-              {selectedNote.misc && (
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2, height: '100%', border: '1px solid', borderColor: 'grey.500' }}>
-                    <Typography variant="h6" color="text.primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AssessmentIcon />
-                      Miscellaneous Notes
-                    </Typography>
-                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {selectedNote.misc}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              )}
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 1 }}>
-          <Button 
-            onClick={() => setOpenViewDialog(false)} 
-            variant="contained"
-            sx={{
-              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-              boxShadow: '0 3px 5px 2px rgba(25, 118, 210, .3)',
-            }}
-          >
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+    </div>
   )
 }

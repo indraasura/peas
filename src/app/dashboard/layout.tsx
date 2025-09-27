@@ -1,5 +1,5 @@
-import { DashboardLayout } from '@/components/DashboardLayout'
+import { RadixDashboardLayout } from '@/components/RadixDashboardLayout'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <DashboardLayout>{children}</DashboardLayout>
+  return <RadixDashboardLayout>{children}</RadixDashboardLayout>
 }
