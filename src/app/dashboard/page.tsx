@@ -77,9 +77,9 @@ export default function DashboardPage() {
         return acc
       }, {})
 
-      // Calculate bandwidth for each team
+      // Calculate bandwidth for each team (bandwidth_percentage is stored as decimals 0-1)
       const teamData: TeamBandwidthData[] = Object.entries(teamGroups).map(([team, teamMembers]: [string, any]) => {
-        const totalCapacity = teamMembers.length * 100 // Assuming 100% capacity per member
+        const totalCapacity = teamMembers.length * 1 // Assuming 1.0 capacity per member (decimal format)
         let assignedCapacity = 0
 
         // Calculate assigned capacity from POD assignments
@@ -91,7 +91,7 @@ export default function DashboardPage() {
           }
         })
 
-        const availableCapacity = Math.max(0, totalCapacity - assignedCapacity)
+        const availableCapacity = totalCapacity - assignedCapacity // Allow negative values for over-allocation
 
         return {
           team,
@@ -174,7 +174,7 @@ export default function DashboardPage() {
                     Assigned Capacity
                   </Typography>
                   <Typography variant="h4">
-                    {(totalAssignedCapacity / 100).toFixed(2)}
+                    {totalAssignedCapacity.toFixed(2)}
                   </Typography>
                 </Box>
                 <TrendingUpIcon sx={{ fontSize: 40, color: 'warning.main' }} />
@@ -191,7 +191,7 @@ export default function DashboardPage() {
                     Available Capacity
                   </Typography>
                   <Typography variant="h4" color={getCapacityColor(totalAvailableCapacity, totalAssignedCapacity)}>
-                    {(totalAvailableCapacity / 100).toFixed(2)}
+                    {totalAvailableCapacity.toFixed(2)}
                   </Typography>
                 </Box>
                 <PersonIcon sx={{ fontSize: 40, color: 'success.main' }} />
@@ -244,7 +244,7 @@ export default function DashboardPage() {
                       </TableCell>
                       <TableCell align="center">
                         <Typography variant="body1" fontWeight="medium">
-                          {(team.assignedCapacity / 100).toFixed(2)}
+                          {team.assignedCapacity.toFixed(2)}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                           fontWeight="medium"
                           color={capacityColor}
                         >
-                          {(team.availableCapacity / 100).toFixed(2)}
+                          {team.availableCapacity.toFixed(2)}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">

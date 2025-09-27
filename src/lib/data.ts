@@ -209,11 +209,11 @@ export async function getAvailableMembers(): Promise<Profile[]> {
     return []
   }
 
-  // Calculate available bandwidth
+  // Calculate available bandwidth (bandwidth_percentage is now stored as decimals 0-1)
   const membersWithBandwidth = (data || []).map(member => {
     const usedBandwidth = member.pod_members?.reduce((sum: number, pm: any) => 
       sum + (pm.bandwidth_percentage || 0), 0) || 0
-    const availableBandwidth = Math.max(0, 100 - usedBandwidth)
+    const availableBandwidth = 1 - usedBandwidth // Allow negative values for over-allocation
     
     return {
       ...member,
@@ -222,7 +222,7 @@ export async function getAvailableMembers(): Promise<Profile[]> {
     }
   })
 
-  return membersWithBandwidth.filter(member => member.available_bandwidth > 0)
+  return membersWithBandwidth
 }
 
 // PODs

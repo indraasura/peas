@@ -72,7 +72,7 @@ export default function MembersPage() {
   const fetchMembers = async () => {
     try {
       const membersData = await getMembers()
-      // Calculate bandwidth for each member (now using 0-1 values instead of percentages)
+      // Calculate bandwidth for each member (bandwidth_percentage is stored as decimals 0-1)
       const membersWithBandwidth = membersData.map(member => {
         const usedBandwidth = member.pod_members?.reduce((sum: number, pm: any) => 
           sum + (pm.bandwidth_percentage || 0), 0) || 0
@@ -197,16 +197,16 @@ export default function MembersPage() {
   }
 
   const getBandwidthColor = (bandwidth: number) => {
-    if (bandwidth >= 80) return 'error'
-    if (bandwidth >= 60) return 'warning'
-    if (bandwidth >= 40) return 'info'
+    if (bandwidth >= 0.8) return 'error'
+    if (bandwidth >= 0.6) return 'warning'
+    if (bandwidth >= 0.4) return 'info'
     return 'success'
   }
 
   const getAvailabilityText = (bandwidth: number) => {
-    if (bandwidth >= 80) return 'High'
-    if (bandwidth >= 60) return 'Medium'
-    if (bandwidth >= 40) return 'Low'
+    if (bandwidth >= 0.8) return 'High'
+    if (bandwidth >= 0.6) return 'Medium'
+    if (bandwidth >= 0.4) return 'Low'
     return 'Available'
   }
 
@@ -395,19 +395,19 @@ export default function MembersPage() {
               <Box display="flex" justifyContent="space-between" mb={1}>
                 <Typography variant="body2">Low Utilization</Typography>
                 <Typography variant="body2" fontWeight="bold">
-                  {members.filter(m => (m.bandwidth || 0) > 0 && (m.bandwidth || 0) < 40).length}
+                  {members.filter(m => (m.bandwidth || 0) > 0 && (m.bandwidth || 0) < 0.4).length}
                 </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between" mb={1}>
                 <Typography variant="body2">Medium Utilization</Typography>
                 <Typography variant="body2" fontWeight="bold">
-                  {members.filter(m => (m.bandwidth || 0) >= 40 && (m.bandwidth || 0) < 80).length}
+                  {members.filter(m => (m.bandwidth || 0) >= 0.4 && (m.bandwidth || 0) < 0.8).length}
                 </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between" mb={1}>
                 <Typography variant="body2">High Utilization</Typography>
                 <Typography variant="body2" fontWeight="bold">
-                  {members.filter(m => (m.bandwidth || 0) >= 80).length}
+                  {members.filter(m => (m.bandwidth || 0) >= 0.8).length}
                 </Typography>
               </Box>
             </CardContent>
