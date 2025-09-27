@@ -286,15 +286,18 @@ export default function AreasPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {areas.map((area) => (
-          <Card key={area.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <CardTitle className="text-lg line-clamp-2">{area.name}</CardTitle>
-                <div className="flex gap-1">
+          <Card key={area.id} className="group hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between mb-3">
+                <CardTitle className="text-xl font-bold line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+                  {area.name}
+                </CardTitle>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleEditArea(area)}
+                    className="h-8 w-8 p-0 hover:bg-primary/10"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -302,80 +305,88 @@ export default function AreasPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDeleteArea(area)}
+                    className="h-8 w-8 p-0 hover:bg-destructive/10"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
               <div className="flex gap-2">
-                <Badge className={getStatusColor(area.status)}>
+                <Badge className={`${getStatusColor(area.status)} font-medium px-3 py-1`}>
                   {area.status}
                 </Badge>
+                {area.pods && area.pods.length > 0 && (
+                  <Badge variant="secondary" className="px-3 py-1">
+                    {area.pods.length} POD{area.pods.length !== 1 ? 's' : ''}
+                  </Badge>
+                )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
               {area.description && (
-                <p className="text-sm text-muted-foreground line-clamp-3">
+                <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
                   {area.description}
                 </p>
               )}
               
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Revenue Impact:</span>
-                  <Badge variant="outline" className={getImpactColor(area.revenue_impact || 'Low')}>
-                    {area.revenue_impact || 'Low'}
-                  </Badge>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Business Enablement:</span>
-                  <Badge variant="outline" className={getImpactColor(area.business_enablement || 'Low')}>
-                    {area.business_enablement || 'Low'}
-                  </Badge>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Efforts:</span>
-                  <Badge variant="outline" className={getImpactColor(area.efforts || 'Low')}>
-                    {area.efforts || 'Low'}
-                  </Badge>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>End User Impact:</span>
-                  <Badge variant="outline" className={getImpactColor(area.end_user_impact || 'Low')}>
-                    {area.end_user_impact || 'Low'}
-                  </Badge>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Revenue</span>
+                    <Badge variant="outline" className={`${getImpactColor(area.revenue_impact || 'Low')} w-full justify-center`}>
+                      {area.revenue_impact || 'Low'}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Business</span>
+                    <Badge variant="outline" className={`${getImpactColor(area.business_enablement || 'Low')} w-full justify-center`}>
+                      {area.business_enablement || 'Low'}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Efforts</span>
+                    <Badge variant="outline" className={`${getImpactColor(area.efforts || 'Low')} w-full justify-center`}>
+                      {area.efforts || 'Low'}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">User Impact</span>
+                    <Badge variant="outline" className={`${getImpactColor(area.end_user_impact || 'Low')} w-full justify-center`}>
+                      {area.end_user_impact || 'Low'}
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
               {area.decision_quorum && area.decision_quorum.length > 0 && (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Users className="h-4 w-4" />
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Users className="h-4 w-4 text-primary" />
                     <span>Decision Quorum ({area.decision_quorum.length})</span>
                   </div>
                   <div className="flex -space-x-2">
-                    {area.decision_quorum.slice(0, 3).map((member) => (
-                      <Avatar key={member.id} className="h-6 w-6 border-2 border-background">
-                        <AvatarFallback className="text-xs">
+                    {area.decision_quorum.slice(0, 4).map((member) => (
+                      <Avatar key={member.id} className="h-7 w-7 border-2 border-background ring-2 ring-primary/20">
+                        <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
                           {member.name?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
                     ))}
-                    {area.decision_quorum.length > 3 && (
-                      <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
-                        +{area.decision_quorum.length - 3}
+                    {area.decision_quorum.length > 4 && (
+                      <div className="h-7 w-7 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center text-xs font-medium text-primary">
+                        +{area.decision_quorum.length - 4}
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-2">
                 <Select
                   value={area.status}
                   onValueChange={(value) => handleStatusChange(area, value)}
                 >
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger className="flex-1 h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -394,6 +405,7 @@ export default function AreasPage() {
                     setSelectedArea(area)
                     setOpenDetailsDialog(true)
                   }}
+                  className="h-9 px-3 hover:bg-primary/10"
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -573,6 +585,271 @@ export default function AreasPage() {
             </Button>
             <Button onClick={handleSubmit}>
               {editingArea ? 'Update' : 'Create'} Area
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Area Details Dialog */}
+      <Dialog open={openDetailsDialog} onOpenChange={setOpenDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Area Details: {selectedArea?.name}</DialogTitle>
+          </DialogHeader>
+          
+          {selectedArea && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold mb-2">Description</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedArea.description || 'No description provided'}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold mb-2">Impact Assessment</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Revenue Impact:</span>
+                        <Badge className={getImpactColor(selectedArea.revenue_impact || 'Low')}>
+                          {selectedArea.revenue_impact || 'Low'}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Business Enablement:</span>
+                        <Badge className={getImpactColor(selectedArea.business_enablement || 'Low')}>
+                          {selectedArea.business_enablement || 'Low'}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Efforts:</span>
+                        <Badge className={getImpactColor(selectedArea.efforts || 'Low')}>
+                          {selectedArea.efforts || 'Low'}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">End User Impact:</span>
+                        <Badge className={getImpactColor(selectedArea.end_user_impact || 'Low')}>
+                          {selectedArea.end_user_impact || 'Low'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold mb-2">Timeline</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Start Date:</span>
+                        <span className="text-sm">{selectedArea.start_date || 'Not set'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">End Date:</span>
+                        <span className="text-sm">{selectedArea.end_date || 'Not set'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {selectedArea.one_pager_url && (
+                    <div>
+                      <h3 className="font-semibold mb-2">One-Pager</h3>
+                      <a 
+                        href={selectedArea.one_pager_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        <FileText className="h-4 w-4" />
+                        View One-Pager
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold">Associated PODs</h3>
+                  <Button 
+                    onClick={() => {
+                      setOpenPodDialog(true)
+                    }}
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create POD
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  {pods.filter(pod => pod.area_id === selectedArea.id).length > 0 ? (
+                    pods.filter(pod => pod.area_id === selectedArea.id).map((pod) => (
+                      <Card key={pod.id} className="p-4 hover:shadow-md transition-shadow border-l-4 border-l-primary/20 bg-gradient-to-r from-card to-card/80">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg mb-1 text-foreground">{pod.name}</h4>
+                            <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
+                              {pod.description || 'No description provided'}
+                            </p>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              {pod.start_date && (
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>Start: {new Date(pod.start_date).toLocaleDateString()}</span>
+                                </div>
+                              )}
+                              {pod.end_date && (
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>End: {new Date(pod.end_date).toLocaleDateString()}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge className={`${getStatusColor(pod.status)} font-medium px-3 py-1`}>
+                              {pod.status}
+                            </Badge>
+                            {pod.members && pod.members.length > 0 && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Users className="h-3 w-3" />
+                                <span>{pod.members.length} member{pod.members.length !== 1 ? 's' : ''}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
+                        <Plus className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">No PODs created for this area yet.</p>
+                      <p className="text-xs text-muted-foreground">Click "Create POD" to get started.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenDetailsDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* POD Creation Dialog */}
+      <Dialog open={openPodDialog} onOpenChange={setOpenPodDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New POD for {selectedArea?.name}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="podName">POD Name</Label>
+              <Input
+                id="podName"
+                value={podFormData.name}
+                onChange={(e) => setPodFormData({ ...podFormData, name: e.target.value })}
+                placeholder="Enter POD name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Assign Members</Label>
+              <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3">
+                {availableMembers.map((member) => (
+                  <div key={member.id} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`member-${member.id}`}
+                        checked={podFormData.members.some(m => m.member_id === member.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setPodFormData({
+                              ...podFormData,
+                              members: [...podFormData.members, {
+                                member_id: member.id,
+                                bandwidth_percentage: 50,
+                                is_leader: false
+                              }]
+                            })
+                          } else {
+                            setPodFormData({
+                              ...podFormData,
+                              members: podFormData.members.filter(m => m.member_id !== member.id)
+                            })
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`member-${member.id}`} className="text-sm">
+                        {member.name}
+                      </Label>
+                    </div>
+                    {podFormData.members.some(m => m.member_id === member.id) && (
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`leader-${member.id}`}
+                          checked={podFormData.members.find(m => m.member_id === member.id)?.is_leader || false}
+                          onCheckedChange={(checked) => {
+                            setPodFormData({
+                              ...podFormData,
+                              members: podFormData.members.map(m => 
+                                m.member_id === member.id 
+                                  ? { ...m, is_leader: !!checked }
+                                  : m
+                              )
+                            })
+                          }}
+                        />
+                        <Label htmlFor={`leader-${member.id}`} className="text-xs">Leader</Label>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenPodDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={async () => {
+                try {
+                  if (!podFormData.name.trim()) {
+                    setError('POD name is required')
+                    return
+                  }
+                  
+                  await createPod({
+                    name: podFormData.name,
+                    area_id: selectedArea?.id,
+                    members: podFormData.members
+                  })
+                  
+                  setOpenPodDialog(false)
+                  setPodFormData({ name: '', members: [] })
+                  fetchData()
+                } catch (error) {
+                  console.error('Error creating POD:', error)
+                  setError('Failed to create POD. Please try again.')
+                }
+              }}
+            >
+              Create POD
             </Button>
           </DialogFooter>
         </DialogContent>

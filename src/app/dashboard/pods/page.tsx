@@ -25,13 +25,14 @@ import {
   Calendar,
   BarChart3,
   AlertCircle,
-  Refresh,
+  RefreshCw,
   MessageSquare,
   FileText,
   CheckCircle,
   Clock,
   Play,
   Package,
+  Building2,
 } from 'lucide-react'
 import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote, updatePodNote, deletePodNote, checkAndUpdateAreaStatus } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'
@@ -151,7 +152,7 @@ export default function PodsPage() {
         bandwidth_percentage: m.bandwidth_percentage,
         is_leader: m.is_leader
       })) || [],
-      dependencies: pod.dependencies?.map(d => d.id) || []
+      dependencies: []
     })
     setOpenDialog(true)
   }
@@ -225,7 +226,7 @@ export default function PodsPage() {
     }
   }
 
-  const handleKanbanDrop = async (result: DropResult) => {
+  const handleItemMove = async (result: DropResult) => {
     const { destination, source, draggableId } = result
 
     if (!destination) return
@@ -241,6 +242,51 @@ export default function PodsPage() {
       await handleStatusChange(pod, newStatus)
     }
   }
+
+
+  const handleViewPodDetails = (pod: Pod) => {
+    setSelectedPod(pod)
+    setOpenDetailsDialog(true)
+  }
+
+  const renderPodCard = (pod: Pod) => (
+    <div className="space-y-2">
+      <div className="flex items-start justify-between">
+        <h4 className="font-semibold text-sm line-clamp-2">{pod.name}</h4>
+        <Badge className={getStatusColor(pod.status)} variant="outline">
+          {pod.status}
+        </Badge>
+      </div>
+      {pod.description && (
+        <p className="text-xs text-muted-foreground line-clamp-2">
+          {pod.description}
+        </p>
+      )}
+      {pod.area && (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Building2 className="h-3 w-3" />
+          <span>{pod.area.name}</span>
+        </div>
+      )}
+      {pod.members && pod.members.length > 0 && (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Users className="h-3 w-3" />
+          <span>{pod.members.length} member{pod.members.length !== 1 ? 's' : ''}</span>
+        </div>
+      )}
+    </div>
+  )
+
+  // Group pods by status for KanbanBoard
+  const podsByStatus = podStatuses.map(status => ({
+    id: status,
+    title: status,
+    items: pods.filter(pod => pod.status === status),
+    color: getStatusColor(status).includes('green') ? '#10b981' : 
+           getStatusColor(status).includes('blue') ? '#3b82f6' :
+           getStatusColor(status).includes('orange') ? '#f59e0b' :
+           getStatusColor(status).includes('purple') ? '#8b5cf6' : '#6b7280'
+  }))
 
   if (loading) {
     return (
@@ -280,7 +326,15 @@ export default function PodsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <KanbanBoard pods={pods} onDrop={handleKanbanDrop} />
+          <KanbanBoard
+            columns={podsByStatus}
+            onItemMove={handleItemMove}
+            onItemEdit={handleEditPod}
+            onItemDelete={handleDeletePod}
+            onItemView={handleViewPodDetails}
+            renderItem={renderPodCard}
+            showActionButtons={true}
+          />
         </CardContent>
       </Card>
 
