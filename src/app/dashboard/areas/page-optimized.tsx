@@ -339,7 +339,6 @@ export default function AreasPageOptimized() {
         end_user_impact: areaData.end_user_impact || '',
         start_date: areaData.start_date?.trim() || '',
         end_date: areaData.end_date?.trim() || '',
-        status: areaData.status || 'Backlog',
         one_pager_url: areaData.one_pager_url?.trim() || ''
       }
 
@@ -351,7 +350,10 @@ export default function AreasPageOptimized() {
           await updateAreaDecisionQuorum(editingArea.id, decisionQuorum)
         }
       } else {
-        const newArea = await createArea(cleanAreaData)
+        const newArea = await createArea({
+          ...cleanAreaData,
+          status: 'Backlog' as const
+        })
         
         if (decisionQuorum.length > 0) {
           await updateAreaDecisionQuorum(newArea.id, decisionQuorum)

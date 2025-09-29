@@ -58,12 +58,18 @@ import { DropResult } from '@hello-pangea/dnd'
 const impactLevels = ['Low', 'Medium', 'High']
 
 export default function AreasPage() {
-  const [areas, setAreas] = useState<Area[]>([])
-  const [pods, setPods] = useState<Pod[]>([])
-  const [podCommitteeMembers, setPodCommitteeMembers] = useState<Profile[]>([])
-  const [availableMembers, setAvailableMembers] = useState<Profile[]>([])
-  const [areaRevisedEndDates, setAreaRevisedEndDates] = useState<Record<string, string[]>>({})
-  const [loading, setLoading] = useState(true)
+  // Use optimized data fetching hook
+  const {
+    areas,
+    pods,
+    members,
+    availableMembers,
+    podCommitteeMembers,
+    revisedDates: areaRevisedEndDates,
+    loading,
+    error: dataError
+  } = useComprehensiveData()
+  const [user, setUser] = useState<Profile | null>(null)
   const [openDialog, setOpenDialog] = useState(false)
   const [openPodDialog, setOpenPodDialog] = useState(false)
   const [openCommentsDialog, setOpenCommentsDialog] = useState(false)
@@ -117,43 +123,18 @@ export default function AreasPage() {
     targetStatus: string
   } | null>(null)
 
+  // Load user data
   useEffect(() => {
-    fetchData()
-  }, [])
-
-  const fetchData = async () => {
-    try {
-      const [areasData, podsData, membersData, availableMembersData] = await Promise.all([
-        getAreas(),
-        getPods(),
-        getMembers(),
-        getAvailableMembers()
-      ])
-      setAreas(areasData)
-      setPods(podsData)
-      setPodCommitteeMembers(membersData.filter(member => member.team === 'POD committee'))
-      setAvailableMembers(availableMembersData)
-
-      // Fetch revised end dates for each area
-      const revisedDatesPromises = areasData.map(async (area) => {
-        const revisedDates = await getAreaRevisedEndDates(area.id)
-        return { areaId: area.id, revisedDates }
-      })
-      
-      const revisedDatesResults = await Promise.all(revisedDatesPromises)
-      const revisedDatesMap: Record<string, string[]> = {}
-      revisedDatesResults.forEach(({ areaId, revisedDates }) => {
-        console.log(`Setting revised dates for area ${areaId}:`, revisedDates)
-        revisedDatesMap[areaId] = revisedDates
-      })
-      console.log('Final revised dates map:', revisedDatesMap)
-      setAreaRevisedEndDates(revisedDatesMap)
-    } catch (error) {
-      console.error('Error fetching data:', error)
-    } finally {
-      setLoading(false)
+    const loadUser = async () => {
+      try {
+        const currentUser = await getCurrentUser()
+        setUser(currentUser)
+      } catch (error) {
+        console.error('Error loading user:', error)
+      }
     }
-  }
+    loadUser()
+  }, [])
 
   const handleSubmit = async () => {
     try {
@@ -280,7 +261,7 @@ export default function AreasPage() {
       }
       
       // Refresh data to get updated POD associations
-      await fetchData()
+      invalidateAreasCache()
       
       // Show success message
       console.log('Area saved successfully')
@@ -375,14 +356,12 @@ export default function AreasPage() {
         }
       }
       
-      // Update local state
-      setAreas((prev: Area[]) => prev.map((a: Area) => 
-        a.id === area.id ? { ...a, status: newStatus } : a
-      ))
+      // Invalidate cache to refresh data
+      invalidateAreasCache()
       
       // Refresh data to show updated POD statuses
       if (source.droppableId === 'Released' && destination.droppableId !== 'Released') {
-        await fetchData()
+        invalidateAreasCache()
       }
       
       console.log('Area movement completed successfully')
@@ -414,7 +393,7 @@ export default function AreasPage() {
     if (window.confirm(`Are you sure you want to kick off "${area.name}"? This will move all associated PODs to "Awaiting development" status.`)) {
       try {
         await kickOffArea(area.id)
-        fetchData() // Refresh data to show updated statuses
+        invalidateAreasCache() // Refresh data to show updated statuses
       } catch (error) {
         console.error('Error kicking off area:', error)
         setError('Failed to kick off area. Please try again.')
@@ -468,7 +447,7 @@ export default function AreasPage() {
       setOpenPodDialog(false)
       
       // Refresh data
-      await fetchData()
+      invalidateAreasCache()
     } catch (error) {
       console.error('Error creating POD:', error)
       setError('Failed to create POD. Please try again.')
@@ -498,7 +477,7 @@ export default function AreasPage() {
     if (window.confirm(`Are you sure you want to delete "${area.name}"?`)) {
       try {
         await deleteArea(area.id)
-        fetchData()
+        invalidateAreasCache()
       } catch (error) {
         console.error('Error deleting area:', error)
         setError('Failed to delete area. Please try again.')
@@ -553,8 +532,7 @@ export default function AreasPage() {
       setNewComment('')
       
       // Refresh areas data to update comment counts in cards
-      const areasData = await getAreas()
-      setAreas(areasData)
+      invalidateAreasCache()
     } catch (error) {
       console.error('Error adding comment:', error)
       setError('Failed to add comment. Please try again.')
@@ -580,8 +558,7 @@ export default function AreasPage() {
       setAreaComments(comments)
       
       // Refresh areas data to update comment counts in cards
-      const areasData = await getAreas()
-      setAreas(areasData)
+      invalidateAreasCache()
       
       setEditingComment(null)
       setEditCommentText('')
@@ -605,8 +582,7 @@ export default function AreasPage() {
         setAreaComments(comments)
         
         // Refresh areas data to update comment counts in cards
-        const areasData = await getAreas()
-        setAreas(areasData)
+        invalidateAreasCache()
       } catch (error) {
         console.error('Error deleting comment:', error)
         setError('Failed to delete comment. Please try again.')
