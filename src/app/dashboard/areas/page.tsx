@@ -201,11 +201,11 @@ export default function AreasPage() {
         try {
           // First, remove all PODs from this area
           const currentAreaPods = pods.filter((pod: Pod) => pod.area_id === areaId)
-          console.log('Removing PODs from area:', currentAreaPods.map(p => p.id))
+          console.log('Removing PODs from area:', currentAreaPods.map((p: Pod) => p.id))
           
           for (const pod of currentAreaPods) {
             try {
-              await updatePod(pod.id, { area_id: null })
+              await updatePod(pod.id, { area_id: undefined })
               console.log('Successfully removed POD from area:', pod.id)
             } catch (error) {
               console.error('Error removing POD from area:', pod.id, error)
@@ -356,7 +356,7 @@ export default function AreasPage() {
       // If moving from Released to any other status, move PODs to 'In development'
       if (source.droppableId === 'Released' && destination.droppableId !== 'Released') {
         const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
-        console.log('Moving PODs to In development:', areaPods.map(p => p.id))
+        console.log('Moving PODs to In development:', areaPods.map((p: Pod) => p.id))
         
         for (const pod of areaPods) {
           try {
