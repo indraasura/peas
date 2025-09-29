@@ -384,6 +384,7 @@ export default function PodsPage() {
     setEditingNote(note)
     setNewNote({
       review_date: note.review_date,
+      revised_end_date: note.revised_end_date || '',
       blockers: note.blockers || '',
       learnings: note.learnings || '',
       current_state: note.current_state || '',
