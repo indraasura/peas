@@ -461,6 +461,17 @@ export async function createPodNote(noteData: {
     .single()
 
   if (error) throw error
+
+  // Invalidate revised dates cache if revised_end_date was provided
+  if (noteData.revised_end_date) {
+    try {
+      const { invalidateAreasCache } = await import('./data-optimized')
+      invalidateAreasCache() // This will also invalidate revised dates cache
+    } catch (cacheError) {
+      console.warn('Could not invalidate areas cache after POD note creation:', cacheError)
+    }
+  }
+
   return data
 }
 
@@ -473,16 +484,48 @@ export async function updatePodNote(id: string, updates: Partial<PodNote>) {
     .single()
 
   if (error) throw error
+
+  // Invalidate revised dates cache if revised_end_date was updated
+  if (updates.revised_end_date !== undefined) {
+    try {
+      const { invalidateAreasCache } = await import('./data-optimized')
+      invalidateAreasCache() // This will also invalidate revised dates cache
+    } catch (cacheError) {
+      console.warn('Could not invalidate areas cache after POD note update:', cacheError)
+    }
+  }
+
   return data
 }
 
 export async function deletePodNote(id: string) {
+  // First get the note to check if it has a revised_end_date
+  const { data: existingNote, error: fetchError } = await supabase
+    .from('pod_notes')
+    .select('revised_end_date')
+    .eq('id', id)
+    .single()
+
+  if (fetchError) {
+    console.warn('Could not fetch POD note before deletion:', fetchError)
+  }
+
   const { error } = await supabase
     .from('pod_notes')
     .delete()
     .eq('id', id)
 
   if (error) throw error
+
+  // Invalidate revised dates cache if the deleted note had a revised_end_date
+  if (existingNote?.revised_end_date) {
+    try {
+      const { invalidateAreasCache } = await import('./data-optimized')
+      invalidateAreasCache() // This will also invalidate revised dates cache
+    } catch (cacheError) {
+      console.warn('Could not invalidate areas cache after POD note deletion:', cacheError)
+    }
+  }
 }
 
 // Get all revised end dates for an area (from POD notes)

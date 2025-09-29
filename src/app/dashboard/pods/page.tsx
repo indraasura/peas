@@ -365,6 +365,9 @@ export default function PodsPage() {
         [selectedPod.id]: notes.length
       }))
       
+      // Refresh all data to ensure areas page shows updated revised dates
+      await fetchData()
+      
       setOpenNotesDialog(false)
       setEditingNote(null)
       setNewNote({
@@ -419,6 +422,9 @@ export default function PodsPage() {
             ...prev,
             [selectedPod.id]: notes.length
           }))
+          
+          // Refresh all data to ensure areas page shows updated revised dates
+          await fetchData()
         }
       } catch (error) {
         console.error('Error deleting note:', error)
