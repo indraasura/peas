@@ -154,7 +154,7 @@ export async function updatePodMembers(podId: string, members: Array<{
       const memberInserts = members.map(member => ({
         pod_id: podId,
         member_id: member.member_id,
-        bandwidth_percentage: member.bandwidth_percentage,
+        bandwidth_percentage: Math.round(member.bandwidth_percentage * 100), // Convert decimal to percentage integer
         is_leader: member.is_leader
       }))
 
@@ -209,10 +209,10 @@ export async function getAvailableMembers(): Promise<Profile[]> {
     return []
   }
 
-  // Calculate available bandwidth (bandwidth_percentage is now stored as decimals 0-1)
+  // Calculate available bandwidth (bandwidth_percentage is stored as percentage integers in DB, converted to decimals)
   const membersWithBandwidth = (data || []).map(member => {
     const usedBandwidth = member.pod_members?.reduce((sum: number, pm: any) => 
-      sum + (pm.bandwidth_percentage || 0), 0) || 0
+      sum + ((pm.bandwidth_percentage || 0) / 100), 0) || 0
     const availableBandwidth = 1 - usedBandwidth // Allow negative values for over-allocation
     
     return {
@@ -252,7 +252,7 @@ export async function getPods(): Promise<Pod[]> {
       id: pm.id,
       pod_id: pm.pod_id,
       member_id: pm.member_id,
-      bandwidth_percentage: pm.bandwidth_percentage,
+      bandwidth_percentage: pm.bandwidth_percentage / 100, // Convert percentage integer back to decimal
       is_leader: pm.is_leader,
       created_at: pm.created_at,
       updated_at: pm.updated_at,
@@ -295,7 +295,7 @@ export async function createPod(podData: {
     const memberInserts = podData.members.map(member => ({
       pod_id: pod.id,
       member_id: member.member_id,
-      bandwidth_percentage: member.bandwidth_percentage,
+      bandwidth_percentage: Math.round(member.bandwidth_percentage * 100), // Convert decimal to percentage integer
       is_leader: member.is_leader
     }))
 

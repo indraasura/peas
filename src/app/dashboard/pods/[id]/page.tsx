@@ -279,7 +279,7 @@ export default function PodViewPage() {
                       </ListItemIcon>
                       <ListItemText
                         primary={`${member.member?.name || 'Unknown'} ${member.is_leader ? '(Leader)' : ''}`}
-                        secondary={`${member.bandwidth_percentage.toFixed(2)} bandwidth`}
+                        secondary={`${(member.bandwidth_percentage * 100).toFixed(0)}% bandwidth`}
                       />
                     </ListItem>
                   ))}
@@ -503,7 +503,7 @@ export default function PodViewPage() {
               <Box display="flex" justifyContent="space-between" mb={1}>
                 <Typography variant="body2">Total Bandwidth</Typography>
                 <Typography variant="body2" fontWeight="bold">
-                  {pod.members?.reduce((sum: number, member: any) => sum + member.bandwidth_percentage, 0).toFixed(2) || '0.00'}
+                  {((pod.members?.reduce((sum: number, member: any) => sum + member.bandwidth_percentage, 0) || 0) * 100).toFixed(0)}%
                 </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between" mb={1}>

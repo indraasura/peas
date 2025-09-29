@@ -111,7 +111,7 @@ export default function MyPodsPage() {
         )
         return (
           <Typography variant="body2">
-            {(myMembership?.bandwidth_percentage || 0).toFixed(2)}
+            {((myMembership?.bandwidth_percentage || 0) * 100).toFixed(0)}%
           </Typography>
         )
       }
@@ -207,7 +207,7 @@ export default function MyPodsPage() {
                     member.member_id === user?.id
                   )
                   return total + (myMembership?.bandwidth_percentage || 0)
-                }, 0).toFixed(2)}
+                }, 0) * 100).toFixed(0)}%
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Across {pods.length} POD{pods.length !== 1 ? 's' : ''}

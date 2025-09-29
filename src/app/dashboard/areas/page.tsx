@@ -1310,13 +1310,13 @@ export default function AreasPage() {
                       fullWidth
                       label="Bandwidth"
                       type="number"
-                      value={member.bandwidth_percentage}
+                      value={member.bandwidth_percentage * 100} // Display as percentage
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         const newMembers = [...podFormData.members]
-                        newMembers[index].bandwidth_percentage = parseFloat(e.target.value) || 0
+                        newMembers[index].bandwidth_percentage = (parseFloat(e.target.value) || 0) / 100 // Convert percentage to decimal
                         setPodFormData({ ...podFormData, members: newMembers })
                       }}
-                      inputProps={{ min: 0, max: 1, step: 0.01 }}
+                      inputProps={{ min: 0, max: 100, step: 1 }}
                     />
                   </Grid>
                   <Grid item xs={12} sm={3}>
