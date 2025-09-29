@@ -139,8 +139,10 @@ export default function AreasPage() {
       const revisedDatesResults = await Promise.all(revisedDatesPromises)
       const revisedDatesMap: Record<string, string[]> = {}
       revisedDatesResults.forEach(({ areaId, revisedDates }) => {
+        console.log(`Setting revised dates for area ${areaId}:`, revisedDates)
         revisedDatesMap[areaId] = revisedDates
       })
+      console.log('Final revised dates map:', revisedDatesMap)
       setAreaRevisedEndDates(revisedDatesMap)
     } catch (error) {
       console.error('Error fetching data:', error)

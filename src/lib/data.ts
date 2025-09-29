@@ -464,27 +464,55 @@ export async function deletePodNote(id: string) {
 
 // Get all revised end dates for an area (from POD notes)
 export async function getAreaRevisedEndDates(areaId: string): Promise<string[]> {
-  const { data, error } = await supabase
-    .from('pod_notes')
-    .select(`
-      revised_end_date,
-      pod:pods(area_id)
-    `)
-    .eq('pod.area_id', areaId)
-    .not('revised_end_date', 'is', null)
-    .order('review_date', { ascending: false })
+  console.log('Fetching revised end dates for area:', areaId)
+  
+  try {
+    // First get all PODs for this area
+    const { data: areaPods, error: podsError } = await supabase
+      .from('pods')
+      .select('id')
+      .eq('area_id', areaId)
 
-  if (error) {
-    console.error('Error fetching revised end dates:', error)
+    if (podsError) {
+      console.error('Error fetching PODs for area:', podsError)
+      return []
+    }
+
+    console.log('PODs for area', areaId, ':', areaPods)
+
+    if (!areaPods || areaPods.length === 0) {
+      console.log('No PODs found for area', areaId)
+      return []
+    }
+
+    const podIds = areaPods.map(pod => pod.id)
+
+    // Then get revised end dates for those PODs
+    const { data, error } = await supabase
+      .from('pod_notes')
+      .select('revised_end_date')
+      .in('pod_id', podIds)
+      .not('revised_end_date', 'is', null)
+      .order('review_date', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching revised end dates:', error)
+      return []
+    }
+
+    console.log('Raw revised dates data for area', areaId, ':', data)
+
+    // Extract unique revised end dates and filter out null values
+    const revisedDates = (data || [])
+      .map(item => item.revised_end_date)
+      .filter((date, index, arr) => date && arr.indexOf(date) === index) // Remove duplicates and null values
+
+    console.log('Processed revised dates for area', areaId, ':', revisedDates)
+    return revisedDates
+  } catch (error) {
+    console.error('Unexpected error in getAreaRevisedEndDates:', error)
     return []
   }
-
-  // Extract unique revised end dates and filter out null values
-  const revisedDates = (data || [])
-    .map(item => item.revised_end_date)
-    .filter((date, index, arr) => date && arr.indexOf(date) === index) // Remove duplicates and null values
-
-  return revisedDates
 }
 
 export async function getPodNote(id: string): Promise<PodNote | null> {
