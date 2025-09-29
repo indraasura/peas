@@ -184,10 +184,10 @@ export function useComprehensiveData() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const { areas, loading: areasLoading, error: areasError } = useAreas()
-  const { pods, loading: podsLoading, error: podsError } = usePods()
-  const { members, loading: membersLoading, error: membersError } = useMembers()
-  const { availableMembers, loading: availableMembersLoading, error: availableMembersError } = useAvailableMembers()
+  const { areas, loading: areasLoading, error: areasError, refreshAreas } = useAreas()
+  const { pods, loading: podsLoading, error: podsError, refreshPods } = usePods()
+  const { members, loading: membersLoading, error: membersError, refreshMembers } = useMembers()
+  const { availableMembers, loading: availableMembersLoading, error: availableMembersError, refreshAvailableMembers } = useAvailableMembers()
   
   const areaIds = useMemo(() => areas.map(area => area.id), [areas])
   const { revisedDates, loading: revisedDatesLoading, error: revisedDatesError } = useAreaRevisedEndDates(areaIds)
@@ -195,6 +195,23 @@ export function useComprehensiveData() {
   const podCommitteeMembers = useMemo(() => {
     return members.filter(member => member.team === 'POD committee')
   }, [members])
+
+  // Refresh all data function
+  const refreshAll = useCallback(async () => {
+    setLoading(true)
+    try {
+      await Promise.all([
+        refreshAreas(),
+        refreshPods(),
+        refreshMembers(),
+        refreshAvailableMembers()
+      ])
+    } catch (error) {
+      console.error('Error refreshing data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [refreshAreas, refreshPods, refreshMembers, refreshAvailableMembers])
 
   useEffect(() => {
     const isLoading = areasLoading || podsLoading || membersLoading || availableMembersLoading || revisedDatesLoading
@@ -214,7 +231,12 @@ export function useComprehensiveData() {
     podCommitteeMembers,
     revisedDates,
     loading,
-    error
+    error,
+    refreshAll,
+    refreshAreas,
+    refreshPods,
+    refreshMembers,
+    refreshAvailableMembers
   }
 }
 

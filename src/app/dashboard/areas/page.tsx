@@ -50,7 +50,6 @@ import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import { useComprehensiveData } from '@/hooks/useOptimizedData'
 import { SkeletonLoader, AreaCardSkeleton } from '@/components/SkeletonLoader'
-import { invalidateAreasCache, invalidatePodsCache } from '@/lib/data-optimized'
 import { validatePodCreation } from '@/lib/area-status-utils'
 import KanbanBoard from '@/components/KanbanBoard'
 import { DropResult } from '@hello-pangea/dnd'
@@ -67,7 +66,10 @@ export default function AreasPage() {
     podCommitteeMembers,
     revisedDates: areaRevisedEndDates,
     loading,
-    error: dataError
+    error: dataError,
+    refreshAll,
+    refreshAreas,
+    refreshPods
   } = useComprehensiveData()
   const [user, setUser] = useState<Profile | null>(null)
   const [openDialog, setOpenDialog] = useState(false)
@@ -261,7 +263,7 @@ export default function AreasPage() {
       }
       
       // Refresh data to get updated POD associations
-      invalidateAreasCache()
+      await Promise.all([refreshAreas(), refreshPods()])
       
       // Show success message
       console.log('Area saved successfully')
@@ -356,12 +358,12 @@ export default function AreasPage() {
         }
       }
       
-      // Invalidate cache to refresh data
-      invalidateAreasCache()
+      // Refresh data to show updated POD statuses
+      await Promise.all([refreshAreas(), refreshPods()])
       
       // Refresh data to show updated POD statuses
       if (source.droppableId === 'Released' && destination.droppableId !== 'Released') {
-        invalidateAreasCache()
+        await Promise.all([refreshAreas(), refreshPods()])
       }
       
       console.log('Area movement completed successfully')
@@ -393,7 +395,7 @@ export default function AreasPage() {
     if (window.confirm(`Are you sure you want to kick off "${area.name}"? This will move all associated PODs to "Awaiting development" status.`)) {
       try {
         await kickOffArea(area.id)
-        invalidateAreasCache() // Refresh data to show updated statuses
+        await Promise.all([refreshAreas(), refreshPods()]) // Refresh data to show updated statuses
       } catch (error) {
         console.error('Error kicking off area:', error)
         setError('Failed to kick off area. Please try again.')
@@ -447,7 +449,7 @@ export default function AreasPage() {
       setOpenPodDialog(false)
       
       // Refresh data
-      invalidateAreasCache()
+      await Promise.all([refreshAreas(), refreshPods()])
     } catch (error) {
       console.error('Error creating POD:', error)
       setError('Failed to create POD. Please try again.')
@@ -477,7 +479,7 @@ export default function AreasPage() {
     if (window.confirm(`Are you sure you want to delete "${area.name}"?`)) {
       try {
         await deleteArea(area.id)
-        invalidateAreasCache()
+        await refreshAreas()
       } catch (error) {
         console.error('Error deleting area:', error)
         setError('Failed to delete area. Please try again.')
@@ -532,7 +534,7 @@ export default function AreasPage() {
       setNewComment('')
       
       // Refresh areas data to update comment counts in cards
-      invalidateAreasCache()
+      await refreshAreas()
     } catch (error) {
       console.error('Error adding comment:', error)
       setError('Failed to add comment. Please try again.')
@@ -558,7 +560,7 @@ export default function AreasPage() {
       setAreaComments(comments)
       
       // Refresh areas data to update comment counts in cards
-      invalidateAreasCache()
+      await refreshAreas()
       
       setEditingComment(null)
       setEditCommentText('')
@@ -582,7 +584,7 @@ export default function AreasPage() {
         setAreaComments(comments)
         
         // Refresh areas data to update comment counts in cards
-        invalidateAreasCache()
+        await refreshAreas()
       } catch (error) {
         console.error('Error deleting comment:', error)
         setError('Failed to delete comment. Please try again.')
