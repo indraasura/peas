@@ -88,11 +88,15 @@ export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated
 }
 
 export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum' | 'comments' | 'pods'>>) {
-  // Convert empty strings to null for PostgreSQL date fields
+  // Convert empty strings to null for PostgreSQL date fields (only if provided)
   const cleanUpdates = {
     ...updates,
-    start_date: updates.start_date && updates.start_date.trim() !== '' ? updates.start_date : null,
-    end_date: updates.end_date && updates.end_date.trim() !== '' ? updates.end_date : null,
+    ...(updates.start_date !== undefined && {
+      start_date: updates.start_date && updates.start_date.trim() !== '' ? updates.start_date : null
+    }),
+    ...(updates.end_date !== undefined && {
+      end_date: updates.end_date && updates.end_date.trim() !== '' ? updates.end_date : null
+    }),
   }
 
   console.log('Updating area with ID:', id, 'and updates:', cleanUpdates)

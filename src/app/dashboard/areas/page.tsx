@@ -748,11 +748,22 @@ export default function AreasPage() {
               size="small"
               onClick={() => handleKickOff(area)}
               sx={{
-                background: 'linear-gradient(45deg, #2196f3 30%, #21cbf3 90%)',
-                boxShadow: '0 3px 5px 2px rgba(33, 150, 243, .3)',
+                backgroundColor: '#2196f3',
+                color: 'white',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
                 fontSize: '0.7rem',
                 py: 0.5,
-                px: 1
+                px: 1.5,
+                textTransform: 'none',
+                fontWeight: 500,
+                borderRadius: 1,
+                '&:hover': {
+                  backgroundColor: '#1976d2',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.16)',
+                },
+                '&:active': {
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.12)',
+                }
               }}
             >
               Kick-off
