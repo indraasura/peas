@@ -98,10 +98,15 @@ export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 
 
   console.log('Updating area with ID:', id, 'and updates:', cleanUpdates)
 
+  // Validate the area ID
+  if (!id || typeof id !== 'string') {
+    throw new Error('Invalid area ID provided')
+  }
+
   // First check if the area exists
   const { data: existingArea, error: checkError } = await supabase
     .from('areas')
-    .select('id')
+    .select('id, name')
     .eq('id', id)
     .single()
 
@@ -115,25 +120,26 @@ export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 
     throw new Error(`Area with ID ${id} not found`)
   }
 
+  console.log('Area exists:', existingArea)
+
   const { data, error } = await supabase
     .from('areas')
     .update(cleanUpdates)
     .eq('id', id)
     .select()
-    .single()
 
   if (error) {
     console.error('Error updating area:', error)
-    throw error
+    throw new Error(`Failed to update area: ${error.message}`)
   }
 
-  if (!data) {
+  if (!data || data.length === 0) {
     console.error('No data returned from area update - area might not exist with ID:', id)
     throw new Error(`Failed to update area: Area with ID ${id} not found`)
   }
 
   console.log('Successfully updated area:', data)
-  return data
+  return data[0]
 }
 
 export async function deleteArea(id: string) {

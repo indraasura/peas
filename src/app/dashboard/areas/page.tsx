@@ -180,6 +180,12 @@ export default function AreasPage() {
       if (editingArea) {
         console.log('Updating existing area with ID:', editingArea.id)
         console.log('Area data to update:', cleanAreaData)
+        console.log('Editing area object:', editingArea)
+        
+        if (!editingArea.id) {
+          throw new Error('Area ID is missing')
+        }
+        
         await updateArea(editingArea.id, cleanAreaData)
         await updateAreaDecisionQuorum(editingArea.id, decision_quorum)
         areaId = editingArea.id
@@ -558,23 +564,21 @@ export default function AreasPage() {
           {area.name}
         </Typography>
         
-        {/* Dates Section */}
-        {(area.start_date || area.end_date || revisedDates.length > 0) && (
-          <Box sx={{ mb: 2 }}>
-            {/* Original dates */}
-            {(area.start_date || area.end_date) && (
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                Start: {formatDate(area.start_date)} End: {formatDate(area.end_date)}
-              </Typography>
-            )}
-            {/* Revised end dates */}
-            {revisedDates.map((revisedDate: string, index: number) => (
-              <Typography key={index} variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                Revised: {formatDate(revisedDate)}
-              </Typography>
-            ))}
-          </Box>
-        )}
+        {/* Dates Section - Always show if there are any dates */}
+        <Box sx={{ mb: 2 }}>
+          {/* Original dates */}
+          {(area.start_date || area.end_date) && (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              Start: {formatDate(area.start_date)} End: {formatDate(area.end_date)}
+            </Typography>
+          )}
+          {/* Revised end dates */}
+          {revisedDates.map((revisedDate: string, index: number) => (
+            <Typography key={index} variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              Revised: {formatDate(revisedDate)}
+            </Typography>
+          ))}
+        </Box>
 
         {area.description && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
