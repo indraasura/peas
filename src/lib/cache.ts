@@ -41,19 +41,11 @@ class DataCache {
   // Invalidate cache entries that match a pattern
   invalidatePattern(pattern: string): void {
     const regex = new RegExp(pattern)
-    const keysToDelete: string[] = []
-    
-    // Collect keys that match the pattern
-    this.cache.forEach((_, key) => {
+    for (const key of this.cache.keys()) {
       if (regex.test(key)) {
-        keysToDelete.push(key)
+        this.cache.delete(key)
       }
-    })
-    
-    // Delete the matching keys
-    keysToDelete.forEach(key => {
-      this.cache.delete(key)
-    })
+    }
   }
 
   // Get cache stats
