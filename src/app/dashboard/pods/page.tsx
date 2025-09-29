@@ -118,14 +118,21 @@ export default function PodsPage() {
         getAvailableMembers()
       ])
       
-      // Filter PODs to only show those from areas that are in "Executing" status (kicked off)
+      // Filter PODs to show:
+      // 1. PODs from areas that are in "Executing" status (kicked off)
+      // 2. Released PODs (regardless of area status - they should persist)
       const executingAreas = allAreasData.filter(area => area.status === 'Executing')
       const executingAreaIds = executingAreas.map(area => area.id)
       
-      // Only show PODs that have an area_id and that area is in "Executing" status
-      const filteredPods = podsData.filter(pod => 
-        pod.area_id && executingAreaIds.includes(pod.area_id)
-      )
+      const filteredPods = podsData.filter(pod => {
+        // Always show Released PODs regardless of area status
+        if (pod.status === 'Released') {
+          return true
+        }
+        
+        // For non-Released PODs, only show those from executing areas
+        return pod.area_id && executingAreaIds.includes(pod.area_id)
+      })
       
       setPods(filteredPods)
       // Filter to show only backlog areas for the area dropdown

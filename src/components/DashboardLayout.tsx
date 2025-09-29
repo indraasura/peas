@@ -39,6 +39,7 @@ import {
 } from '@mui/icons-material'
 import { getCurrentUser, signOut, type Profile } from '@/lib/auth'
 import { useTheme } from './ThemeProvider'
+import { DataPreloader } from './DataPreloader'
 
 const drawerWidth = 280
 const collapsedDrawerWidth = 64
@@ -501,7 +502,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             animation: 'fadeIn 0.5s ease-in-out'
           }
         }}>
-          {children}
+          <DataPreloader>
+            {children}
+          </DataPreloader>
         </Box>
       </Box>
     </Box>

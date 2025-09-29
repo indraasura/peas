@@ -45,9 +45,13 @@ import {
   Check as CheckIcon,
   Close as CloseIcon
 } from '@mui/icons-material'
-import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, getPods, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, getAvailableMembers, getAreaRevisedEndDates, verifyPODAssociation } from '@/lib/data'
+import { createArea, updateArea, deleteArea, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, verifyPODAssociation, updateAreaStatusAutomatically } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
+import { useComprehensiveData } from '@/hooks/useOptimizedData'
+import { SkeletonLoader, AreaCardSkeleton } from '@/components/SkeletonLoader'
+import { invalidateAreasCache, invalidatePodsCache } from '@/lib/data-optimized'
+import { validatePodCreation } from '@/lib/area-status-utils'
 import KanbanBoard from '@/components/KanbanBoard'
 import { DropResult } from '@hello-pangea/dnd'
 
@@ -429,10 +433,22 @@ export default function AreasPage() {
         return
       }
 
+      // Validate POD creation requirements
+      if (!editingArea) {
+        setError('No area selected for POD creation')
+        return
+      }
+
+      const validation = validatePodCreation(editingArea, members)
+      if (!validation.isValid) {
+        setError(validation.error || 'Invalid POD configuration')
+        return
+      }
+
       // Associate the POD with the current area being edited
       const podDataWithArea = {
         ...podData,
-        area_id: editingArea?.id
+        area_id: editingArea.id
       }
 
       const newPod = await createPod(podDataWithArea)

@@ -1,4 +1,5 @@
 import { supabase, type Area, type Pod, type Profile, type PodMember, type PodNote, type AreaDecisionQuorum, type AreaComment } from './supabase'
+import { calculateAreaStatus } from './area-status-utils'
 
 // Areas
 export async function getAreas(): Promise<Area[]> {
@@ -217,6 +218,17 @@ export async function updatePodMembers(podId: string, members: Array<{
         throw error
       }
     }
+
+    // Update area status automatically
+    const { data: podData } = await supabase
+      .from('pods')
+      .select('area_id')
+      .eq('id', podId)
+      .single()
+
+    if (podData?.area_id) {
+      await updateAreaStatusAfterPodChange(podData.area_id)
+    }
   } catch (error) {
     console.error('Error updating POD members:', error)
     throw error
@@ -367,6 +379,11 @@ export async function createPod(podData: {
     }
   }
 
+  // Update area status automatically if POD has an area
+  if (pod.area_id) {
+    await updateAreaStatusAfterPodChange(pod.area_id)
+  }
+
   return pod
 }
 
@@ -388,6 +405,12 @@ export async function updatePod(id: string, updates: Partial<Pod>) {
   }
 
   console.log('Successfully updated POD:', data[0])
+  
+  // Update area status automatically if POD has an area
+  if (data[0].area_id) {
+    await updateAreaStatusAfterPodChange(data[0].area_id)
+  }
+  
   return data[0]
 }
 
@@ -979,5 +1002,74 @@ export async function validateAreaForPlanned(areaId: string): Promise<{ valid: b
   } catch (error) {
     console.error('Error validating area for planned:', error)
     return { valid: false, message: 'Error validating area', missing: [] }
+  }
+}
+
+// Automatic area status management
+export async function updateAreaStatusAutomatically(areaId: string): Promise<Area | null> {
+  try {
+    // Get the area and its PODs
+    const { data: areaData, error: areaError } = await supabase
+      .from('areas')
+      .select('*')
+      .eq('id', areaId)
+      .single()
+
+    if (areaError || !areaData) {
+      console.error('Error fetching area for status update:', areaError)
+      return null
+    }
+
+    const { data: podsData, error: podsError } = await supabase
+      .from('pods')
+      .select(`
+        *,
+        members:pod_members(
+          *,
+          member:profiles(*)
+        )
+      `)
+      .eq('area_id', areaId)
+
+    if (podsError) {
+      console.error('Error fetching PODs for status update:', podsError)
+      return null
+    }
+
+    // Calculate the correct status
+    const correctStatus = calculateAreaStatus(areaData, podsData || [])
+    
+    // Only update if status has changed
+    if (areaData.status !== correctStatus) {
+      console.log(`Auto-updating area ${areaData.name} from ${areaData.status} to ${correctStatus}`)
+      
+      const { data: updatedArea, error: updateError } = await supabase
+        .from('areas')
+        .update({ status: correctStatus })
+        .eq('id', areaId)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('Error updating area status:', updateError)
+        return null
+      }
+
+      return updatedArea
+    }
+
+    return areaData
+  } catch (error) {
+    console.error('Error in updateAreaStatusAutomatically:', error)
+    return null
+  }
+}
+
+// Update area status when PODs change
+export async function updateAreaStatusAfterPodChange(areaId: string): Promise<void> {
+  try {
+    await updateAreaStatusAutomatically(areaId)
+  } catch (error) {
+    console.error('Error updating area status after POD change:', error)
   }
 }
