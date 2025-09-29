@@ -66,13 +66,25 @@ export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated
     status: area.status || 'Backlog'
   }
 
+  console.log('Creating area with data:', cleanArea)
+
   const { data, error } = await supabase
     .from('areas')
     .insert(cleanArea)
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error creating area:', error)
+    throw error
+  }
+
+  if (!data) {
+    console.error('No data returned from area creation')
+    throw new Error('Failed to create area: No data returned')
+  }
+
+  console.log('Successfully created area:', data)
   return data
 }
 
@@ -84,6 +96,25 @@ export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 
     end_date: updates.end_date && updates.end_date.trim() !== '' ? updates.end_date : null,
   }
 
+  console.log('Updating area with ID:', id, 'and updates:', cleanUpdates)
+
+  // First check if the area exists
+  const { data: existingArea, error: checkError } = await supabase
+    .from('areas')
+    .select('id')
+    .eq('id', id)
+    .single()
+
+  if (checkError) {
+    console.error('Error checking if area exists:', checkError)
+    throw new Error(`Area with ID ${id} not found: ${checkError.message}`)
+  }
+
+  if (!existingArea) {
+    console.error('Area not found with ID:', id)
+    throw new Error(`Area with ID ${id} not found`)
+  }
+
   const { data, error } = await supabase
     .from('areas')
     .update(cleanUpdates)
@@ -91,7 +122,17 @@ export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error updating area:', error)
+    throw error
+  }
+
+  if (!data) {
+    console.error('No data returned from area update - area might not exist with ID:', id)
+    throw new Error(`Failed to update area: Area with ID ${id} not found`)
+  }
+
+  console.log('Successfully updated area:', data)
   return data
 }
 
@@ -191,7 +232,16 @@ export async function getMembers(): Promise<Profile[]> {
     return []
   }
 
-  return data || []
+  // Convert bandwidth percentages from integers (0-100) back to decimals (0-1)
+  const membersWithConvertedBandwidth = (data || []).map(member => ({
+    ...member,
+    pod_members: member.pod_members?.map((pm: any) => ({
+      ...pm,
+      bandwidth_percentage: pm.bandwidth_percentage / 100 // Convert percentage integer back to decimal
+    })) || []
+  }))
+
+  return membersWithConvertedBandwidth
 }
 
 export async function getAvailableMembers(): Promise<Profile[]> {

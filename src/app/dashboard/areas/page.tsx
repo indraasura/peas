@@ -164,10 +164,13 @@ export default function AreasPage() {
       
       let areaId: string
       if (editingArea) {
+        console.log('Updating existing area with ID:', editingArea.id)
+        console.log('Area data to update:', cleanAreaData)
         await updateArea(editingArea.id, cleanAreaData)
         await updateAreaDecisionQuorum(editingArea.id, decision_quorum)
         areaId = editingArea.id
       } else {
+        console.log('Creating new area with data:', cleanAreaData)
         const newArea = await createArea(cleanAreaData)
         await updateAreaDecisionQuorum(newArea.id, decision_quorum)
         areaId = newArea.id
