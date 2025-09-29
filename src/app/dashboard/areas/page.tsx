@@ -620,15 +620,36 @@ export default function AreasPage() {
         <Box sx={{ mb: 2 }}>
           {/* Original dates */}
           {(area.start_date || area.end_date) && (
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-              Start: {formatDate(area.start_date)} End: {formatDate(area.end_date)}
-            </Typography>
+            <Box sx={{ mb: 0.5 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                📅 Start: {formatDate(area.start_date)} | End: {formatDate(area.end_date)}
+              </Typography>
+            </Box>
           )}
           {/* Revised end dates */}
           {revisedDates.map((revisedDate: string, index: number) => (
-            <Typography key={index} variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-              Revised: {formatDate(revisedDate)}
-            </Typography>
+            <Box 
+              key={index} 
+              sx={{ 
+                mb: 0.5,
+                backgroundColor: '#ffebee',
+                border: '1px solid #ffcdd2',
+                borderRadius: 1,
+                px: 1,
+                py: 0.5
+              }}
+            >
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: '#d32f2f',
+                  fontWeight: 500,
+                  fontSize: '0.75rem'
+                }}
+              >
+                📅 Revised: {formatDate(revisedDate)}
+              </Typography>
+            </Box>
           ))}
         </Box>
 
@@ -732,8 +753,8 @@ export default function AreasPage() {
             </Box>
           ) : (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <AttachFileIcon sx={{ fontSize: 14, color: '#f44336' }} />
-              <Typography variant="caption" color="error.main">
+              <AttachFileIcon sx={{ fontSize: 14, color: '#e57373' }} />
+              <Typography variant="caption" sx={{ color: '#d32f2f', fontWeight: 500 }}>
                 One-pager required
               </Typography>
             </Box>
@@ -1265,7 +1286,12 @@ export default function AreasPage() {
                   ) : (
                     <Chip 
                       label="Required" 
-                      sx={{ backgroundColor: '#f44336', color: 'white' }} 
+                      sx={{ 
+                        backgroundColor: '#ffebee', 
+                        color: '#d32f2f',
+                        border: '1px solid #ffcdd2',
+                        fontWeight: 500
+                      }} 
                     />
                   )}
                 </Grid>
