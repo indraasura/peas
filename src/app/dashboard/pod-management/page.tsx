@@ -362,11 +362,11 @@ export default function PodManagementPage() {
                 <TextField
                   label="Bandwidth"
                   type="number"
-                  value={member.bandwidth_percentage * 100} // Display as percentage
+                  value={member.bandwidth_percentage}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    handleMemberChange(index, 'bandwidth_percentage', (parseFloat(e.target.value) || 0) / 100) // Convert percentage to decimal
+                    handleMemberChange(index, 'bandwidth_percentage', parseFloat(e.target.value) || 0)
                   }
-                  inputProps={{ min: 0, max: 100, step: 1 }}
+                  inputProps={{ min: 0, max: 1, step: 0.01 }}
                   sx={{ width: 120 }}
                 />
 
