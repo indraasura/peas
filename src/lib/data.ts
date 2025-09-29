@@ -854,6 +854,16 @@ export async function checkAndUpdateAreaStatus(areaId: string): Promise<void> {
     if (allReleased) {
       // Update area status to Released
       await updateArea(areaId, { status: 'Released' })
+      console.log(`Area ${areaId} automatically moved to Released status`)
+      
+      // Invalidate areas cache to ensure real-time updates
+      try {
+        const { invalidateAreasCache } = await import('./data-optimized')
+        invalidateAreasCache()
+      } catch (cacheError) {
+        console.warn('Could not invalidate areas cache:', cacheError)
+        // Don't fail the operation if cache invalidation fails
+      }
     }
   } catch (error) {
     console.error('Error checking area status:', error)
@@ -1053,6 +1063,15 @@ export async function updateAreaStatusAutomatically(areaId: string): Promise<Are
       if (updateError) {
         console.error('Error updating area status:', updateError)
         return null
+      }
+
+      // Invalidate areas cache to ensure real-time updates
+      try {
+        const { invalidateAreasCache } = await import('./data-optimized')
+        invalidateAreasCache()
+      } catch (cacheError) {
+        console.warn('Could not invalidate areas cache:', cacheError)
+        // Don't fail the operation if cache invalidation fails
       }
 
       return updatedArea

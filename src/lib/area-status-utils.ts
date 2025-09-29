@@ -22,8 +22,20 @@ export function calculateAreaStatus(
   area: Area, 
   pods: Pod[] = []
 ): 'Backlog' | 'Planning' | 'Planned' | 'Executing' | 'Released' {
-  // Don't change Executing or Released statuses (these are manual actions)
-  if (area.status === 'Executing' || area.status === 'Released') {
+  // Get all PODs for this area (including Released PODs for the check)
+  const allAreaPods = pods.filter(pod => pod.area_id === area.id)
+  
+  // Special case: If area is Executing and ALL PODs are Released, move to Released
+  if (area.status === 'Executing' && allAreaPods.length > 0) {
+    const allPodsReleased = allAreaPods.every(pod => pod.status === 'Released')
+    if (allPodsReleased) {
+      return 'Released'
+    }
+    return 'Executing' // Keep Executing if not all PODs are released
+  }
+
+  // Don't change Released status (this is a final state)
+  if (area.status === 'Released') {
     return area.status
   }
 

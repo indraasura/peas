@@ -93,6 +93,8 @@ export default function DashboardPage() {
 
         const availableCapacity = totalCapacity - assignedCapacity // Allow negative values for over-allocation
 
+        console.log(`Team: ${team}, Assigned: ${assignedCapacity}, Available: ${availableCapacity}, Total: ${totalCapacity}`)
+
         return {
           team,
           assignedCapacity,

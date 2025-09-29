@@ -228,6 +228,8 @@ export default function PodsPage() {
       if (newStatus === 'Released' && pod.area_id) {
         try {
           await checkAndUpdateAreaStatus(pod.area_id)
+          // Refresh areas data to show the updated area status
+          await fetchData()
         } catch (error) {
           console.error('Error checking area status:', error)
           // Don't show error to user as this is a background operation
