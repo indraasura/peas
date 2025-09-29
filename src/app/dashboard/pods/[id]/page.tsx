@@ -59,6 +59,7 @@ export default function PodViewPage() {
   const [editingNote, setEditingNote] = useState<PodNote | null>(null)
   const [noteForm, setNoteForm] = useState({
     review_date: '',
+    revised_end_date: '',
     blockers: '',
     learnings: '',
     current_state: '',
@@ -100,6 +101,7 @@ export default function PodViewPage() {
       if (editingNote) {
         await updatePodNote(editingNote.id, {
           review_date: noteForm.review_date,
+          revised_end_date: noteForm.revised_end_date || undefined,
           blockers: noteForm.blockers || undefined,
           learnings: noteForm.learnings || undefined,
           current_state: noteForm.current_state || undefined,
@@ -111,6 +113,7 @@ export default function PodViewPage() {
         await createPodNote({
           pod_id: pod.id,
           review_date: noteForm.review_date,
+          revised_end_date: noteForm.revised_end_date || undefined,
           blockers: noteForm.blockers || undefined,
           learnings: noteForm.learnings || undefined,
           current_state: noteForm.current_state || undefined,
@@ -125,6 +128,7 @@ export default function PodViewPage() {
       setEditingNote(null)
       setNoteForm({
         review_date: '',
+        revised_end_date: '',
         blockers: '',
         learnings: '',
         current_state: '',
@@ -531,6 +535,17 @@ export default function PodViewPage() {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, review_date: e.target.value })}
                 InputLabelProps={{ shrink: true }}
                 required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Revised End Date (Optional)"
+                type="date"
+                value={noteForm.revised_end_date}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, revised_end_date: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                helperText="If the POD end date needs to be revised"
               />
             </Grid>
             <Grid item xs={12}>

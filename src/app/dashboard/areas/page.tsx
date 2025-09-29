@@ -45,7 +45,7 @@ import {
   Check as CheckIcon,
   Close as CloseIcon
 } from '@mui/icons-material'
-import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, getPods, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, getAvailableMembers } from '@/lib/data'
+import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, getPods, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, getAvailableMembers, getAreaRevisedEndDates } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import KanbanBoard from '@/components/KanbanBoard'
@@ -58,6 +58,7 @@ export default function AreasPage() {
   const [pods, setPods] = useState<Pod[]>([])
   const [podCommitteeMembers, setPodCommitteeMembers] = useState<Profile[]>([])
   const [availableMembers, setAvailableMembers] = useState<Profile[]>([])
+  const [areaRevisedEndDates, setAreaRevisedEndDates] = useState<Record<string, string[]>>({})
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [openPodDialog, setOpenPodDialog] = useState(false)
@@ -128,6 +129,19 @@ export default function AreasPage() {
       setPods(podsData)
       setPodCommitteeMembers(membersData.filter(member => member.team === 'POD committee'))
       setAvailableMembers(availableMembersData)
+
+      // Fetch revised end dates for each area
+      const revisedDatesPromises = areasData.map(async (area) => {
+        const revisedDates = await getAreaRevisedEndDates(area.id)
+        return { areaId: area.id, revisedDates }
+      })
+      
+      const revisedDatesResults = await Promise.all(revisedDatesPromises)
+      const revisedDatesMap: Record<string, string[]> = {}
+      revisedDatesResults.forEach(({ areaId, revisedDates }) => {
+        revisedDatesMap[areaId] = revisedDates
+      })
+      setAreaRevisedEndDates(revisedDatesMap)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -528,8 +542,15 @@ export default function AreasPage() {
     return '#9e9e9e' // Always return grey for all levels
   }
 
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
+  }
+
   const renderAreaCard = (area: Area) => {
     const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
+    const revisedDates = areaRevisedEndDates[area.id] || []
     
     return (
         <Box>
@@ -537,88 +558,82 @@ export default function AreasPage() {
           {area.name}
         </Typography>
         
+        {/* Dates Section */}
+        {(area.start_date || area.end_date || revisedDates.length > 0) && (
+          <Box sx={{ mb: 2 }}>
+            {/* Original dates */}
+            {(area.start_date || area.end_date) && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                Start: {formatDate(area.start_date)} End: {formatDate(area.end_date)}
+              </Typography>
+            )}
+            {/* Revised end dates */}
+            {revisedDates.map((revisedDate: string, index: number) => (
+              <Typography key={index} variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                Revised: {formatDate(revisedDate)}
+              </Typography>
+            ))}
+          </Box>
+        )}
+
         {area.description && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             {area.description}
           </Typography>
         )}
 
-        {/* Impact Values - only show if they have values */}
+        {/* Impact Values - compact format like in image */}
         {(area.revenue_impact || area.business_enablement || area.efforts || area.end_user_impact) && (
-          <Grid container spacing={1} sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
             {area.revenue_impact && (
-              <Grid item xs={6}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <AssessmentIcon sx={{ fontSize: 16, color: getImpactColor(area.revenue_impact) }} />
-                  <Typography variant="caption">Revenue</Typography>
-                  <Chip 
-                    label={area.revenue_impact} 
-                    size="small" 
-                    sx={{ 
-                      backgroundColor: getImpactColor(area.revenue_impact), 
-                      color: 'white',
-                      fontSize: '0.7rem',
-                      height: 20
-                    }} 
-                  />
-                </Box>
-              </Grid>
+              <Chip 
+                label={`R: ${area.revenue_impact}`} 
+                size="small" 
+                sx={{ 
+                  backgroundColor: getImpactColor(area.revenue_impact), 
+                  color: 'white',
+                  fontSize: '0.7rem',
+                  height: 20
+                }} 
+              />
             )}
             {area.business_enablement && (
-              <Grid item xs={6}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <AssessmentIcon sx={{ fontSize: 16, color: getImpactColor(area.business_enablement) }} />
-                  <Typography variant="caption">Business</Typography>
-                  <Chip 
-                    label={area.business_enablement} 
-                    size="small" 
-                    sx={{ 
-                      backgroundColor: getImpactColor(area.business_enablement), 
-                      color: 'white',
-                      fontSize: '0.7rem',
-                      height: 20
-                    }} 
-                  />
-                </Box>
-              </Grid>
+              <Chip 
+                label={`B: ${area.business_enablement}`} 
+                size="small" 
+                sx={{ 
+                  backgroundColor: getImpactColor(area.business_enablement), 
+                  color: 'white',
+                  fontSize: '0.7rem',
+                  height: 20
+                }} 
+              />
             )}
             {area.efforts && (
-              <Grid item xs={6}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <ScheduleIcon sx={{ fontSize: 16, color: getImpactColor(area.efforts) }} />
-                  <Typography variant="caption">Efforts</Typography>
-                  <Chip 
-                    label={area.efforts} 
-                    size="small" 
-                    sx={{ 
-                      backgroundColor: getImpactColor(area.efforts), 
-                      color: 'white',
-                      fontSize: '0.7rem',
-                      height: 20
-                    }} 
-                  />
-                </Box>
-              </Grid>
+              <Chip 
+                label={`E: ${area.efforts}`} 
+                size="small" 
+                sx={{ 
+                  backgroundColor: getImpactColor(area.efforts), 
+                  color: 'white',
+                  fontSize: '0.7rem',
+                  height: 20
+                }} 
+              />
             )}
             {area.end_user_impact && (
-              <Grid item xs={6}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <GroupIcon sx={{ fontSize: 16, color: getImpactColor(area.end_user_impact) }} />
-                  <Typography variant="caption">User Impact</Typography>
-                  <Chip 
-                    label={area.end_user_impact} 
-                    size="small" 
-                    sx={{ 
-                      backgroundColor: getImpactColor(area.end_user_impact), 
-                      color: 'white',
-                      fontSize: '0.7rem',
-                      height: 20
-                    }} 
-                  />
-                </Box>
-              </Grid>
+              <Chip 
+                label={`U: ${area.end_user_impact}`} 
+                size="small" 
+                sx={{ 
+                  backgroundColor: getImpactColor(area.end_user_impact), 
+                  color: 'white',
+                  fontSize: '0.7rem',
+                  height: 20
+                }} 
+              />
             )}
-          </Grid>
+          </Box>
         )}
 
         {/* Associated PODs */}

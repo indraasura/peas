@@ -97,6 +97,7 @@ export interface PodNote {
   id: string
   pod_id: string
   review_date: string
+  revised_end_date?: string
   blockers?: string
   learnings?: string
   current_state?: string

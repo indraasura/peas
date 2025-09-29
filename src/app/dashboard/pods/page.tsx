@@ -76,6 +76,7 @@ export default function PodsPage() {
   const [editingNote, setEditingNote] = useState<PodNote | null>(null)
   const [newNote, setNewNote] = useState({
     review_date: '',
+    revised_end_date: '',
     blockers: '',
     learnings: '',
     current_state: '',
@@ -295,6 +296,7 @@ export default function PodsPage() {
     if (!selectedPod) return
     setNewNote({
       review_date: '',
+      revised_end_date: '',
       blockers: '',
       learnings: '',
       current_state: '',
@@ -320,6 +322,7 @@ export default function PodsPage() {
         // Update existing note
         await updatePodNote(editingNote.id, {
           review_date: newNote.review_date,
+          revised_end_date: newNote.revised_end_date || undefined,
           blockers: newNote.blockers || undefined,
           learnings: newNote.learnings || undefined,
           current_state: newNote.current_state || undefined,
@@ -332,6 +335,7 @@ export default function PodsPage() {
         await createPodNote({
           pod_id: selectedPod.id,
           review_date: newNote.review_date,
+          revised_end_date: newNote.revised_end_date || undefined,
           blockers: newNote.blockers || undefined,
           learnings: newNote.learnings || undefined,
           current_state: newNote.current_state || undefined,
@@ -826,6 +830,7 @@ export default function PodsPage() {
         setEditingNote(null)
         setNewNote({
           review_date: '',
+          revised_end_date: '',
           blockers: '',
           learnings: '',
           current_state: '',
@@ -846,6 +851,17 @@ export default function PodsPage() {
                 onChange={(e: any) => setNewNote({ ...newNote, review_date: e.target.value })}
                 InputLabelProps={{ shrink: true }}
                 required
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Revised End Date (Optional)"
+                type="date"
+                value={newNote.revised_end_date}
+                onChange={(e: any) => setNewNote({ ...newNote, revised_end_date: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+                helperText="If the POD end date needs to be revised based on this review"
               />
             </Grid>
             <Grid item xs={12}>
@@ -922,6 +938,7 @@ export default function PodsPage() {
             setEditingNote(null)
             setNewNote({
               review_date: '',
+              revised_end_date: '',
               blockers: '',
               learnings: '',
               current_state: '',

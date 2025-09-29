@@ -404,6 +404,7 @@ export async function getPodNotes(podId: string): Promise<PodNote[]> {
 export async function createPodNote(noteData: {
   pod_id: string
   review_date: string
+  revised_end_date?: string
   blockers?: string
   learnings?: string
   current_state?: string
@@ -441,6 +442,31 @@ export async function deletePodNote(id: string) {
     .eq('id', id)
 
   if (error) throw error
+}
+
+// Get all revised end dates for an area (from POD notes)
+export async function getAreaRevisedEndDates(areaId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('pod_notes')
+    .select(`
+      revised_end_date,
+      pod:pods(area_id)
+    `)
+    .eq('pod.area_id', areaId)
+    .not('revised_end_date', 'is', null)
+    .order('review_date', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching revised end dates:', error)
+    return []
+  }
+
+  // Extract unique revised end dates and filter out null values
+  const revisedDates = (data || [])
+    .map(item => item.revised_end_date)
+    .filter((date, index, arr) => date && arr.indexOf(date) === index) // Remove duplicates and null values
+
+  return revisedDates
 }
 
 export async function getPodNote(id: string): Promise<PodNote | null> {
