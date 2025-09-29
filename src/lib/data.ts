@@ -372,10 +372,19 @@ export async function updatePod(id: string, updates: Partial<Pod>) {
     .update(updates)
     .eq('id', id)
     .select()
-    .single()
 
-  if (error) throw error
-  return data
+  if (error) {
+    console.error('Error updating POD:', error)
+    throw new Error(`Failed to update POD: ${error.message}`)
+  }
+
+  if (!data || data.length === 0) {
+    console.error('No data returned from POD update')
+    throw new Error('Failed to update POD: No data returned')
+  }
+
+  console.log('Successfully updated POD:', data[0])
+  return data[0]
 }
 
 export async function deletePod(id: string) {
@@ -825,6 +834,58 @@ export async function validateAreaForPlanning(areaId: string): Promise<{ valid: 
   }
 }
 
+// Helper function to check if an area has PODs
+export async function getAreaPods(areaId: string): Promise<{ id: string; name: string }[]> {
+  try {
+    const { data, error } = await supabase
+      .from('pods')
+      .select('id, name')
+      .eq('area_id', areaId)
+    
+    if (error) {
+      console.error('Error fetching PODs for area:', error)
+      throw error
+    }
+    
+    return data || []
+  } catch (error) {
+    console.error('Error in getAreaPods:', error)
+    return []
+  }
+}
+
+// Helper function to verify POD association after update
+export async function verifyPODAssociation(podId: string, expectedAreaId: string | null): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('pods')
+      .select('area_id')
+      .eq('id', podId)
+    
+    if (error) {
+      console.error('Error verifying POD association:', error)
+      return false
+    }
+    
+    if (!data || data.length === 0) {
+      console.error('POD not found:', podId)
+      return false
+    }
+    
+    const actualAreaId = data[0].area_id
+    const isCorrect = actualAreaId === expectedAreaId
+    
+    if (!isCorrect) {
+      console.error(`POD association mismatch for ${podId}: expected ${expectedAreaId}, got ${actualAreaId}`)
+    }
+    
+    return isCorrect
+  } catch (error) {
+    console.error('Error in verifyPODAssociation:', error)
+    return false
+  }
+}
+
 export async function validateAreaForPlanned(areaId: string): Promise<{ valid: boolean; message: string; missing: string[] }> {
   try {
     const { data, error } = await supabase
@@ -870,18 +931,13 @@ export async function validateAreaForPlanned(areaId: string): Promise<{ valid: b
       missing.push('End user impact')
     }
     
-    // Check if area has PODs
-    const { data: pods, error: podsError } = await supabase
-      .from('pods')
-      .select('id')
-      .eq('area_id', areaId)
+    // Check if area has PODs using helper function
+    const pods = await getAreaPods(areaId)
     
-    if (podsError) {
-      throw podsError
-    }
-    
-    if (!pods || pods.length === 0) {
+    if (pods.length === 0) {
       missing.push('At least one POD')
+    } else {
+      console.log(`Area has ${pods.length} POD(s):`, pods.map(p => p.name || p.id))
     }
     
     const valid = missing.length === 0

@@ -45,7 +45,7 @@ import {
   Check as CheckIcon,
   Close as CloseIcon
 } from '@mui/icons-material'
-import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, getPods, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, getAvailableMembers, getAreaRevisedEndDates } from '@/lib/data'
+import { getAreas, createArea, updateArea, deleteArea, getMembers, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, getPods, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, getAvailableMembers, getAreaRevisedEndDates, verifyPODAssociation } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import KanbanBoard from '@/components/KanbanBoard'
@@ -168,8 +168,8 @@ export default function AreasPage() {
         business_enablement: areaData.business_enablement || undefined,
         efforts: areaData.efforts || undefined,
         end_user_impact: areaData.end_user_impact || undefined,
-        start_date: areaData.start_date?.trim() || undefined,
-        end_date: areaData.end_date?.trim() || undefined,
+        start_date: areaData.start_date?.trim() || '',
+        end_date: areaData.end_date?.trim() || '',
         one_pager_url: areaData.one_pager_url?.trim() || undefined,
         status: 'Backlog' as const
       }
@@ -198,15 +198,41 @@ export default function AreasPage() {
 
       // Update POD associations (only if there are selected PODs)
       if (selected_pods.length > 0) {
-        // First, remove all PODs from this area
-        const currentAreaPods = pods.filter((pod: Pod) => pod.area_id === areaId)
-        for (const pod of currentAreaPods) {
-          await updatePod(pod.id, { area_id: undefined })
-        }
+        try {
+          // First, remove all PODs from this area
+          const currentAreaPods = pods.filter((pod: Pod) => pod.area_id === areaId)
+          console.log('Removing PODs from area:', currentAreaPods.map(p => p.id))
+          
+          for (const pod of currentAreaPods) {
+            try {
+              await updatePod(pod.id, { area_id: null })
+              console.log('Successfully removed POD from area:', pod.id)
+            } catch (error) {
+              console.error('Error removing POD from area:', pod.id, error)
+              // Continue with other PODs even if one fails
+            }
+          }
 
-        // Then, assign selected PODs to this area
-        for (const podId of selected_pods) {
-          await updatePod(podId, { area_id: areaId })
+          // Then, assign selected PODs to this area
+          console.log('Assigning PODs to area:', selected_pods)
+          for (const podId of selected_pods) {
+            try {
+              await updatePod(podId, { area_id: areaId })
+              console.log('Successfully assigned POD to area:', podId)
+              
+              // Verify the association
+              const isCorrect = await verifyPODAssociation(podId, areaId)
+              if (!isCorrect) {
+                console.warn('POD association verification failed for:', podId)
+              }
+            } catch (error) {
+              console.error('Error assigning POD to area:', podId, error)
+              // Continue with other PODs even if one fails
+            }
+          }
+        } catch (error) {
+          console.error('Error updating POD associations:', error)
+          // Don't throw here - the area update should still succeed
         }
       }
       
@@ -247,7 +273,11 @@ export default function AreasPage() {
         }
       }
       
-      fetchData()
+      // Refresh data to get updated POD associations
+      await fetchData()
+      
+      // Show success message
+      console.log('Area saved successfully')
     } catch (error) {
       console.error('Error saving area:', error)
       setError(`Failed to save area: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -280,16 +310,25 @@ export default function AreasPage() {
 
     // Validate move from Planning to Planned
     if (source.droppableId === 'Planning' && destination.droppableId === 'Planned') {
-      const validation = await validateAreaForPlanned(area.id)
-      if (!validation.valid) {
-        setValidationDialog({
-          open: true,
-          title: 'Cannot Move to Planned',
-          message: validation.message,
-          missingFields: validation.missing || [],
-          area: area,
-          targetStatus: 'Planned'
-        })
+      try {
+        console.log('Validating area for Planned status:', area.id)
+        const validation = await validateAreaForPlanned(area.id)
+        console.log('Validation result:', validation)
+        
+        if (!validation.valid) {
+          setValidationDialog({
+            open: true,
+            title: 'Cannot Move to Planned',
+            message: validation.message,
+            missingFields: validation.missing || [],
+            area: area,
+            targetStatus: 'Planned'
+          })
+          return
+        }
+      } catch (error) {
+        console.error('Error validating area for Planned status:', error)
+        setError(`Failed to validate area: ${error instanceof Error ? error.message : 'Unknown error'}`)
         return
       }
     }
@@ -309,13 +348,24 @@ export default function AreasPage() {
 
     try {
       const newStatus = destination.droppableId as Area['status']
+      console.log('Moving area to status:', newStatus)
+      
       await updateArea(area.id, { status: newStatus })
+      console.log('Successfully updated area status')
       
       // If moving from Released to any other status, move PODs to 'In development'
       if (source.droppableId === 'Released' && destination.droppableId !== 'Released') {
         const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
+        console.log('Moving PODs to In development:', areaPods.map(p => p.id))
+        
         for (const pod of areaPods) {
-          await updatePod(pod.id, { status: 'In development' })
+          try {
+            await updatePod(pod.id, { status: 'In development' })
+            console.log('Successfully moved POD to In development:', pod.id)
+          } catch (podError) {
+            console.error('Error moving POD to In development:', pod.id, podError)
+            // Continue with other PODs even if one fails
+          }
         }
       }
       
@@ -326,11 +376,13 @@ export default function AreasPage() {
       
       // Refresh data to show updated POD statuses
       if (source.droppableId === 'Released' && destination.droppableId !== 'Released') {
-        fetchData()
+        await fetchData()
       }
+      
+      console.log('Area movement completed successfully')
     } catch (error) {
       console.error('Error moving area:', error)
-      setError('Failed to move area. Please try again.')
+      setError(`Failed to move area: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
