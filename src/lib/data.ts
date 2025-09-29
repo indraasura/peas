@@ -72,20 +72,19 @@ export async function createArea(area: Omit<Area, 'id' | 'created_at' | 'updated
     .from('areas')
     .insert(cleanArea)
     .select()
-    .single()
 
   if (error) {
     console.error('Error creating area:', error)
-    throw error
+    throw new Error(`Failed to create area: ${error.message}`)
   }
 
-  if (!data) {
+  if (!data || data.length === 0) {
     console.error('No data returned from area creation')
     throw new Error('Failed to create area: No data returned')
   }
 
-  console.log('Successfully created area:', data)
-  return data
+  console.log('Successfully created area:', data[0])
+  return data[0]
 }
 
 export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'created_at' | 'updated_at' | 'decision_quorum' | 'comments' | 'pods'>>) {
@@ -104,22 +103,22 @@ export async function updateArea(id: string, updates: Partial<Omit<Area, 'id' | 
   }
 
   // First check if the area exists
-  const { data: existingArea, error: checkError } = await supabase
+  const { data: existingAreaData, error: checkError } = await supabase
     .from('areas')
     .select('id, name')
     .eq('id', id)
-    .single()
 
   if (checkError) {
     console.error('Error checking if area exists:', checkError)
     throw new Error(`Area with ID ${id} not found: ${checkError.message}`)
   }
 
-  if (!existingArea) {
+  if (!existingAreaData || existingAreaData.length === 0) {
     console.error('Area not found with ID:', id)
     throw new Error(`Area with ID ${id} not found`)
   }
 
+  const existingArea = existingAreaData[0]
   console.log('Area exists:', existingArea)
 
   const { data, error } = await supabase
@@ -800,15 +799,20 @@ export async function checkAndUpdateAreaStatus(areaId: string): Promise<void> {
 
 export async function validateAreaForPlanning(areaId: string): Promise<{ valid: boolean; message: string }> {
   try {
-    const { data: area, error } = await supabase
+    const { data, error } = await supabase
       .from('areas')
       .select('one_pager_url')
       .eq('id', areaId)
-      .single()
     
     if (error) {
       throw error
     }
+    
+    if (!data || data.length === 0) {
+      return { valid: false, message: 'Area not found' }
+    }
+    
+    const area = data[0]
     
     if (!area.one_pager_url || area.one_pager_url.trim() === '') {
       return { valid: false, message: 'One-pager is required to move to Planning' }
@@ -823,16 +827,20 @@ export async function validateAreaForPlanning(areaId: string): Promise<{ valid: 
 
 export async function validateAreaForPlanned(areaId: string): Promise<{ valid: boolean; message: string; missing: string[] }> {
   try {
-    const { data: area, error } = await supabase
+    const { data, error } = await supabase
       .from('areas')
       .select('*')
       .eq('id', areaId)
-      .single()
     
     if (error) {
       throw error
     }
     
+    if (!data || data.length === 0) {
+      return { valid: false, message: 'Area not found', missing: [] }
+    }
+    
+    const area = data[0]
     const missing: string[] = []
     
     // Check one-pager
