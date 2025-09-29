@@ -617,6 +617,7 @@ export default function PodViewPage() {
             setEditingNote(null)
             setNoteForm({
               review_date: '',
+              revised_end_date: '',
               blockers: '',
               learnings: '',
               current_state: '',

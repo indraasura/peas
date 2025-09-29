@@ -360,6 +360,7 @@ export default function PodsPage() {
       setEditingNote(null)
       setNewNote({
         review_date: '',
+        revised_end_date: '',
         blockers: '',
         learnings: '',
         current_state: '',
