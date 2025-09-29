@@ -17,7 +17,7 @@ export async function getAreas(): Promise<Area[]> {
           creator:profiles(*)
         )
       `)
-      .order('name')
+      .order('created_at', { ascending: false })
 
     if (error) {
       console.error('Error fetching areas with quorum:', error)
@@ -25,7 +25,7 @@ export async function getAreas(): Promise<Area[]> {
       const { data: fallbackData, error: fallbackError } = await supabase
         .from('areas')
         .select('*')
-        .order('name')
+        .order('created_at', { ascending: false })
       
       if (fallbackError) {
         console.error('Fallback query also failed:', fallbackError)
@@ -530,7 +530,7 @@ export async function getPlannedAreas(): Promise<Area[]> {
         )
       `)
       .eq('status', 'Planned')
-      .order('name')
+      .order('created_at', { ascending: false })
 
     if (error) {
       console.error('Error fetching planned areas:', error)

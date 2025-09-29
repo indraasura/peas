@@ -366,7 +366,7 @@ export default function PodManagementPage() {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     handleMemberChange(index, 'bandwidth_percentage', parseFloat(e.target.value) || 0)
                   }
-                  inputProps={{ min: 0, max: 1, step: 0.1 }}
+                  inputProps={{ min: 0, max: 1, step: 0.01 }}
                   sx={{ width: 120 }}
                 />
 

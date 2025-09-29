@@ -107,6 +107,10 @@ export default function AreasPage() {
     area: null,
     targetStatus: ''
   })
+  const [pendingMove, setPendingMove] = useState<{
+    areaId: string
+    targetStatus: string
+  } | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -198,6 +202,28 @@ export default function AreasPage() {
         one_pager_url: '',
         selected_pods: []
       })
+      
+      // Check if there's a pending move after editing
+      if (pendingMove && pendingMove.areaId === areaId) {
+        try {
+          // Re-validate the area for the target status
+          let validation: any = { valid: false }
+          if (pendingMove.targetStatus === 'Planning') {
+            validation = await validateAreaForPlanning(areaId)
+          } else if (pendingMove.targetStatus === 'Planned') {
+            validation = await validateAreaForPlanned(areaId)
+          }
+          
+          if (validation.valid) {
+            // Move the area to the target status
+            await updateArea(areaId, { status: pendingMove.targetStatus as Area['status'] })
+            setPendingMove(null)
+          }
+        } catch (error) {
+          console.error('Error validating pending move:', error)
+        }
+      }
+      
       fetchData()
     } catch (error) {
       console.error('Error saving area:', error)
@@ -326,7 +352,13 @@ export default function AreasPage() {
         return
       }
 
-      const newPod = await createPod(podData)
+      // Associate the POD with the current area being edited
+      const podDataWithArea = {
+        ...podData,
+        area_id: editingArea?.id
+      }
+
+      const newPod = await createPod(podDataWithArea)
       await updatePodMembers(newPod.id, members)
       
       // Add the new POD to the selected pods
@@ -1284,7 +1316,7 @@ export default function AreasPage() {
                         newMembers[index].bandwidth_percentage = parseFloat(e.target.value) || 0
                         setPodFormData({ ...podFormData, members: newMembers })
                       }}
-                      inputProps={{ min: 0, max: 1, step: 0.1 }}
+                      inputProps={{ min: 0, max: 1, step: 0.01 }}
                     />
                   </Grid>
                   <Grid item xs={12} sm={3}>
@@ -1372,6 +1404,10 @@ export default function AreasPage() {
                 variant="contained"
                 startIcon={<EditIcon />}
                 onClick={() => {
+                  setPendingMove({
+                    areaId: validationDialog.area!.id,
+                    targetStatus: validationDialog.targetStatus
+                  })
                   setValidationDialog({ ...validationDialog, open: false })
                   handleEditArea(validationDialog.area!)
                 }}
