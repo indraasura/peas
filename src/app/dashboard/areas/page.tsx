@@ -45,12 +45,13 @@ import {
   Check as CheckIcon,
   Close as CloseIcon
 } from '@mui/icons-material'
-import { createArea, updateArea, deleteArea, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, verifyPODAssociation, updateAreaStatusAutomatically } from '@/lib/data'
+import { createArea, updateArea, deleteArea, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, verifyPODAssociation, updateAreaStatusAutomatically, getPodNotes } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import { useComprehensiveData } from '@/hooks/useOptimizedData'
 import { SkeletonLoader, AreaCardSkeleton } from '@/components/SkeletonLoader'
 import { validatePodCreation } from '@/lib/area-status-utils'
+import { calculateAreaRiskLevel, calculatePodRiskLevel, getRiskInfo, type RiskLevel } from '@/lib/risk-utils'
 import KanbanBoard from '@/components/KanbanBoard'
 import { DropResult } from '@hello-pangea/dnd'
 
@@ -124,6 +125,7 @@ export default function AreasPage() {
     areaId: string
     targetStatus: string
   } | null>(null)
+  const [areaRiskLevels, setAreaRiskLevels] = useState<Record<string, RiskLevel>>({})
 
   // Load user data
   useEffect(() => {
@@ -137,6 +139,38 @@ export default function AreasPage() {
     }
     loadUser()
   }, [])
+
+  // Calculate area risk levels when areas and pods data changes
+  useEffect(() => {
+    const calculateRiskLevels = async () => {
+      if (!areas.length || !pods.length) return
+
+      const riskLevels: Record<string, RiskLevel> = {}
+      
+      for (const area of areas) {
+        const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
+        const podRiskLevels: Record<string, RiskLevel> = {}
+        
+        // Calculate risk level for each POD in this area
+        for (const pod of areaPods) {
+          try {
+            const notes = await getPodNotes(pod.id)
+            podRiskLevels[pod.id] = calculatePodRiskLevel(notes)
+          } catch (error) {
+            console.error(`Error fetching notes for POD ${pod.id}:`, error)
+            podRiskLevels[pod.id] = 'on-track'
+          }
+        }
+        
+        // Calculate area risk level based on POD risk levels
+        riskLevels[area.id] = calculateAreaRiskLevel(areaPods, podRiskLevels)
+      }
+      
+      setAreaRiskLevels(riskLevels)
+    }
+
+    calculateRiskLevels()
+  }, [areas, pods])
 
   const handleSubmit = async () => {
     try {
@@ -605,12 +639,26 @@ export default function AreasPage() {
   const renderAreaCard = (area: Area) => {
     const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
     const revisedDates = areaRevisedEndDates[area.id] || []
+    const riskLevel = areaRiskLevels[area.id] || 'on-track'
+    const riskInfo = getRiskInfo(riskLevel)
     
     return (
         <Box>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-          {area.name}
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            {area.name}
+          </Typography>
+          <Chip
+            label={riskInfo.label}
+            size="small"
+            sx={{
+              backgroundColor: riskInfo.color,
+              color: 'white',
+              fontWeight: 600,
+              fontSize: '0.7rem'
+            }}
+          />
+        </Box>
         
         {/* Dates Section - Always show if there are any dates */}
         <Box sx={{ mb: 2 }}>

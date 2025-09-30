@@ -453,12 +453,27 @@ export default function PodsPage() {
   const renderPodCard = (pod: Pod) => {
     const leader = pod.members?.find(m => m.is_leader)
     const memberCount = pod.members?.length || 0
+    const riskLevel = podRiskLevels[pod.id] || 'on-track'
+    const riskInfo = getRiskInfo(riskLevel)
+    const latestRevisedDate = podRevisedDates[pod.id]
     
     return (
         <Box>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-          {pod.name}
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            {pod.name}
+          </Typography>
+          <Chip
+            label={riskInfo.label}
+            size="small"
+            sx={{
+              backgroundColor: riskInfo.color,
+              color: 'white',
+              fontWeight: 600,
+              fontSize: '0.7rem'
+            }}
+          />
+        </Box>
         
         {pod.description && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -523,6 +538,16 @@ export default function PodsPage() {
               {pod.start_date && `Start: ${new Date(pod.start_date).toLocaleDateString()}`}
               {pod.start_date && pod.end_date && ' • '}
               {pod.end_date && `End: ${new Date(pod.end_date).toLocaleDateString()}`}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Revised End Date */}
+        {latestRevisedDate && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" color="warning.main" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 600 }}>
+              <ScheduleIcon sx={{ fontSize: 14 }} />
+              Revised End: {new Date(latestRevisedDate).toLocaleDateString()}
             </Typography>
           </Box>
         )}
