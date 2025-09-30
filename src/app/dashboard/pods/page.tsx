@@ -53,6 +53,7 @@ import {
 import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote, updatePodNote, deletePodNote, checkAndUpdateAreaStatus } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'
 import { type Pod, type Area, type Profile, type PodNote } from '@/lib/supabase'
+import { calculatePodRiskLevel, getRiskInfo, getLatestRevisedEndDate, type RiskLevel } from '@/lib/risk-utils'
 import KanbanBoard from '@/components/KanbanBoard'
 import { DropResult } from '@hello-pangea/dnd'
 
@@ -71,6 +72,8 @@ export default function PodsPage() {
   const [selectedPod, setSelectedPod] = useState<Pod | null>(null)
   const [podNotes, setPodNotes] = useState<PodNote[]>([])
   const [podNotesCounts, setPodNotesCounts] = useState<Record<string, number>>({})
+  const [podRiskLevels, setPodRiskLevels] = useState<Record<string, RiskLevel>>({})
+  const [podRevisedDates, setPodRevisedDates] = useState<Record<string, string>>({})
   const [openViewDialog, setOpenViewDialog] = useState(false)
   const [selectedNote, setSelectedNote] = useState<PodNote | null>(null)
   const [editingNote, setEditingNote] = useState<PodNote | null>(null)
@@ -151,13 +154,23 @@ export default function PodsPage() {
   const fetchPodNotesCounts = async (pods: Pod[]) => {
     try {
       const counts: Record<string, number> = {}
+      const riskLevels: Record<string, RiskLevel> = {}
+      const revisedDates: Record<string, string> = {}
+      
       await Promise.all(
         pods.map(async (pod) => {
           const notes = await getPodNotes(pod.id)
           counts[pod.id] = notes.length
+          riskLevels[pod.id] = calculatePodRiskLevel(notes)
+          const latestRevisedDate = getLatestRevisedEndDate(notes)
+          if (latestRevisedDate) {
+            revisedDates[pod.id] = latestRevisedDate
+          }
         })
       )
       setPodNotesCounts(counts)
+      setPodRiskLevels(riskLevels)
+      setPodRevisedDates(revisedDates)
     } catch (error) {
       console.error('Error fetching pod notes counts:', error)
     }
@@ -359,11 +372,32 @@ export default function PodsPage() {
       const notes = await getPodNotes(selectedPod.id)
       setPodNotes(notes)
       
-      // Update notes count
+      // Update notes count, risk levels, and revised dates
+      const updatedRiskLevel = calculatePodRiskLevel(notes)
+      const latestRevisedDate = getLatestRevisedEndDate(notes)
+      
       setPodNotesCounts(prev => ({
         ...prev,
         [selectedPod.id]: notes.length
       }))
+      
+      setPodRiskLevels(prev => ({
+        ...prev,
+        [selectedPod.id]: updatedRiskLevel
+      }))
+      
+      if (latestRevisedDate) {
+        setPodRevisedDates(prev => ({
+          ...prev,
+          [selectedPod.id]: latestRevisedDate
+        }))
+      } else {
+        setPodRevisedDates(prev => {
+          const updated = { ...prev }
+          delete updated[selectedPod.id]
+          return updated
+        })
+      }
       
       // Refresh all data to ensure areas page shows updated revised dates
       await fetchData()
@@ -417,11 +451,32 @@ export default function PodsPage() {
           const notes = await getPodNotes(selectedPod.id)
           setPodNotes(notes)
           
-          // Update notes count
+          // Update notes count, risk levels, and revised dates
+          const updatedRiskLevel = calculatePodRiskLevel(notes)
+          const latestRevisedDate = getLatestRevisedEndDate(notes)
+          
           setPodNotesCounts(prev => ({
             ...prev,
             [selectedPod.id]: notes.length
           }))
+          
+          setPodRiskLevels(prev => ({
+            ...prev,
+            [selectedPod.id]: updatedRiskLevel
+          }))
+          
+          if (latestRevisedDate) {
+            setPodRevisedDates(prev => ({
+              ...prev,
+              [selectedPod.id]: latestRevisedDate
+            }))
+          } else {
+            setPodRevisedDates(prev => {
+              const updated = { ...prev }
+              delete updated[selectedPod.id]
+              return updated
+            })
+          }
           
           // Refresh all data to ensure areas page shows updated revised dates
           await fetchData()
