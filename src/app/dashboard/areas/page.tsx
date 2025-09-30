@@ -45,6 +45,20 @@ import {
   Check as CheckIcon,
   Close as CloseIcon
 } from '@mui/icons-material'
+import { Badge } from '@/components/ui/badge'
+import { Button as ShadcnButton } from '@/components/ui/button'
+import { Card as ShadcnCard, CardContent as ShadcnCardContent } from '@/components/ui/card'
+import { 
+  Calendar, 
+  FileText, 
+  Users, 
+  MessageCircle, 
+  Play,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  XCircle
+} from 'lucide-react'
 import { createArea, updateArea, deleteArea, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, verifyPODAssociation, updateAreaStatusAutomatically, getPodNotes } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
@@ -121,6 +135,15 @@ export default function AreasPage() {
     area: null,
     targetStatus: ''
   })
+  const [validationFormData, setValidationFormData] = useState({
+    one_pager_url: '',
+    start_date: '',
+    end_date: '',
+    revenue_impact: 'Low',
+    business_enablement: 'Low',
+    efforts: 'Low',
+    end_user_impact: 'Low'
+  })
   const [pendingMove, setPendingMove] = useState<{
     areaId: string
     targetStatus: string
@@ -194,7 +217,7 @@ export default function AreasPage() {
         start_date: areaData.start_date?.trim() || '',
         end_date: areaData.end_date?.trim() || '',
         one_pager_url: areaData.one_pager_url?.trim() || undefined,
-        status: 'Backlog' as const
+        status: 'Backlog' as const // Will be automatically updated based on criteria
       }
       
       console.log('Creating area with data:', cleanAreaData)
@@ -240,6 +263,13 @@ export default function AreasPage() {
           console.log('Assigning PODs to area:', selected_pods)
           for (const podId of selected_pods) {
             try {
+              // Check if POD is already assigned to another area
+              const pod = pods.find((p: Pod) => p.id === podId)
+              if (pod && pod.area_id && pod.area_id !== areaId) {
+                console.warn(`POD ${pod.name} is already assigned to another area. Skipping assignment.`)
+                continue
+              }
+              
               await updatePod(podId, { area_id: areaId })
               console.log('Successfully assigned POD to area:', podId)
               
@@ -257,6 +287,15 @@ export default function AreasPage() {
           console.error('Error updating POD associations:', error)
           // Don't throw here - the area update should still succeed
         }
+      }
+
+      // Automatically update area status based on completion criteria
+      try {
+        await updateAreaStatusAutomatically(areaId)
+        console.log('Area status automatically updated based on criteria')
+      } catch (error) {
+        console.error('Error updating area status automatically:', error)
+        // Don't fail the operation if status update fails
       }
       
       setOpenDialog(false)
@@ -469,6 +508,9 @@ export default function AreasPage() {
       const newPod = await createPod(podDataWithArea)
       await updatePodMembers(newPod.id, members)
       
+      // Ensure POD is not assigned to any other area
+      console.log(`Created POD ${newPod.name} and assigned to area ${editingArea.name}`)
+      
       // Add the new POD to the selected pods
       setFormData((prev: typeof formData) => ({
         ...prev,
@@ -626,6 +668,64 @@ export default function AreasPage() {
     }
   }
 
+  const handleValidationFormSubmit = async () => {
+    if (!validationDialog.area) return
+
+    try {
+      setError('')
+      
+      // Update the area with the missing fields
+      const updates: any = {}
+      
+      if (validationDialog.missingFields.includes('One-pager') && validationFormData.one_pager_url) {
+        updates.one_pager_url = validationFormData.one_pager_url
+      }
+      if (validationDialog.missingFields.includes('Start date') && validationFormData.start_date) {
+        updates.start_date = validationFormData.start_date
+      }
+      if (validationDialog.missingFields.includes('End date') && validationFormData.end_date) {
+        updates.end_date = validationFormData.end_date
+      }
+      if (validationDialog.missingFields.includes('Revenue impact') && validationFormData.revenue_impact) {
+        updates.revenue_impact = validationFormData.revenue_impact
+      }
+      if (validationDialog.missingFields.includes('Business enablement') && validationFormData.business_enablement) {
+        updates.business_enablement = validationFormData.business_enablement
+      }
+      if (validationDialog.missingFields.includes('Efforts') && validationFormData.efforts) {
+        updates.efforts = validationFormData.efforts
+      }
+      if (validationDialog.missingFields.includes('End user impact') && validationFormData.end_user_impact) {
+        updates.end_user_impact = validationFormData.end_user_impact
+      }
+
+      // Update the area
+      await updateArea(validationDialog.area.id, updates)
+      
+      // Automatically update area status
+      await updateAreaStatusAutomatically(validationDialog.area.id)
+      
+      // Close dialog and refresh data
+      setValidationDialog({ ...validationDialog, open: false })
+      setValidationFormData({
+        one_pager_url: '',
+        start_date: '',
+        end_date: '',
+        revenue_impact: 'Low',
+        business_enablement: 'Low',
+        efforts: 'Low',
+        end_user_impact: 'Low'
+      })
+      
+      await Promise.all([refreshAreas(), refreshPods()])
+      
+      console.log('Area updated with missing fields and status automatically adjusted')
+    } catch (error) {
+      console.error('Error updating area with validation form:', error)
+      setError(`Failed to update area: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
   const getImpactColor = (level: string | undefined) => {
     return '#9e9e9e' // Always return grey for all levels
   }
@@ -642,222 +742,153 @@ export default function AreasPage() {
     const riskLevel = areaRiskLevels[area.id] || 'on-track'
     const riskInfo = getRiskInfo(riskLevel)
     
+    const getRiskIcon = (level: string) => {
+      switch (level) {
+        case 'critical': return <AlertTriangle className="w-3 h-3" />
+        case 'on-track': return <CheckCircle className="w-3 h-3" />
+        case 'low-risk': return <Clock className="w-3 h-3" />
+        case 'medium-risk': return <XCircle className="w-3 h-3" />
+        default: return <CheckCircle className="w-3 h-3" />
+      }
+    }
+    
     return (
-        <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+      <div className="space-y-3">
+        <div className="flex justify-between items-start">
+          <h3 className="font-semibold text-sm text-gray-900 leading-tight">
             {area.name}
-          </Typography>
-          <Chip
-            label={riskInfo.label}
-            size="small"
-            sx={{
-              backgroundColor: riskInfo.color,
-              color: 'white',
-              fontWeight: 600,
-              fontSize: '0.7rem'
-            }}
-          />
-        </Box>
+          </h3>
+          <Badge 
+            variant="secondary" 
+            className={`text-xs font-medium ${
+              riskLevel === 'critical' ? 'bg-red-100 text-red-700 border-red-200' :
+              riskLevel === 'medium-risk' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+              riskLevel === 'low-risk' ? 'bg-gray-100 text-gray-700 border-gray-200' :
+              'bg-green-100 text-green-700 border-green-200'
+            }`}
+          >
+            {getRiskIcon(riskLevel)}
+            <span className="ml-1">{riskInfo.label}</span>
+          </Badge>
+        </div>
         
-        {/* Dates Section - Always show if there are any dates */}
-        <Box sx={{ mb: 2 }}>
-          {/* Original dates */}
+        {/* Dates Section */}
           {(area.start_date || area.end_date) && (
-            <Box sx={{ mb: 0.5 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                📅 Start: {formatDate(area.start_date)} | End: {formatDate(area.end_date)}
-              </Typography>
-            </Box>
-          )}
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <Calendar className="w-3 h-3" />
+            <span>Start: {formatDate(area.start_date)}</span>
+            <span>•</span>
+            <span>End: {formatDate(area.end_date)}</span>
+          </div>
+        )}
+        
           {/* Revised end dates */}
           {revisedDates.map((revisedDate: string, index: number) => (
-            <Box 
+          <div 
               key={index} 
-              sx={{ 
-                mb: 0.5,
-                backgroundColor: '#ffebee',
-                border: '1px solid #ffcdd2',
-                borderRadius: 1,
-                px: 1,
-                py: 0.5
-              }}
-            >
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  color: '#d32f2f',
-                  fontWeight: 500,
-                  fontSize: '0.75rem'
-                }}
-              >
-                📅 Revised: {formatDate(revisedDate)}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
+            className="bg-red-50 border border-red-200 rounded px-2 py-1"
+          >
+            <div className="flex items-center gap-1 text-xs text-red-700 font-medium">
+              <Calendar className="w-3 h-3" />
+              <span>Revised: {formatDate(revisedDate)}</span>
+            </div>
+          </div>
+        ))}
 
         {area.description && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <p className="text-xs text-gray-600 leading-relaxed">
             {area.description}
-          </Typography>
+          </p>
         )}
 
-        {/* Impact Values - compact format like in image */}
+        {/* Impact Values */}
         {(area.revenue_impact || area.business_enablement || area.efforts || area.end_user_impact) && (
-          <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+          <div className="flex gap-1 flex-wrap">
             {area.revenue_impact && (
-              <Chip 
-                label={`R: ${area.revenue_impact}`} 
-                size="small" 
-                sx={{ 
-                  backgroundColor: getImpactColor(area.revenue_impact), 
-                  color: 'white',
-                  fontSize: '0.7rem',
-                  height: 20
-                }} 
-              />
+              <Badge variant="outline" className="text-xs h-5 bg-gray-100 text-gray-700">
+                R: {area.revenue_impact}
+              </Badge>
             )}
             {area.business_enablement && (
-              <Chip 
-                label={`B: ${area.business_enablement}`} 
-                size="small" 
-                sx={{ 
-                  backgroundColor: getImpactColor(area.business_enablement), 
-                  color: 'white',
-                  fontSize: '0.7rem',
-                  height: 20
-                }} 
-              />
+              <Badge variant="outline" className="text-xs h-5 bg-gray-100 text-gray-700">
+                B: {area.business_enablement}
+              </Badge>
             )}
             {area.efforts && (
-              <Chip 
-                label={`E: ${area.efforts}`} 
-                size="small" 
-                sx={{ 
-                  backgroundColor: getImpactColor(area.efforts), 
-                  color: 'white',
-                  fontSize: '0.7rem',
-                  height: 20
-                }} 
-              />
+              <Badge variant="outline" className="text-xs h-5 bg-gray-100 text-gray-700">
+                E: {area.efforts}
+              </Badge>
             )}
             {area.end_user_impact && (
-              <Chip 
-                label={`U: ${area.end_user_impact}`} 
-                size="small" 
-                sx={{ 
-                  backgroundColor: getImpactColor(area.end_user_impact), 
-                  color: 'white',
-                  fontSize: '0.7rem',
-                  height: 20
-                }} 
-              />
+              <Badge variant="outline" className="text-xs h-5 bg-gray-100 text-gray-700">
+                U: {area.end_user_impact}
+              </Badge>
             )}
-          </Box>
+          </div>
         )}
 
         {/* Associated PODs */}
         {areaPods.length > 0 && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <GroupIcon sx={{ fontSize: 14 }} />
-              Associated PODs ({areaPods.length})
-            </Typography>
-            <Box sx={{ mt: 0.5 }}>
+          <div className="space-y-1">
+            <div className="flex items-center gap-1 text-xs text-gray-600">
+              <Users className="w-3 h-3" />
+              <span>Associated PODs ({areaPods.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
               {areaPods.slice(0, 3).map((pod: Pod) => (
-                <Chip 
+                <Badge 
                   key={pod.id}
-                  label={pod.name}
-                  size="small"
-                  variant="outlined"
-                  sx={{ mr: 0.5, mb: 0.5, fontSize: '0.7rem' }}
-                />
+                  variant="outline" 
+                  className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                >
+                  {pod.name}
+                </Badge>
               ))}
               {areaPods.length > 3 && (
-                <Chip 
-                  label={`+${areaPods.length - 3} more`}
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: '0.7rem' }}
-                />
+                <Badge variant="outline" className="text-xs">
+                  +{areaPods.length - 3} more
+                </Badge>
               )}
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
 
         {/* One-pager status */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <div className="flex items-center gap-1">
           {area.one_pager_url ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <AttachFileIcon sx={{ fontSize: 14, color: '#4caf50' }} />
-              <Typography variant="caption" color="success.main">
-                One-pager uploaded
-              </Typography>
-            </Box>
+            <div className="flex items-center gap-1 text-xs text-green-700">
+              <FileText className="w-3 h-3" />
+              <span>One-pager uploaded</span>
+            </div>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <AttachFileIcon sx={{ fontSize: 14, color: '#e57373' }} />
-              <Typography variant="caption" sx={{ color: '#d32f2f', fontWeight: 500 }}>
-                One-pager required
-              </Typography>
-            </Box>
+            <div className="flex items-center gap-1 text-xs text-red-700 font-medium">
+              <FileText className="w-3 h-3" />
+              <span>One-pager required</span>
+            </div>
           )}
-        </Box>
+        </div>
 
         {/* Kick-off button for Planned areas */}
         {area.status === 'Planned' && (
-          <Box sx={{ mb: 1 }}>
-            <Button
-              variant="contained"
-              size="small"
+          <ShadcnButton
+            size="sm"
               onClick={() => handleKickOff(area)}
-              sx={{
-                backgroundColor: '#2196f3',
-                color: 'white',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
-                fontSize: '0.7rem',
-                py: 0.5,
-                px: 1.5,
-                textTransform: 'none',
-                fontWeight: 500,
-                borderRadius: 1,
-                '&:hover': {
-                  backgroundColor: '#1976d2',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.16)',
-                },
-                '&:active': {
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.12)',
-                }
-              }}
-            >
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1 px-2 h-7"
+          >
+            <Play className="w-3 h-3 mr-1" />
               Kick-off
-            </Button>
-          </Box>
+          </ShadcnButton>
         )}
 
         {/* Comments count */}
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 0.5,
-            cursor: 'pointer',
-            '&:hover': {
-              backgroundColor: 'action.hover',
-              borderRadius: 1,
-              px: 1,
-              py: 0.5
-            }
-          }}
+        <div 
+          className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5 transition-colors"
           onClick={() => handleViewComments(area)}
         >
-          <CommentIcon sx={{ fontSize: 14 }} />
-          <Typography variant="caption" color="text.secondary">
-            {area.comments?.length || 0} comments
-          </Typography>
-        </Box>
-        </Box>
+          <MessageCircle className="w-3 h-3" />
+          <span>{area.comments?.length || 0} comments</span>
+        </div>
+      </div>
       )
     }
 
@@ -910,42 +941,24 @@ export default function AreasPage() {
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4" component="h1" sx={{ 
-          fontWeight: 700, 
-          color: '#0F172A',
-          fontSize: '28px'
-        }}>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">
           Planning
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
+        </h1>
+        <ShadcnButton
           onClick={handleAddArea}
-          sx={{
-            backgroundColor: '#3B82F6',
-            borderRadius: '12px',
-            px: 3,
-            py: 1.5,
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '14px',
-            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
-            '&:hover': {
-              backgroundColor: '#2563EB',
-              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
-            },
-          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg shadow-sm"
         >
+          <AddIcon className="w-4 h-4 mr-2" />
           Add Area
-        </Button>
-      </Box>
+        </ShadcnButton>
+      </div>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           {error}
-        </Alert>
+        </div>
       )}
 
       <KanbanBoard
@@ -1541,44 +1554,135 @@ export default function AreasPage() {
           
           {validationDialog.area && (
             <Box sx={{ mt: 2 }}>
-              <Typography variant="h6" sx={{ mb: 1 }}>
-                Missing Required Fields:
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Complete Missing Fields:
               </Typography>
-              <List>
-                {validationDialog.missingFields.map((field: string, index: number) => (
-                  <ListItem key={index}>
-                    <ListItemText primary={field} />
-                  </ListItem>
-                ))}
-              </List>
               
-              <Typography variant="body2" sx={{ mt: 2, mb: 1 }}>
-                Please edit the area to add the required information:
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<EditIcon />}
-                onClick={() => {
-                  setPendingMove({
-                    areaId: validationDialog.area!.id,
-                    targetStatus: validationDialog.targetStatus
-                  })
-                  setValidationDialog({ ...validationDialog, open: false })
-                  handleEditArea(validationDialog.area!)
-                }}
-              >
-                Edit Area
-              </Button>
+              <Grid container spacing={2}>
+                {validationDialog.missingFields.includes('One-pager') && (
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="One-pager URL"
+                      value={validationFormData.one_pager_url}
+                      onChange={(e) => setValidationFormData({ ...validationFormData, one_pager_url: e.target.value })}
+                      placeholder="https://example.com/one-pager.pdf"
+                      helperText="Enter the URL to the one-pager document"
+                    />
+                  </Grid>
+                )}
+                
+                {validationDialog.missingFields.includes('Start date') && (
+                  <Grid item xs={6}>
+                    <TextField
+                      fullWidth
+                      label="Start Date"
+                      type="date"
+                      value={validationFormData.start_date}
+                      onChange={(e) => setValidationFormData({ ...validationFormData, start_date: e.target.value })}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                )}
+                
+                {validationDialog.missingFields.includes('End date') && (
+                  <Grid item xs={6}>
+                    <TextField
+                      fullWidth
+                      label="End Date"
+                      type="date"
+                      value={validationFormData.end_date}
+                      onChange={(e) => setValidationFormData({ ...validationFormData, end_date: e.target.value })}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                )}
+                
+                {validationDialog.missingFields.includes('Revenue impact') && (
+                  <Grid item xs={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Revenue Impact</InputLabel>
+                      <Select
+                        value={validationFormData.revenue_impact}
+                        onChange={(e) => setValidationFormData({ ...validationFormData, revenue_impact: e.target.value })}
+                        label="Revenue Impact"
+                      >
+                        {impactLevels.map((level) => (
+                          <MenuItem key={level} value={level}>{level}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                )}
+                
+                {validationDialog.missingFields.includes('Business enablement') && (
+                  <Grid item xs={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Business Enablement</InputLabel>
+                      <Select
+                        value={validationFormData.business_enablement}
+                        onChange={(e) => setValidationFormData({ ...validationFormData, business_enablement: e.target.value })}
+                        label="Business Enablement"
+                      >
+                        {impactLevels.map((level) => (
+                          <MenuItem key={level} value={level}>{level}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                )}
+                
+                {validationDialog.missingFields.includes('Efforts') && (
+                  <Grid item xs={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Efforts</InputLabel>
+                      <Select
+                        value={validationFormData.efforts}
+                        onChange={(e) => setValidationFormData({ ...validationFormData, efforts: e.target.value })}
+                        label="Efforts"
+                      >
+                        {impactLevels.map((level) => (
+                          <MenuItem key={level} value={level}>{level}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                )}
+                
+                {validationDialog.missingFields.includes('End user impact') && (
+                  <Grid item xs={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>End User Impact</InputLabel>
+                      <Select
+                        value={validationFormData.end_user_impact}
+                        onChange={(e) => setValidationFormData({ ...validationFormData, end_user_impact: e.target.value })}
+                        label="End User Impact"
+                      >
+                        {impactLevels.map((level) => (
+                          <MenuItem key={level} value={level}>{level}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                )}
+              </Grid>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setValidationDialog({ ...validationDialog, open: false })}>
-            Close
+            Cancel
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleValidationFormSubmit}
+            disabled={!validationDialog.area}
+          >
+            Update Area
           </Button>
         </DialogActions>
       </Dialog>
 
-    </Box>
+    </div>
   )
 }
