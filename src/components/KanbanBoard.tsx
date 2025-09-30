@@ -1,12 +1,25 @@
 'use client'
 
 import React from 'react'
+import {
+  Box,
+  Typography,
+  Paper,
+  Button,
+  IconButton,
+  Chip,
+  Card,
+  CardContent,
+  CardActions,
+  Tooltip
+} from '@mui/material'
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon
+} from '@mui/icons-material'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Plus, Eye, Edit, Trash2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface KanbanColumn {
   id: string
@@ -51,115 +64,140 @@ export default function KanbanBoard({
   }
 
   return (
-    <div className="flex gap-4 overflow-x-auto min-h-[70vh] p-4">
+    <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', minHeight: '70vh', p: 2 }}>
       <DragDropContext onDragEnd={handleDragEnd}>
         {columns.map((column) => (
-          <Card
+          <Paper
             key={column.id}
-            className="min-w-[300px] max-w-[350px] h-fit bg-white border border-gray-200 rounded-lg shadow-sm"
+            sx={{
+              minWidth: 300,
+              maxWidth: 350,
+              height: 'fit-content',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e5e7eb',
+              borderRadius: 1,
+              // Removed boxShadow for flat design
+            }}
           >
-            <CardHeader className="pb-3 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg font-semibold text-gray-900">
+            <Box sx={{ p: 2, borderBottom: '1px solid #e5e7eb' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: '#111827' }}>
                   {column.title}
-                </CardTitle>
-                <Badge variant="secondary" className="bg-gray-100 text-gray-700">
-                  {column.items.length}
-                </Badge>
-              </div>
+                </Typography>
+                <Chip
+                  label={column.items.length}
+                  size="small"
+                  sx={{ backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}
+                />
+              </Box>
               {onItemAdd && column.showAddButton && (
                 <Button
-                  variant="outline"
-                  size="sm"
+                  startIcon={<AddIcon />}
                   onClick={() => onItemAdd(column.id)}
-                  className="w-full mt-2"
+                  sx={{ 
+                    mt: 1, 
+                    width: '100%',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 1,
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    '&:hover': {
+                      backgroundColor: '#2563eb',
+                    }
+                  }}
+                  variant="contained"
+                  size="small"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
                   {addButtonText}
                 </Button>
               )}
-            </CardHeader>
+            </Box>
 
-            <CardContent className="p-2">
-              <Droppable droppableId={column.id}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={cn(
-                      "min-h-[200px] p-1 rounded-md transition-colors",
-                      snapshot.isDraggingOver ? "bg-gray-50" : "bg-transparent"
-                    )}
-                  >
-                    {column.items.map((item, index) => (
-                      <Draggable key={item.id} draggableId={item.id} index={index}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={cn(
-                              "mb-2 transition-all duration-200",
-                              snapshot.isDragging ? "opacity-80 rotate-1" : "opacity-100"
-                            )}
+            <Droppable droppableId={column.id}>
+              {(provided, snapshot) => (
+                <Box
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  sx={{
+                    minHeight: 200,
+                    p: 1,
+                    backgroundColor: snapshot.isDraggingOver ? '#f9fafb' : 'transparent',
+                    transition: 'background-color 0.2s ease',
+                    borderRadius: 1
+                  }}
+                >
+                  {column.items.map((item, index) => (
+                    <Draggable key={item.id} draggableId={item.id} index={index}>
+                      {(provided, snapshot) => (
+                        <Box
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          sx={{
+                            mb: 1,
+                            opacity: snapshot.isDragging ? 0.8 : 1,
+                            transform: snapshot.isDragging ? 'rotate(2deg)' : 'none'
+                          }}
+                        >
+                          <Card
+                            onDoubleClick={() => handleCardDoubleClick(item)}
+                            sx={{
+                              cursor: 'pointer',
+                              backgroundColor: '#ffffff',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: 1,
+                              // Removed boxShadow and hover effects for flat design
+                              '&:hover': {
+                                borderColor: '#3b82f6',
+                                backgroundColor: '#f8fafc'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
                           >
-                            <Card
-                              onDoubleClick={() => handleCardDoubleClick(item)}
-                              className={cn(
-                                "cursor-pointer bg-white border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all duration-200",
-                                "hover:shadow-lg"
-                              )}
-                            >
-                              <CardContent className="p-3">
-                                {renderItem(item)}
-                              </CardContent>
-                              {showActionButtons && (onItemEdit || onItemDelete || onItemView) && (
-                                <div className="flex gap-1 p-2 pt-0">
+                            <CardContent sx={{ pb: 1 }}>
+                              {renderItem(item)}
+                            </CardContent>
+                            {showActionButtons && (onItemEdit || onItemDelete || onItemView) && (
+                              <CardActions sx={{ pt: 0, pb: 1, px: 2 }}>
+                                <Box sx={{ display: 'flex', gap: 0.5 }}>
                                   {onItemView && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => onItemView(item)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Eye className="w-4 h-4" />
-                                    </Button>
+                                    <Tooltip title="View Details">
+                                      <IconButton size="small" onClick={() => onItemView(item)}>
+                                        <ViewIcon fontSize="small" />
+                                      </IconButton>
+                                    </Tooltip>
                                   )}
                                   {onItemEdit && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => onItemEdit(item)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Edit className="w-4 h-4" />
-                                    </Button>
+                                    <Tooltip title="Edit">
+                                      <IconButton size="small" onClick={() => onItemEdit(item)}>
+                                        <EditIcon fontSize="small" />
+                                      </IconButton>
+                                    </Tooltip>
                                   )}
                                   {onItemDelete && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => onItemDelete(item)}
-                                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
+                                    <Tooltip title="Delete">
+                                      <IconButton size="small" onClick={() => onItemDelete(item)}>
+                                        <DeleteIcon fontSize="small" />
+                                      </IconButton>
+                                    </Tooltip>
                                   )}
-                                </div>
-                              )}
-                            </Card>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </CardContent>
-          </Card>
+                                </Box>
+                              </CardActions>
+                            )}
+                          </Card>
+                        </Box>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </Box>
+              )}
+            </Droppable>
+          </Paper>
         ))}
       </DragDropContext>
-    </div>
+    </Box>
   )
 }

@@ -45,20 +45,6 @@ import {
   Check as CheckIcon,
   Close as CloseIcon
 } from '@mui/icons-material'
-import { Badge } from '@/components/ui/badge'
-import { Button as ShadcnButton } from '@/components/ui/button'
-import { Card as ShadcnCard, CardContent as ShadcnCardContent } from '@/components/ui/card'
-import { 
-  Calendar, 
-  FileText, 
-  Users, 
-  MessageCircle, 
-  Play,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  XCircle
-} from 'lucide-react'
 import { createArea, updateArea, deleteArea, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, verifyPODAssociation, updateAreaStatusAutomatically, getPodNotes } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
@@ -742,153 +728,236 @@ export default function AreasPage() {
     const riskLevel = areaRiskLevels[area.id] || 'on-track'
     const riskInfo = getRiskInfo(riskLevel)
     
-    const getRiskIcon = (level: string) => {
-      switch (level) {
-        case 'critical': return <AlertTriangle className="w-3 h-3" />
-        case 'on-track': return <CheckCircle className="w-3 h-3" />
-        case 'low-risk': return <Clock className="w-3 h-3" />
-        case 'medium-risk': return <XCircle className="w-3 h-3" />
-        default: return <CheckCircle className="w-3 h-3" />
-      }
-    }
-    
     return (
-      <div className="space-y-3">
-        <div className="flex justify-between items-start">
-          <h3 className="font-semibold text-sm text-gray-900 leading-tight">
+        <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#111827' }}>
             {area.name}
-          </h3>
-          <Badge 
-            variant="secondary" 
-            className={`text-xs font-medium ${
-              riskLevel === 'critical' ? 'bg-red-100 text-red-700 border-red-200' :
-              riskLevel === 'medium-risk' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-              riskLevel === 'low-risk' ? 'bg-gray-100 text-gray-700 border-gray-200' :
-              'bg-green-100 text-green-700 border-green-200'
-            }`}
-          >
-            {getRiskIcon(riskLevel)}
-            <span className="ml-1">{riskInfo.label}</span>
-          </Badge>
-        </div>
+          </Typography>
+          <Chip
+            label={riskInfo.label}
+            size="small"
+            sx={{
+              backgroundColor: riskLevel === 'critical' ? '#fef2f2' : 
+                              riskLevel === 'medium-risk' ? '#fffbeb' :
+                              riskLevel === 'low-risk' ? '#f3f4f6' : '#f0fdf4',
+              color: riskLevel === 'critical' ? '#dc2626' : 
+                     riskLevel === 'medium-risk' ? '#d97706' :
+                     riskLevel === 'low-risk' ? '#6b7280' : '#16a34a',
+              border: riskLevel === 'critical' ? '1px solid #fecaca' : 
+                      riskLevel === 'medium-risk' ? '1px solid #fed7aa' :
+                      riskLevel === 'low-risk' ? '1px solid #d1d5db' : '1px solid #bbf7d0',
+              fontWeight: 600,
+              fontSize: '0.7rem'
+            }}
+          />
+        </Box>
         
         {/* Dates Section */}
+        <Box sx={{ mb: 2 }}>
+          {/* Original dates */}
           {(area.start_date || area.end_date) && (
-          <div className="flex items-center gap-2 text-xs text-gray-600">
-            <Calendar className="w-3 h-3" />
-            <span>Start: {formatDate(area.start_date)}</span>
-            <span>•</span>
-            <span>End: {formatDate(area.end_date)}</span>
-          </div>
-        )}
-        
+            <Box sx={{ mb: 0.5 }}>
+              <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                📅 Start: {formatDate(area.start_date)} | End: {formatDate(area.end_date)}
+              </Typography>
+            </Box>
+          )}
           {/* Revised end dates */}
           {revisedDates.map((revisedDate: string, index: number) => (
-          <div 
+            <Box 
               key={index} 
-            className="bg-red-50 border border-red-200 rounded px-2 py-1"
-          >
-            <div className="flex items-center gap-1 text-xs text-red-700 font-medium">
-              <Calendar className="w-3 h-3" />
-              <span>Revised: {formatDate(revisedDate)}</span>
-            </div>
-          </div>
-        ))}
+              sx={{ 
+                mb: 0.5,
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: 1,
+                px: 1,
+                py: 0.5
+              }}
+            >
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: '#dc2626',
+                  fontWeight: 500,
+                  fontSize: '0.75rem'
+                }}
+              >
+                📅 Revised: {formatDate(revisedDate)}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
 
         {area.description && (
-          <p className="text-xs text-gray-600 leading-relaxed">
+          <Typography variant="body2" sx={{ mb: 2, color: '#6b7280' }}>
             {area.description}
-          </p>
+          </Typography>
         )}
 
         {/* Impact Values */}
         {(area.revenue_impact || area.business_enablement || area.efforts || area.end_user_impact) && (
-          <div className="flex gap-1 flex-wrap">
+          <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
             {area.revenue_impact && (
-              <Badge variant="outline" className="text-xs h-5 bg-gray-100 text-gray-700">
-                R: {area.revenue_impact}
-              </Badge>
+              <Chip 
+                label={`R: ${area.revenue_impact}`} 
+                size="small" 
+                sx={{ 
+                  backgroundColor: '#f3f4f6', 
+                  color: '#374151',
+                  fontSize: '0.7rem',
+                  height: 20,
+                  border: '1px solid #d1d5db'
+                }} 
+              />
             )}
             {area.business_enablement && (
-              <Badge variant="outline" className="text-xs h-5 bg-gray-100 text-gray-700">
-                B: {area.business_enablement}
-              </Badge>
+              <Chip 
+                label={`B: ${area.business_enablement}`} 
+                size="small" 
+                sx={{ 
+                  backgroundColor: '#f3f4f6', 
+                  color: '#374151',
+                  fontSize: '0.7rem',
+                  height: 20,
+                  border: '1px solid #d1d5db'
+                }} 
+              />
             )}
             {area.efforts && (
-              <Badge variant="outline" className="text-xs h-5 bg-gray-100 text-gray-700">
-                E: {area.efforts}
-              </Badge>
+              <Chip 
+                label={`E: ${area.efforts}`} 
+                size="small" 
+                sx={{ 
+                  backgroundColor: '#f3f4f6', 
+                  color: '#374151',
+                  fontSize: '0.7rem',
+                  height: 20,
+                  border: '1px solid #d1d5db'
+                }} 
+              />
             )}
             {area.end_user_impact && (
-              <Badge variant="outline" className="text-xs h-5 bg-gray-100 text-gray-700">
-                U: {area.end_user_impact}
-              </Badge>
+              <Chip 
+                label={`U: ${area.end_user_impact}`} 
+                size="small" 
+                sx={{ 
+                  backgroundColor: '#f3f4f6', 
+                  color: '#374151',
+                  fontSize: '0.7rem',
+                  height: 20,
+                  border: '1px solid #d1d5db'
+                }} 
+              />
             )}
-          </div>
+          </Box>
         )}
 
         {/* Associated PODs */}
         {areaPods.length > 0 && (
-          <div className="space-y-1">
-            <div className="flex items-center gap-1 text-xs text-gray-600">
-              <Users className="w-3 h-3" />
-              <span>Associated PODs ({areaPods.length})</span>
-            </div>
-            <div className="flex flex-wrap gap-1">
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#6b7280' }}>
+              <GroupIcon sx={{ fontSize: 14 }} />
+              Associated PODs ({areaPods.length})
+            </Typography>
+            <Box sx={{ mt: 0.5 }}>
               {areaPods.slice(0, 3).map((pod: Pod) => (
-                <Badge 
+                <Chip 
                   key={pod.id}
-                  variant="outline" 
-                  className="text-xs bg-blue-50 text-blue-700 border-blue-200"
-                >
-                  {pod.name}
-                </Badge>
+                  label={pod.name}
+                  size="small"
+                  variant="outlined"
+                  sx={{ 
+                    mr: 0.5, 
+                    mb: 0.5, 
+                    fontSize: '0.7rem',
+                    backgroundColor: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe'
+                  }}
+                />
               ))}
               {areaPods.length > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{areaPods.length - 3} more
-                </Badge>
+                <Chip 
+                  label={`+${areaPods.length - 3} more`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: '0.7rem' }}
+                />
               )}
-            </div>
-          </div>
+            </Box>
+          </Box>
         )}
 
         {/* One-pager status */}
-        <div className="flex items-center gap-1">
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           {area.one_pager_url ? (
-            <div className="flex items-center gap-1 text-xs text-green-700">
-              <FileText className="w-3 h-3" />
-              <span>One-pager uploaded</span>
-            </div>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <AttachFileIcon sx={{ fontSize: 14, color: '#16a34a' }} />
+              <Typography variant="caption" sx={{ color: '#16a34a' }}>
+                One-pager uploaded
+              </Typography>
+            </Box>
           ) : (
-            <div className="flex items-center gap-1 text-xs text-red-700 font-medium">
-              <FileText className="w-3 h-3" />
-              <span>One-pager required</span>
-            </div>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <AttachFileIcon sx={{ fontSize: 14, color: '#dc2626' }} />
+              <Typography variant="caption" sx={{ color: '#dc2626', fontWeight: 500 }}>
+                One-pager required
+              </Typography>
+            </Box>
           )}
-        </div>
+        </Box>
 
         {/* Kick-off button for Planned areas */}
         {area.status === 'Planned' && (
-          <ShadcnButton
-            size="sm"
+          <Box sx={{ mb: 1 }}>
+            <Button
+              variant="contained"
+              size="small"
               onClick={() => handleKickOff(area)}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1 px-2 h-7"
-          >
-            <Play className="w-3 h-3 mr-1" />
+              sx={{
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                fontSize: '0.7rem',
+                py: 0.5,
+                px: 1.5,
+                textTransform: 'none',
+                fontWeight: 500,
+                borderRadius: 1,
+                width: '100%',
+                '&:hover': {
+                  backgroundColor: '#2563eb',
+                }
+              }}
+            >
               Kick-off
-          </ShadcnButton>
+            </Button>
+          </Box>
         )}
 
         {/* Comments count */}
-        <div 
-          className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5 transition-colors"
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 0.5,
+            cursor: 'pointer',
+            '&:hover': {
+              backgroundColor: '#f9fafb',
+              borderRadius: 1,
+              px: 1,
+              py: 0.5
+            }
+          }}
           onClick={() => handleViewComments(area)}
         >
-          <MessageCircle className="w-3 h-3" />
-          <span>{area.comments?.length || 0} comments</span>
-        </div>
-      </div>
+          <CommentIcon sx={{ fontSize: 14, color: '#6b7280' }} />
+          <Typography variant="caption" sx={{ color: '#6b7280' }}>
+            {area.comments?.length || 0} comments
+          </Typography>
+        </Box>
+        </Box>
       )
     }
 
@@ -941,24 +1010,40 @@ export default function AreasPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">
+    <Box>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Typography variant="h4" component="h1" sx={{ 
+          fontWeight: 700, 
+          color: '#111827',
+          fontSize: '28px'
+        }}>
           Planning
-        </h1>
-        <ShadcnButton
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={handleAddArea}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg shadow-sm"
+          sx={{
+            backgroundColor: '#3b82f6',
+            borderRadius: 1,
+            px: 3,
+            py: 1.5,
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: '14px',
+            '&:hover': {
+              backgroundColor: '#2563eb',
+            },
+          }}
         >
-          <AddIcon className="w-4 h-4 mr-2" />
           Add Area
-        </ShadcnButton>
-      </div>
+        </Button>
+      </Box>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
           {error}
-        </div>
+        </Alert>
       )}
 
       <KanbanBoard
@@ -1683,6 +1768,6 @@ export default function AreasPage() {
         </DialogActions>
       </Dialog>
 
-    </div>
+    </Box>
   )
 }
