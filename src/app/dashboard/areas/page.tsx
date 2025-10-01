@@ -180,16 +180,9 @@ export default function AreasPage() {
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
 
-    // Also refresh data every 30 seconds for real-time updates
-    const interval = setInterval(() => {
-      refreshPods()
-      refreshAreas()
-    }, 30000)
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
-      clearInterval(interval)
     }
   }, [refreshPods, refreshAreas])
 
