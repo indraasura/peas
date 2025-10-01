@@ -747,27 +747,30 @@ export default function AreasPage() {
     }
     
     return (
-        <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+        <Box sx={{ p: 2.5, height: '100%' }}>
+        {/* Header with title and status indicators */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>
             {area.name}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            {/* Area status color badge */}
-            <Chip
-              label=""
-              size="small"
-              sx={{
-                width: 8,
-                height: 8,
-                backgroundColor: getAreaStatusColor(),
-                borderRadius: '50%',
-                minWidth: 8,
-                '& .MuiChip-label': {
-                  display: 'none'
-                }
-              }}
-            />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {/* Area status indicator - improved design */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 10,
+                  height: 10,
+                  backgroundColor: getAreaStatusColor(),
+                  borderRadius: '50%',
+                  border: '2px solid white',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}
+              />
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem', fontWeight: 500 }}>
+                {area.status}
+              </Typography>
+            </Box>
+            {/* Risk level indicator */}
             <Chip
               label={riskInfo.label}
               size="small"
@@ -782,18 +785,20 @@ export default function AreasPage() {
                         riskLevel === 'medium-risk' ? '1px solid #fed7aa' :
                         riskLevel === 'low-risk' ? '1px solid #d1d5db' : '1px solid #bbf7d0',
                 fontWeight: 600,
-                fontSize: '0.7rem'
+                fontSize: '0.65rem',
+                height: 20,
+                borderRadius: '10px'
               }}
             />
           </Box>
         </Box>
         
-        {/* Dates Section */}
-        <Box sx={{ mb: 2 }}>
+        {/* Dates Section - improved spacing */}
+        <Box sx={{ mb: 2.5 }}>
           {/* Original dates */}
           {(area.start_date || area.end_date) && (
-            <Box sx={{ mb: 0.5 }}>
-              <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#6b7280' }}>
+            <Box sx={{ mb: 1, p: 1.5, backgroundColor: '#f8fafc', borderRadius: 1.5, border: '1px solid #e2e8f0' }}>
+              <Typography variant="body2" sx={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
                 📅 Start: {formatDate(area.start_date)} | End: {formatDate(area.end_date)}
               </Typography>
             </Box>
@@ -803,152 +808,199 @@ export default function AreasPage() {
             <Box 
               key={index} 
               sx={{ 
-                mb: 0.5,
+                mb: 1,
                 backgroundColor: '#fef2f2',
                 border: '1px solid #fecaca',
-                borderRadius: 1,
-                px: 1,
-                py: 0.5
+                borderRadius: 1.5,
+                px: 1.5,
+                py: 1
               }}
             >
               <Typography 
                 variant="body2" 
                 sx={{ 
                   color: '#dc2626',
-                  fontWeight: 500,
-                  fontSize: '0.75rem'
+                  fontWeight: 600,
+                  fontSize: '0.8rem'
                 }}
               >
-                📅 Revised: {formatDate(revisedDate)}
+                ⚠️ Revised: {formatDate(revisedDate)}
               </Typography>
             </Box>
           ))}
         </Box>
 
+        {/* Description */}
         {area.description && (
-          <Typography variant="body2" sx={{ mb: 2, color: '#6b7280' }}>
-            {area.description}
-          </Typography>
+          <Box sx={{ mb: 2.5 }}>
+            <Typography variant="body2" sx={{ color: '#64748b', lineHeight: 1.5, fontSize: '0.85rem' }}>
+              {area.description}
+            </Typography>
+          </Box>
         )}
 
-        {/* Impact Values */}
+        {/* Impact Values - improved design */}
         {(area.revenue_impact || area.business_enablement || area.efforts || area.end_user_impact) && (
-          <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-            {area.revenue_impact && (
-              <Chip 
-                label={`R: ${area.revenue_impact}`} 
-                size="small" 
-                sx={{ 
-                  backgroundColor: '#f3f4f6', 
-                  color: '#374151',
-                  fontSize: '0.7rem',
-                  height: 20,
-                  border: '1px solid #d1d5db'
-                }} 
-              />
-            )}
-            {area.business_enablement && (
-              <Chip 
-                label={`B: ${area.business_enablement}`} 
-                size="small" 
-                sx={{ 
-                  backgroundColor: '#f3f4f6', 
-                  color: '#374151',
-                  fontSize: '0.7rem',
-                  height: 20,
-                  border: '1px solid #d1d5db'
-                }} 
-              />
-            )}
-            {area.efforts && (
-              <Chip 
-                label={`E: ${area.efforts}`} 
-                size="small" 
-                sx={{ 
-                  backgroundColor: '#f3f4f6', 
-                  color: '#374151',
-                  fontSize: '0.7rem',
-                  height: 20,
-                  border: '1px solid #d1d5db'
-                }} 
-              />
-            )}
-            {area.end_user_impact && (
-              <Chip 
-                label={`U: ${area.end_user_impact}`} 
-                size="small" 
-                sx={{ 
-                  backgroundColor: '#f3f4f6', 
-                  color: '#374151',
-                  fontSize: '0.7rem',
-                  height: 20,
-                  border: '1px solid #d1d5db'
-                }} 
-              />
-            )}
-          </Box>
-        )}
-
-        {/* POD Leader */}
-        {podLeader && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
-              <PersonIcon sx={{ fontSize: 14 }} />
-              POD Leader: {podLeader.member?.name || 'Unknown'}
+          <Box sx={{ mb: 2.5 }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, mb: 1, display: 'block' }}>
+              Impact Assessment
             </Typography>
-          </Box>
-        )}
-
-        {/* Associated PODs */}
-        {areaPods.length > 0 && (
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
-              <GroupIcon sx={{ fontSize: 14 }} />
-              Associated PODs ({areaPods.length})
-            </Typography>
-            <Box sx={{ mt: 0.5 }}>
-              {areaPods.slice(0, 3).map((pod: Pod) => (
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {area.revenue_impact && (
                 <Chip 
-                  key={pod.id}
-                  label={pod.name}
-                  size="small"
-                  variant="outlined"
+                  label={`Revenue: ${area.revenue_impact}`} 
+                  size="small" 
                   sx={{ 
-                    mr: 0.5, 
-                    mb: 0.5, 
+                    backgroundColor: '#f0f9ff', 
+                    color: '#0369a1',
                     fontSize: '0.7rem',
-                    backgroundColor: 'action.hover',
-                    color: 'primary.main',
-                    border: '1px solid',
-                    borderColor: 'primary.main'
-                  }}
+                    height: 24,
+                    border: '1px solid #bae6fd',
+                    borderRadius: '12px',
+                    fontWeight: 500
+                  }} 
                 />
-              ))}
-              {areaPods.length > 3 && (
+              )}
+              {area.business_enablement && (
                 <Chip 
-                  label={`+${areaPods.length - 3} more`}
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: '0.7rem' }}
+                  label={`Business: ${area.business_enablement}`} 
+                  size="small" 
+                  sx={{ 
+                    backgroundColor: '#f0fdf4', 
+                    color: '#15803d',
+                    fontSize: '0.7rem',
+                    height: 24,
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '12px',
+                    fontWeight: 500
+                  }} 
+                />
+              )}
+              {area.efforts && (
+                <Chip 
+                  label={`Effort: ${area.efforts}`} 
+                  size="small" 
+                  sx={{ 
+                    backgroundColor: '#fefce8', 
+                    color: '#a16207',
+                    fontSize: '0.7rem',
+                    height: 24,
+                    border: '1px solid #fde047',
+                    borderRadius: '12px',
+                    fontWeight: 500
+                  }} 
+                />
+              )}
+              {area.end_user_impact && (
+                <Chip 
+                  label={`User Impact: ${area.end_user_impact}`} 
+                  size="small" 
+                  sx={{ 
+                    backgroundColor: '#fdf4ff', 
+                    color: '#9333ea',
+                    fontSize: '0.7rem',
+                    height: 24,
+                    border: '1px solid #e9d5ff',
+                    borderRadius: '12px',
+                    fontWeight: 500
+                  }} 
                 />
               )}
             </Box>
           </Box>
         )}
 
-        {/* One-pager status */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        {/* POD Information */}
+        {(podLeader || areaPods.length > 0) && (
+          <Box sx={{ mb: 2.5 }}>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, mb: 1.5, display: 'block' }}>
+              POD Information
+            </Typography>
+            
+            {/* POD Leader */}
+            {podLeader && (
+              <Box sx={{ mb: 1.5, p: 1.5, backgroundColor: '#f0f9ff', borderRadius: 1.5, border: '1px solid #bae6fd' }}>
+                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#0369a1', fontWeight: 500 }}>
+                  <PersonIcon sx={{ fontSize: 16 }} />
+                  Leader: {podLeader.member?.name || 'Unknown'}
+                </Typography>
+              </Box>
+            )}
+            
+            {/* Associated PODs */}
+            {areaPods.length > 0 && (
+              <Box>
+                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b', mb: 1, fontWeight: 500 }}>
+                  <GroupIcon sx={{ fontSize: 16 }} />
+                  Associated PODs ({areaPods.length})
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {areaPods.slice(0, 3).map((pod: Pod) => (
+                    <Chip 
+                      key={pod.id}
+                      label={pod.name}
+                      size="small"
+                      sx={{ 
+                        fontSize: '0.7rem',
+                        backgroundColor: '#e0f2fe',
+                        color: '#0277bd',
+                        border: '1px solid #81d4fa',
+                        borderRadius: '8px',
+                        fontWeight: 500,
+                        height: 22
+                      }}
+                    />
+                  ))}
+                  {areaPods.length > 3 && (
+                    <Chip 
+                      label={`+${areaPods.length - 3} more`}
+                      size="small"
+                      sx={{ 
+                        fontSize: '0.7rem',
+                        backgroundColor: '#f3f4f6',
+                        color: '#6b7280',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontWeight: 500,
+                        height: 22
+                      }}
+                    />
+                  )}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {/* One-pager status - improved design */}
+        <Box sx={{ mb: 2.5 }}>
           {area.one_pager_url ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <AttachFileIcon sx={{ fontSize: 14, color: '#16a34a' }} />
-              <Typography variant="caption" sx={{ color: '#16a34a' }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1, 
+              p: 1.5, 
+              backgroundColor: '#f0fdf4', 
+              borderRadius: 1.5, 
+              border: '1px solid #bbf7d0' 
+            }}>
+              <AttachFileIcon sx={{ fontSize: 16, color: '#16a34a' }} />
+              <Typography variant="body2" sx={{ color: '#16a34a', fontWeight: 600 }}>
                 One-pager uploaded
               </Typography>
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <AttachFileIcon sx={{ fontSize: 14, color: '#dc2626' }} />
-              <Typography variant="caption" sx={{ color: '#dc2626', fontWeight: 500 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1, 
+              p: 1.5, 
+              backgroundColor: '#fef2f2', 
+              borderRadius: 1.5, 
+              border: '1px solid #fecaca' 
+            }}>
+              <AttachFileIcon sx={{ fontSize: 16, color: '#dc2626' }} />
+              <Typography variant="body2" sx={{ color: '#dc2626', fontWeight: 600 }}>
                 One-pager required
               </Typography>
             </Box>
@@ -1228,36 +1280,103 @@ export default function AreasPage() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
-              <Box display="flex" alignItems="center" gap={2}>
-                <FormControl fullWidth>
-                  <InputLabel>Associated PODs</InputLabel>
-                  <Select
-                    multiple
-                    value={formData.selected_pods}
-                    onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
-                    label="Associated PODs"
+            {/* POD Assignment - only show if area has one-pager URL */}
+            {formData.one_pager_url && formData.one_pager_url.trim() && (
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                  POD Assignment
+                </Typography>
+                
+                {/* Assigned PODs */}
+                {formData.selected_pods.length > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                      Assigned PODs:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {formData.selected_pods.map((podId) => {
+                        const pod = pods.find((p: Pod) => p.id === podId)
+                        return pod ? (
+                          <Chip
+                            key={podId}
+                            label={pod.name}
+                            onDelete={() => {
+                              setFormData({
+                                ...formData,
+                                selected_pods: formData.selected_pods.filter(id => id !== podId)
+                              })
+                            }}
+                            deleteIcon={<CloseIcon />}
+                            sx={{
+                              backgroundColor: 'primary.light',
+                              color: 'primary.dark',
+                              '& .MuiChip-deleteIcon': {
+                                color: 'primary.dark',
+                                '&:hover': {
+                                  color: 'error.main'
+                                }
+                              }
+                            }}
+                          />
+                        ) : null
+                      })}
+                    </Box>
+                  </Box>
+                )}
+                
+                {/* POD Selection */}
+                <Box display="flex" alignItems="center" gap={2}>
+                  <FormControl fullWidth>
+                    <InputLabel>Assign PODs</InputLabel>
+                    <Select
+                      multiple
+                      value={formData.selected_pods}
+                      onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
+                      label="Assign PODs"
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {selected.map((value) => {
+                            const pod = pods.find((p: Pod) => p.id === value)
+                            return (
+                              <Chip
+                                key={value}
+                                label={pod?.name || value}
+                                size="small"
+                                sx={{ fontSize: '0.7rem' }}
+                              />
+                            )
+                          })}
+                        </Box>
+                      )}
+                    >
+                      {pods.filter((pod: Pod) => !pod.area_id || pod.area_id === editingArea?.id).map((pod: Pod) => (
+                        <MenuItem key={pod.id} value={pod.id}>
+                          {pod.name}
+                          {pod.area_id && pod.area_id !== editingArea?.id && (
+                            <Typography variant="caption" sx={{ ml: 1, color: 'warning.main' }}>
+                              (Assigned to another area)
+                            </Typography>
+                          )}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    onClick={() => setOpenPodDialog(true)}
+                    sx={{ minWidth: 150, borderRadius: '8px' }}
                   >
-                    {pods.map((pod: Pod) => (
-                      <MenuItem key={pod.id} value={pod.id}>{pod.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={() => setOpenPodDialog(true)}
-                  sx={{ minWidth: 150 }}
-                >
-                  Create POD
-                </Button>
-              </Box>
-            </Grid>
+                    Create POD
+                  </Button>
+                </Box>
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
+          <Button onClick={() => setOpenDialog(false)} sx={{ borderRadius: '8px' }}>Cancel</Button>
+          <Button onClick={handleSubmit} variant="contained" sx={{ borderRadius: '8px' }}>
             {editingArea ? 'Update' : 'Create'}
           </Button>
         </DialogActions>
@@ -1664,8 +1783,8 @@ export default function AreasPage() {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenPodDialog(false)}>Cancel</Button>
-          <Button onClick={handleCreatePod} variant="contained">
+          <Button onClick={() => setOpenPodDialog(false)} sx={{ borderRadius: '8px' }}>Cancel</Button>
+          <Button onClick={handleCreatePod} variant="contained" sx={{ borderRadius: '8px' }}>
             Create POD
           </Button>
         </DialogActions>
@@ -1798,34 +1917,111 @@ export default function AreasPage() {
                   </Grid>
                 )}
                 
-                {/* PODs field */}
-                <Grid item xs={12}>
-                  <FormControl fullWidth>
-                    <InputLabel>Associated PODs</InputLabel>
-                    <Select
-                      multiple
-                      value={formData.selected_pods}
-                      onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
-                      label="Associated PODs"
-                    >
-                      {pods.map((pod: Pod) => (
-                        <MenuItem key={pod.id} value={pod.id}>{pod.name}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
+                {/* POD Assignment - only show if area has one-pager URL */}
+                {validationFormData.one_pager_url && validationFormData.one_pager_url.trim() && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                      POD Assignment
+                    </Typography>
+                    
+                    {/* Assigned PODs */}
+                    {formData.selected_pods.length > 0 && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                          Assigned PODs:
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                          {formData.selected_pods.map((podId) => {
+                            const pod = pods.find((p: Pod) => p.id === podId)
+                            return pod ? (
+                              <Chip
+                                key={podId}
+                                label={pod.name}
+                                onDelete={() => {
+                                  setFormData({
+                                    ...formData,
+                                    selected_pods: formData.selected_pods.filter(id => id !== podId)
+                                  })
+                                }}
+                                deleteIcon={<CloseIcon />}
+                                sx={{
+                                  backgroundColor: 'primary.light',
+                                  color: 'primary.dark',
+                                  '& .MuiChip-deleteIcon': {
+                                    color: 'primary.dark',
+                                    '&:hover': {
+                                      color: 'error.main'
+                                    }
+                                  }
+                                }}
+                              />
+                            ) : null
+                          })}
+                        </Box>
+                      </Box>
+                    )}
+                    
+                    {/* POD Selection */}
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <FormControl fullWidth>
+                        <InputLabel>Assign PODs</InputLabel>
+                        <Select
+                          multiple
+                          value={formData.selected_pods}
+                          onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
+                          label="Assign PODs"
+                          renderValue={(selected) => (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {selected.map((value) => {
+                                const pod = pods.find((p: Pod) => p.id === value)
+                                return (
+                                  <Chip
+                                    key={value}
+                                    label={pod?.name || value}
+                                    size="small"
+                                    sx={{ fontSize: '0.7rem' }}
+                                  />
+                                )
+                              })}
+                            </Box>
+                          )}
+                        >
+                          {pods.filter((pod: Pod) => !pod.area_id || pod.area_id === validationDialog.area?.id).map((pod: Pod) => (
+                            <MenuItem key={pod.id} value={pod.id}>
+                              {pod.name}
+                              {pod.area_id && pod.area_id !== validationDialog.area?.id && (
+                                <Typography variant="caption" sx={{ ml: 1, color: 'warning.main' }}>
+                                  (Assigned to another area)
+                                </Typography>
+                              )}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <Button
+                        variant="outlined"
+                        startIcon={<AddIcon />}
+                        onClick={() => setOpenPodDialog(true)}
+                        sx={{ minWidth: 150, borderRadius: '8px' }}
+                      >
+                        Create POD
+                      </Button>
+                    </Box>
+                  </Grid>
+                )}
               </Grid>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setValidationDialog({ ...validationDialog, open: false })}>
+          <Button onClick={() => setValidationDialog({ ...validationDialog, open: false })} sx={{ borderRadius: '8px' }}>
             Cancel
           </Button>
           <Button 
             variant="contained" 
             onClick={handleValidationFormSubmit}
             disabled={!validationDialog.area}
+            sx={{ borderRadius: '8px' }}
           >
             Update Area
           </Button>

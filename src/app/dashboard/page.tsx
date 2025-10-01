@@ -69,8 +69,9 @@ export default function DashboardPage() {
         getPods()
       ])
 
-      // Group members by team
-      const teamGroups = members.reduce((acc: any, member: any) => {
+      // Filter out POD committee members and group remaining members by team
+      const nonCommitteeMembers = members.filter((member: any) => member.team !== 'POD committee')
+      const teamGroups = nonCommitteeMembers.reduce((acc: any, member: any) => {
         const team = member.team || 'Unassigned'
         if (!acc[team]) {
           acc[team] = []
@@ -162,6 +163,7 @@ export default function DashboardPage() {
           variant="contained"
           startIcon={<AssessmentIcon />}
           onClick={() => router.push('/dashboard/areas')}
+          sx={{ borderRadius: '8px' }}
         >
           Manage Areas
         </Button>
@@ -180,6 +182,9 @@ export default function DashboardPage() {
                   <Typography variant="h4">
                     {totalAssignedCapacity.toFixed(2)}
                   </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    (excluding POD committee)
+                  </Typography>
                 </Box>
                 <TrendingUpIcon sx={{ fontSize: 40, color: 'warning.main' }} />
               </Box>
@@ -197,6 +202,9 @@ export default function DashboardPage() {
                   <Typography variant="h4" color={getCapacityColor(totalAvailableCapacity, totalAssignedCapacity)}>
                     {totalAvailableCapacity.toFixed(2)}
                   </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    (excluding POD committee)
+                  </Typography>
                 </Box>
                 <PersonIcon sx={{ fontSize: 40, color: 'success.main' }} />
               </Box>
@@ -208,9 +216,12 @@ export default function DashboardPage() {
       {/* Team-wise Bandwidth Allocation Table */}
       <Card>
         <CardContent>
-          <Typography variant="h5" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h5" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
             <AssessmentIcon />
             Team-wise Bandwidth Allocation
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Capacity calculations exclude POD committee members who are responsible for planning and oversight.
           </Typography>
           
           <TableContainer component={Paper}>
@@ -312,6 +323,7 @@ export default function DashboardPage() {
               fullWidth
               startIcon={<AssessmentIcon />}
               onClick={() => router.push('/dashboard/areas')}
+              sx={{ borderRadius: '8px' }}
             >
               Manage Planning
             </Button>
@@ -322,6 +334,7 @@ export default function DashboardPage() {
               fullWidth
               startIcon={<GroupIcon />}
               onClick={() => router.push('/dashboard/pods')}
+              sx={{ borderRadius: '8px' }}
             >
               Manage Execution
             </Button>
@@ -332,6 +345,7 @@ export default function DashboardPage() {
               fullWidth
               startIcon={<PersonIcon />}
               onClick={() => router.push('/dashboard/members')}
+              sx={{ borderRadius: '8px' }}
             >
               View Members
             </Button>
@@ -343,6 +357,7 @@ export default function DashboardPage() {
                 fullWidth
                 startIcon={<TrendingUpIcon />}
                 onClick={() => router.push('/dashboard/my-pods')}
+                sx={{ borderRadius: '8px' }}
               >
                 My PODs
               </Button>
