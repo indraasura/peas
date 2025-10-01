@@ -32,7 +32,9 @@ import {
   ListItemAvatar,
   Paper,
   InputAdornment,
-  SelectChangeEvent
+  SelectChangeEvent,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -46,7 +48,10 @@ import {
   Send as SendIcon,
   Check as CheckIcon,
   Close as CloseIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  ViewModule as ViewModuleIcon,
+  ViewList as ViewListIcon,
+  ViewAgenda as ViewAgendaIcon
 } from '@mui/icons-material'
 import { createArea, updateArea, deleteArea, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, verifyPODAssociation, updateAreaStatusAutomatically, getPodNotes } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
@@ -109,6 +114,16 @@ export default function AreasPage() {
     }>
   })
   const [error, setError] = useState('')
+  
+  // View mode state with persistence
+  const [viewMode, setViewMode] = useState<'compact' | 'cozy' | 'detailed'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('areas-view-mode')
+      return (saved as 'compact' | 'cozy' | 'detailed') || 'cozy'
+    }
+    return 'cozy'
+  })
+  
   const [validationDialog, setValidationDialog] = useState<{
     open: boolean
     title: string
@@ -351,7 +366,7 @@ export default function AreasPage() {
           open: true,
           title: 'Cannot Move to Planning',
           message: validation.message,
-          missingFields: ['One Pager'],
+          missingFields: ['One-pager'],
           area: area,
           targetStatus: 'Planning'
         })
@@ -726,6 +741,60 @@ export default function AreasPage() {
   }
 
   const renderAreaCard = (area: Area) => {
+    switch (viewMode) {
+      case 'compact':
+        return renderCompactAreaCard(area)
+      case 'detailed':
+        return renderDetailedAreaCard(area)
+      case 'cozy':
+      default:
+        return renderCozyAreaCard(area)
+    }
+  }
+
+  const renderCompactAreaCard = (area: Area) => {
+    const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
+    
+    // Determine POD status color and text based on POD statuses
+    const getPodStatusInfo = () => {
+      if (areaPods.length === 0) return { color: '#6b7280', text: 'No PODs', status: 'No PODs' }
+      
+      const podStatuses = areaPods.map(pod => pod.status)
+      if (podStatuses.includes('Released')) return { color: '#4caf50', text: 'Released', status: 'Released' }
+      if (podStatuses.includes('In testing')) return { color: '#9c27b0', text: 'In Testing', status: 'In testing' }
+      if (podStatuses.includes('In development')) return { color: '#2196f3', text: 'In Development', status: 'In development' }
+      if (podStatuses.includes('Awaiting development')) return { color: '#ff9800', text: 'Awaiting Dev', status: 'Awaiting development' }
+      return { color: '#6b7280', text: 'No Status', status: 'No Status' }
+    }
+    
+    return (
+      <Box sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Header with title and status */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary', fontSize: '0.875rem', lineHeight: 1.2 }}>
+            {area.name}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                backgroundColor: getPodStatusInfo().color,
+                borderRadius: '50%'
+              }}
+            />
+          </Box>
+        </Box>
+        
+        {/* POD count */}
+        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+          {areaPods.length} POD{areaPods.length !== 1 ? 's' : ''}
+        </Typography>
+      </Box>
+    )
+  }
+
+  const renderCozyAreaCard = (area: Area) => {
     const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
     const revisedDates = areaRevisedEndDates[area.id] || []
     const riskLevel = areaRiskLevels[area.id] || 'on-track'
@@ -734,16 +803,16 @@ export default function AreasPage() {
     // Get POD leader for this area
     const podLeader = areaPods.find(pod => pod.members?.some(member => member.is_leader))?.members?.find(member => member.is_leader)
     
-    // Determine area status color badge based on POD statuses
-    const getAreaStatusColor = () => {
-      if (areaPods.length === 0) return '#6b7280' // Gray for no PODs
+    // Determine POD status color and text based on POD statuses
+    const getPodStatusInfo = () => {
+      if (areaPods.length === 0) return { color: '#6b7280', text: 'No PODs', status: 'No PODs' }
       
       const podStatuses = areaPods.map(pod => pod.status)
-      if (podStatuses.includes('Released')) return '#4caf50' // Green if any POD is released
-      if (podStatuses.includes('In testing')) return '#9c27b0' // Purple if any POD is in testing
-      if (podStatuses.includes('In development')) return '#2196f3' // Blue if any POD is in development
-      if (podStatuses.includes('Awaiting development')) return '#ff9800' // Orange if any POD is awaiting development
-      return '#6b7280' // Default gray
+      if (podStatuses.includes('Released')) return { color: '#4caf50', text: 'Released', status: 'Released' }
+      if (podStatuses.includes('In testing')) return { color: '#9c27b0', text: 'In Testing', status: 'In testing' }
+      if (podStatuses.includes('In development')) return { color: '#2196f3', text: 'In Development', status: 'In development' }
+      if (podStatuses.includes('Awaiting development')) return { color: '#ff9800', text: 'Awaiting Dev', status: 'Awaiting development' }
+      return { color: '#6b7280', text: 'No Status', status: 'No Status' }
     }
     
     return (
@@ -754,41 +823,50 @@ export default function AreasPage() {
             {area.name}
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            {/* Area status indicator - improved design */}
+            {/* POD status indicator - shows POD status instead of area status */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box
                 sx={{
                   width: 10,
                   height: 10,
-                  backgroundColor: getAreaStatusColor(),
+                  backgroundColor: getPodStatusInfo().color,
                   borderRadius: '50%',
-                  border: '2px solid white',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  border: '2px solid',
+                  borderColor: 'background.paper',
+                  boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 1px 3px rgba(255,255,255,0.1)' : '0 1px 3px rgba(0,0,0,0.1)'
                 }}
               />
               <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem', fontWeight: 500 }}>
-                {area.status}
+                {getPodStatusInfo().text}
               </Typography>
             </Box>
             {/* Risk level indicator */}
             <Chip
               label={riskInfo.label}
               size="small"
-              sx={{
-                backgroundColor: riskLevel === 'critical' ? '#fef2f2' : 
-                                riskLevel === 'medium-risk' ? '#fffbeb' :
-                                riskLevel === 'low-risk' ? '#f3f4f6' : '#f0fdf4',
+              sx={(theme) => ({
+                backgroundColor: riskLevel === 'critical' ? 
+                  (theme.palette.mode === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#fef2f2') : 
+                  riskLevel === 'medium-risk' ? 
+                  (theme.palette.mode === 'dark' ? 'rgba(217, 119, 6, 0.15)' : '#fffbeb') :
+                  riskLevel === 'low-risk' ? 
+                  (theme.palette.mode === 'dark' ? 'rgba(107, 114, 128, 0.15)' : '#f3f4f6') : 
+                  (theme.palette.mode === 'dark' ? 'rgba(22, 163, 74, 0.15)' : '#f0fdf4'),
                 color: riskLevel === 'critical' ? '#dc2626' : 
                        riskLevel === 'medium-risk' ? '#d97706' :
                        riskLevel === 'low-risk' ? '#6b7280' : '#16a34a',
-                border: riskLevel === 'critical' ? '1px solid #fecaca' : 
-                        riskLevel === 'medium-risk' ? '1px solid #fed7aa' :
-                        riskLevel === 'low-risk' ? '1px solid #d1d5db' : '1px solid #bbf7d0',
+                border: riskLevel === 'critical' ? 
+                  (theme.palette.mode === 'dark' ? '1px solid rgba(220, 38, 38, 0.3)' : '1px solid #fecaca') : 
+                  riskLevel === 'medium-risk' ? 
+                  (theme.palette.mode === 'dark' ? '1px solid rgba(217, 119, 6, 0.3)' : '1px solid #fed7aa') :
+                  riskLevel === 'low-risk' ? 
+                  (theme.palette.mode === 'dark' ? '1px solid rgba(107, 114, 128, 0.3)' : '1px solid #d1d5db') : 
+                  (theme.palette.mode === 'dark' ? '1px solid rgba(22, 163, 74, 0.3)' : '1px solid #bbf7d0'),
                 fontWeight: 600,
                 fontSize: '0.65rem',
                 height: 20,
                 borderRadius: '10px'
-              }}
+              })}
             />
           </Box>
         </Box>
@@ -797,8 +875,15 @@ export default function AreasPage() {
         <Box sx={{ mb: 2.5 }}>
           {/* Original dates */}
           {(area.start_date || area.end_date) && (
-            <Box sx={{ mb: 1, p: 1.5, backgroundColor: '#f8fafc', borderRadius: 1.5, border: '1px solid #e2e8f0' }}>
-              <Typography variant="body2" sx={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
+            <Box sx={{ 
+              mb: 1, 
+              p: 1.5, 
+              backgroundColor: 'action.hover', 
+              borderRadius: 1.5, 
+              border: '1px solid',
+              borderColor: 'divider'
+            }}>
+              <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 500 }}>
                 📅 Start: {formatDate(area.start_date)} | End: {formatDate(area.end_date)}
               </Typography>
             </Box>
@@ -807,19 +892,20 @@ export default function AreasPage() {
           {revisedDates.map((revisedDate: string, index: number) => (
             <Box 
               key={index} 
-              sx={{ 
+              sx={(theme) => ({ 
                 mb: 1,
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca',
+                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#fef2f2',
+                border: '1px solid',
+                borderColor: theme.palette.mode === 'dark' ? 'rgba(220, 38, 38, 0.3)' : '#fecaca',
                 borderRadius: 1.5,
                 px: 1.5,
                 py: 1
-              }}
+              })}
             >
               <Typography 
                 variant="body2" 
                 sx={{ 
-                  color: '#dc2626',
+                  color: 'error.main',
                   fontWeight: 600,
                   fontSize: '0.8rem'
                 }}
@@ -833,7 +919,7 @@ export default function AreasPage() {
         {/* Description */}
         {area.description && (
           <Box sx={{ mb: 2.5 }}>
-            <Typography variant="body2" sx={{ color: '#64748b', lineHeight: 1.5, fontSize: '0.85rem' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', lineHeight: 1.5, fontSize: '0.85rem' }}>
               {area.description}
             </Typography>
           </Box>
@@ -850,60 +936,64 @@ export default function AreasPage() {
                 <Chip 
                   label={`Revenue: ${area.revenue_impact}`} 
                   size="small" 
-                  sx={{ 
-                    backgroundColor: '#f0f9ff', 
+                  sx={(theme) => ({ 
+                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(3, 105, 161, 0.15)' : '#f0f9ff', 
                     color: '#0369a1',
                     fontSize: '0.7rem',
                     height: 24,
-                    border: '1px solid #bae6fd',
+                    border: '1px solid',
+                    borderColor: theme.palette.mode === 'dark' ? 'rgba(3, 105, 161, 0.3)' : '#bae6fd',
                     borderRadius: '12px',
                     fontWeight: 500
-                  }} 
+                  })} 
                 />
               )}
               {area.business_enablement && (
                 <Chip 
                   label={`Business: ${area.business_enablement}`} 
                   size="small" 
-                  sx={{ 
-                    backgroundColor: '#f0fdf4', 
+                  sx={(theme) => ({ 
+                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(21, 128, 61, 0.15)' : '#f0fdf4', 
                     color: '#15803d',
                     fontSize: '0.7rem',
                     height: 24,
-                    border: '1px solid #bbf7d0',
+                    border: '1px solid',
+                    borderColor: theme.palette.mode === 'dark' ? 'rgba(21, 128, 61, 0.3)' : '#bbf7d0',
                     borderRadius: '12px',
                     fontWeight: 500
-                  }} 
+                  })} 
                 />
               )}
               {area.efforts && (
                 <Chip 
                   label={`Effort: ${area.efforts}`} 
                   size="small" 
-                  sx={{ 
-                    backgroundColor: '#fefce8', 
+                  sx={(theme) => ({ 
+                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(161, 98, 7, 0.15)' : '#fefce8', 
                     color: '#a16207',
                     fontSize: '0.7rem',
                     height: 24,
-                    border: '1px solid #fde047',
+                    border: '1px solid',
+                    borderColor: theme.palette.mode === 'dark' ? 'rgba(161, 98, 7, 0.3)' : '#fde047',
                     borderRadius: '12px',
                     fontWeight: 500
-                  }} 
+                  })} 
                 />
               )}
               {area.end_user_impact && (
                 <Chip 
                   label={`User Impact: ${area.end_user_impact}`} 
                   size="small" 
-                  sx={{ 
-                    backgroundColor: '#fdf4ff', 
+                  sx={(theme) => ({ 
+                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(147, 51, 234, 0.15)' : '#fdf4ff', 
                     color: '#9333ea',
                     fontSize: '0.7rem',
                     height: 24,
-                    border: '1px solid #e9d5ff',
+                    border: '1px solid',
+                    borderColor: theme.palette.mode === 'dark' ? 'rgba(147, 51, 234, 0.3)' : '#e9d5ff',
                     borderRadius: '12px',
                     fontWeight: 500
-                  }} 
+                  })} 
                 />
               )}
             </Box>
@@ -919,7 +1009,14 @@ export default function AreasPage() {
             
             {/* POD Leader */}
             {podLeader && (
-              <Box sx={{ mb: 1.5, p: 1.5, backgroundColor: '#f0f9ff', borderRadius: 1.5, border: '1px solid #bae6fd' }}>
+              <Box sx={(theme) => ({ 
+                mb: 1.5, 
+                p: 1.5, 
+                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(3, 105, 161, 0.15)' : '#f0f9ff', 
+                borderRadius: 1.5, 
+                border: '1px solid',
+                borderColor: theme.palette.mode === 'dark' ? 'rgba(3, 105, 161, 0.3)' : '#bae6fd'
+              })}>
                 <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#0369a1', fontWeight: 500 }}>
                   <PersonIcon sx={{ fontSize: 16 }} />
                   Leader: {podLeader.member?.name || 'Unknown'}
@@ -930,7 +1027,7 @@ export default function AreasPage() {
             {/* Associated PODs */}
             {areaPods.length > 0 && (
               <Box>
-                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b', mb: 1, fontWeight: 500 }}>
+                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', mb: 1, fontWeight: 500 }}>
                   <GroupIcon sx={{ fontSize: 16 }} />
                   Associated PODs ({areaPods.length})
                 </Typography>
@@ -940,30 +1037,32 @@ export default function AreasPage() {
                       key={pod.id}
                       label={pod.name}
                       size="small"
-                      sx={{ 
+                      sx={(theme) => ({ 
                         fontSize: '0.7rem',
-                        backgroundColor: '#e0f2fe',
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(2, 119, 189, 0.15)' : '#e0f2fe',
                         color: '#0277bd',
-                        border: '1px solid #81d4fa',
+                        border: '1px solid',
+                        borderColor: theme.palette.mode === 'dark' ? 'rgba(2, 119, 189, 0.3)' : '#81d4fa',
                         borderRadius: '8px',
                         fontWeight: 500,
                         height: 22
-                      }}
+                      })}
                     />
                   ))}
                   {areaPods.length > 3 && (
                     <Chip 
                       label={`+${areaPods.length - 3} more`}
                       size="small"
-                      sx={{ 
+                      sx={(theme) => ({ 
                         fontSize: '0.7rem',
-                        backgroundColor: '#f3f4f6',
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(107, 114, 128, 0.15)' : '#f3f4f6',
                         color: '#6b7280',
-                        border: '1px solid #d1d5db',
+                        border: '1px solid',
+                        borderColor: theme.palette.mode === 'dark' ? 'rgba(107, 114, 128, 0.3)' : '#d1d5db',
                         borderRadius: '8px',
                         fontWeight: 500,
                         height: 22
-                      }}
+                      })}
                     />
                   )}
                 </Box>
@@ -975,30 +1074,32 @@ export default function AreasPage() {
         {/* One-pager status - improved design */}
         <Box sx={{ mb: 2.5 }}>
           {area.one_pager_url ? (
-            <Box sx={{ 
+            <Box sx={(theme) => ({ 
               display: 'flex', 
               alignItems: 'center', 
               gap: 1, 
               p: 1.5, 
-              backgroundColor: '#f0fdf4', 
+              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(22, 163, 74, 0.15)' : '#f0fdf4', 
               borderRadius: 1.5, 
-              border: '1px solid #bbf7d0' 
-            }}>
+              border: '1px solid',
+              borderColor: theme.palette.mode === 'dark' ? 'rgba(22, 163, 74, 0.3)' : '#bbf7d0'
+            })}>
               <AttachFileIcon sx={{ fontSize: 16, color: '#16a34a' }} />
               <Typography variant="body2" sx={{ color: '#16a34a', fontWeight: 600 }}>
                 One-pager uploaded
               </Typography>
             </Box>
           ) : (
-            <Box sx={{ 
+            <Box sx={(theme) => ({ 
               display: 'flex', 
               alignItems: 'center', 
               gap: 1, 
               p: 1.5, 
-              backgroundColor: '#fef2f2', 
+              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#fef2f2', 
               borderRadius: 1.5, 
-              border: '1px solid #fecaca' 
-            }}>
+              border: '1px solid',
+              borderColor: theme.palette.mode === 'dark' ? 'rgba(220, 38, 38, 0.3)' : '#fecaca'
+            })}>
               <AttachFileIcon sx={{ fontSize: 16, color: '#dc2626' }} />
               <Typography variant="body2" sx={{ color: '#dc2626', fontWeight: 600 }}>
                 One-pager required
@@ -1060,6 +1161,280 @@ export default function AreasPage() {
       )
     }
 
+  const renderDetailedAreaCard = (area: Area) => {
+    const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
+    const revisedDates = areaRevisedEndDates[area.id] || []
+    const riskLevel = areaRiskLevels[area.id] || 'on-track'
+    const riskInfo = getRiskInfo(riskLevel)
+    
+    // Get POD leader for this area
+    const podLeader = areaPods.find(pod => pod.members?.some(member => member.is_leader))?.members?.find(member => member.is_leader)
+    
+    // Determine POD status color and text based on POD statuses
+    const getPodStatusInfo = () => {
+      if (areaPods.length === 0) return { color: '#6b7280', text: 'No PODs', status: 'No PODs' }
+      
+      const podStatuses = areaPods.map(pod => pod.status)
+      if (podStatuses.includes('Released')) return { color: '#4caf50', text: 'Released', status: 'Released' }
+      if (podStatuses.includes('In testing')) return { color: '#9c27b0', text: 'In Testing', status: 'In testing' }
+      if (podStatuses.includes('In development')) return { color: '#2196f3', text: 'In Development', status: 'In development' }
+      if (podStatuses.includes('Awaiting development')) return { color: '#ff9800', text: 'Awaiting Dev', status: 'Awaiting development' }
+      return { color: '#6b7280', text: 'No Status', status: 'No Status' }
+    }
+    
+    return (
+      <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Header with title and status indicators */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.3 }}>
+            {area.name}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+            {/* POD status indicator */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  backgroundColor: getPodStatusInfo().color,
+                  borderRadius: '50%',
+                  border: '2px solid',
+                  borderColor: 'background.paper',
+                  boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 2px 4px rgba(255,255,255,0.1)' : '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+              />
+              <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 600 }}>
+                {getPodStatusInfo().text}
+              </Typography>
+            </Box>
+            {/* Risk level indicator */}
+            <Chip
+              label={riskInfo.label}
+              size="small"
+              sx={(theme) => ({
+                backgroundColor: riskLevel === 'critical' ? 
+                  (theme.palette.mode === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#fef2f2') : 
+                  riskLevel === 'medium-risk' ? 
+                  (theme.palette.mode === 'dark' ? 'rgba(217, 119, 6, 0.15)' : '#fffbeb') :
+                  riskLevel === 'low-risk' ? 
+                  (theme.palette.mode === 'dark' ? 'rgba(107, 114, 128, 0.15)' : '#f3f4f6') : 
+                  (theme.palette.mode === 'dark' ? 'rgba(22, 163, 74, 0.15)' : '#f0fdf4'),
+                color: riskLevel === 'critical' ? '#dc2626' : 
+                       riskLevel === 'medium-risk' ? '#d97706' :
+                       riskLevel === 'low-risk' ? '#6b7280' : '#16a34a',
+                border: riskLevel === 'critical' ? 
+                  (theme.palette.mode === 'dark' ? '1px solid rgba(220, 38, 38, 0.3)' : '1px solid #fecaca') : 
+                  riskLevel === 'medium-risk' ? 
+                  (theme.palette.mode === 'dark' ? '1px solid rgba(217, 119, 6, 0.3)' : '1px solid #fed7aa') :
+                  riskLevel === 'low-risk' ? 
+                  (theme.palette.mode === 'dark' ? '1px solid rgba(107, 114, 128, 0.3)' : '1px solid #d1d5db') : 
+                  (theme.palette.mode === 'dark' ? '1px solid rgba(22, 163, 74, 0.3)' : '1px solid #bbf7d0'),
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                height: 24,
+                borderRadius: '12px'
+              })}
+            />
+          </Box>
+        </Box>
+        
+        {/* Description - more prominent in detailed view */}
+        {area.description && (
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.6, fontSize: '0.95rem' }}>
+              {area.description}
+            </Typography>
+          </Box>
+        )}
+        
+        {/* Dates Section */}
+        <Box sx={{ mb: 3 }}>
+          {/* Original dates */}
+          {(area.start_date || area.end_date) && (
+            <Box sx={{ 
+              mb: 1.5, 
+              p: 2, 
+              backgroundColor: 'action.hover', 
+              borderRadius: 2, 
+              border: '1px solid',
+              borderColor: 'divider'
+            }}>
+              <Typography variant="body2" sx={{ fontSize: '0.85rem', color: 'text.secondary', fontWeight: 500 }}>
+                📅 Start: {formatDate(area.start_date)} | End: {formatDate(area.end_date)}
+              </Typography>
+            </Box>
+          )}
+          {/* Revised end dates */}
+          {revisedDates.map((revisedDate: string, index: number) => (
+            <Box 
+              key={index} 
+              sx={(theme) => ({ 
+                mb: 1.5, 
+                p: 2, 
+                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(251, 191, 36, 0.1)' : '#fffbeb',
+                borderRadius: 2,
+                border: theme.palette.mode === 'dark' ? '1px solid rgba(251, 191, 36, 0.2)' : '1px solid #fed7aa'
+              })}>
+              <Typography variant="body2" sx={{ fontSize: '0.85rem', color: 'warning.main', fontWeight: 500 }}>
+                🔄 Revised End: {formatDate(revisedDate)}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+
+        {/* Impact Assessment - expanded */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.primary', fontWeight: 600 }}>
+            Impact Assessment
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+            {[
+              { label: 'Revenue Impact', value: area.revenue_impact, icon: '💰' },
+              { label: 'Business Enablement', value: area.business_enablement, icon: '🏢' },
+              { label: 'Efforts', value: area.efforts, icon: '⚡' },
+              { label: 'End User Impact', value: area.end_user_impact, icon: '👥' }
+            ].map(({ label, value, icon }) => (
+              <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Chip
+                  label={`${icon} ${value}`}
+                  size="small"
+                  sx={(theme) => ({
+                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(107, 114, 128, 0.15)' : '#f3f4f6',
+                    color: theme.palette.mode === 'dark' ? '#9ca3af' : '#6b7280',
+                    border: theme.palette.mode === 'dark' ? '1px solid rgba(107, 114, 128, 0.3)' : '1px solid #d1d5db',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    height: 26,
+                    borderRadius: '13px'
+                  })}
+                />
+              </Box>
+            ))}
+          </Box>
+        </Box>
+
+        {/* POD Information - expanded */}
+        {areaPods.length > 0 && (
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.primary', fontWeight: 600 }}>
+              POD Information
+            </Typography>
+            {/* POD Leader */}
+            {podLeader && (
+              <Box sx={{ mb: 1.5 }}>
+                <Box sx={(theme) => ({ 
+                  p: 2, 
+                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff',
+                  borderRadius: 2,
+                  border: theme.palette.mode === 'dark' ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid #bfdbfe'
+                })}>
+                  <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 600, fontSize: '0.85rem' }}>
+                    👑 POD Leader: {podLeader.name}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+            {/* Associated PODs */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {areaPods.map((pod: Pod) => (
+                <Chip
+                  key={pod.id}
+                  label={pod.name}
+                  size="small"
+                  sx={(theme) => ({
+                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff',
+                    color: theme.palette.mode === 'dark' ? '#93c5fd' : '#1d4ed8',
+                    border: theme.palette.mode === 'dark' ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #bfdbfe',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    height: 28,
+                    borderRadius: '14px'
+                  })}
+                />
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* One-pager Status - expanded */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.primary', fontWeight: 600 }}>
+            One-pager Status
+          </Typography>
+          <Box sx={(theme) => ({ 
+            p: 2, 
+            backgroundColor: area.one_pager_url ? 
+              (theme.palette.mode === 'dark' ? 'rgba(34, 197, 94, 0.1)' : '#f0fdf4') :
+              (theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.1)' : '#fef2f2'),
+            borderRadius: 2,
+            border: area.one_pager_url ? 
+              (theme.palette.mode === 'dark' ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid #bbf7d0') :
+              (theme.palette.mode === 'dark' ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid #fecaca')
+          })}>
+            <Typography variant="body2" sx={{ 
+              color: area.one_pager_url ? 'success.main' : 'error.main', 
+              fontWeight: 600, 
+              fontSize: '0.85rem' 
+            }}>
+              {area.one_pager_url ? '✅ One-pager available' : '❌ One-pager missing'}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Kick-off button for Planned areas */}
+        {area.status === 'Planned' && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <Button
+              variant="contained"
+              size="medium"
+              onClick={() => handleKickOff(area)}
+              sx={{
+                backgroundColor: 'primary.main',
+                color: 'primary.contrastText',
+                fontSize: '0.85rem',
+                py: 1,
+                px: 2.5,
+                textTransform: 'none',
+                fontWeight: 600,
+                borderRadius: 1,
+                minWidth: 'auto',
+                width: 'fit-content',
+                '&:hover': {
+                  backgroundColor: 'primary.dark',
+                }
+              }}
+            >
+              Kick-off
+            </Button>
+          </Box>
+        )}
+
+        {/* Comments count */}
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1,
+            cursor: 'pointer',
+            mt: 'auto',
+            '&:hover': {
+              backgroundColor: 'action.hover',
+              borderRadius: 1,
+              px: 1.5,
+              py: 0.5
+            }
+          }}
+          onClick={() => handleViewComments(area)}
+        >
+          <CommentIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+            {area.comments?.length || 0} comments
+          </Typography>
+        </Box>
+      </Box>
+    )
+  }
+
   const backlogAreas = areas.filter((area: Area) => area.status === 'Backlog')
   const planningAreas = areas.filter((area: Area) => area.status === 'Planning')
   const plannedAreas = areas.filter((area: Area) => area.status === 'Planned')
@@ -1118,12 +1493,51 @@ export default function AreasPage() {
         }}>
           Planning
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddArea}
-          sx={{
-            backgroundColor: '#3b82f6',
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {/* View Mode Selector */}
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(event, newViewMode) => {
+              if (newViewMode !== null) {
+                setViewMode(newViewMode)
+                localStorage.setItem('areas-view-mode', newViewMode)
+              }
+            }}
+            size="small"
+            sx={{ 
+              '& .MuiToggleButton-root': {
+                borderRadius: '6px',
+                border: '1px solid #e5e7eb',
+                '&.Mui-selected': {
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: '#2563eb'
+                  }
+                }
+              }
+            }}
+          >
+            <ToggleButton value="compact" aria-label="compact view">
+              <ViewModuleIcon sx={{ fontSize: 16, mr: 0.5 }} />
+              Compact
+            </ToggleButton>
+            <ToggleButton value="cozy" aria-label="cozy view">
+              <ViewListIcon sx={{ fontSize: 16, mr: 0.5 }} />
+              Cozy
+            </ToggleButton>
+            <ToggleButton value="detailed" aria-label="detailed view">
+              <ViewAgendaIcon sx={{ fontSize: 16, mr: 0.5 }} />
+              Detailed
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddArea}
+            sx={{
+              backgroundColor: '#3b82f6',
             borderRadius: 1,
             px: 3,
             py: 1.5,
@@ -1137,6 +1551,7 @@ export default function AreasPage() {
         >
           Add Area
         </Button>
+        </Box>
       </Box>
 
       {error && (
@@ -1280,8 +1695,8 @@ export default function AreasPage() {
                 </Select>
               </FormControl>
             </Grid>
-            {/* POD Assignment - only show if area has one-pager URL */}
-            {formData.one_pager_url && formData.one_pager_url.trim() && (
+            {/* POD Assignment - show when creating new areas or when editing areas with one-pager URL */}
+            {(!editingArea) || (editingArea && formData.one_pager_url && formData.one_pager_url.trim()) && (
               <Grid item xs={12}>
                 <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
                   POD Assignment
@@ -1307,16 +1722,18 @@ export default function AreasPage() {
                               })
                             }}
                             deleteIcon={<CloseIcon />}
-                            sx={{
-                              backgroundColor: 'primary.light',
+                            sx={(theme) => ({
+                              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(25, 118, 210, 0.15)' : 'primary.light',
                               color: 'primary.dark',
+                              border: '1px solid',
+                              borderColor: theme.palette.mode === 'dark' ? 'rgba(25, 118, 210, 0.3)' : 'primary.main',
                               '& .MuiChip-deleteIcon': {
                                 color: 'primary.dark',
                                 '&:hover': {
                                   color: 'error.main'
                                 }
                               }
-                            }}
+                            })}
                           />
                         ) : null
                       })}
@@ -1712,15 +2129,41 @@ export default function AreasPage() {
                         onChange={(e: SelectChangeEvent<string>) => {
                           const newMembers = [...podFormData.members]
                           newMembers[index].member_id = e.target.value
+                          
+                          // Set default bandwidth to member's maximum available bandwidth
+                          if (e.target.value) {
+                            const selectedMember = availableMembers.find(member => member.id === e.target.value)
+                            if (selectedMember) {
+                              const assignedBandwidth = selectedMember.pod_members?.reduce((total: number, pm: any) => {
+                                return total + (pm.bandwidth_percentage || 0)
+                              }, 0) || 0
+                              const availableBandwidth = Math.max(0, 1 - assignedBandwidth)
+                              newMembers[index].bandwidth_percentage = availableBandwidth
+                            }
+                          }
+                          
                           setPodFormData({ ...podFormData, members: newMembers })
                         }}
                         label="Member"
                       >
-                        {availableMembers.map((memberOption: Profile) => (
-                          <MenuItem key={memberOption.id} value={memberOption.id}>
-                            {memberOption.name}
-                          </MenuItem>
-                        ))}
+                        {availableMembers.map((memberOption: Profile) => {
+                          // Calculate available bandwidth for this member
+                          const assignedBandwidth = memberOption.pod_members?.reduce((total: number, pm: any) => {
+                            return total + (pm.bandwidth_percentage || 0)
+                          }, 0) || 0
+                          const availableBandwidth = Math.max(0, 1 - assignedBandwidth)
+                          
+                          return (
+                            <MenuItem key={memberOption.id} value={memberOption.id}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                <Typography variant="body2">{memberOption.name}</Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
+                                  Available: {(availableBandwidth * 100).toFixed(0)}%
+                                </Typography>
+                              </Box>
+                            </MenuItem>
+                          )
+                        })}
                       </Select>
                     </FormControl>
                   </Grid>
@@ -1773,7 +2216,7 @@ export default function AreasPage() {
                 startIcon={<AddIcon />}
                 onClick={() => setPodFormData({
                   ...podFormData,
-                  members: [...podFormData.members, { member_id: '', bandwidth_percentage: 0.25, is_leader: false }]
+                  members: [...podFormData.members, { member_id: '', bandwidth_percentage: 0, is_leader: false }]
                 })}
                 sx={{ mt: 1 }}
               >
@@ -1917,7 +2360,7 @@ export default function AreasPage() {
                   </Grid>
                 )}
                 
-                {/* POD Assignment - only show if area has one-pager URL */}
+                {/* POD Assignment - show when one-pager URL is present */}
                 {validationFormData.one_pager_url && validationFormData.one_pager_url.trim() && (
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
@@ -1944,16 +2387,18 @@ export default function AreasPage() {
                                   })
                                 }}
                                 deleteIcon={<CloseIcon />}
-                                sx={{
-                                  backgroundColor: 'primary.light',
+                                sx={(theme) => ({
+                                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(25, 118, 210, 0.15)' : 'primary.light',
                                   color: 'primary.dark',
+                                  border: '1px solid',
+                                  borderColor: theme.palette.mode === 'dark' ? 'rgba(25, 118, 210, 0.3)' : 'primary.main',
                                   '& .MuiChip-deleteIcon': {
                                     color: 'primary.dark',
                                     '&:hover': {
                                       color: 'error.main'
                                     }
                                   }
-                                }}
+                                })}
                               />
                             ) : null
                           })}
