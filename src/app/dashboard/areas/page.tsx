@@ -506,34 +506,42 @@ export default function AreasPage() {
       }
 
       // Validate POD creation requirements
-      if (!editingArea) {
+      const targetArea = editingArea || validationDialog.area
+      if (!targetArea) {
         setError('No area selected for POD creation')
         return
       }
 
-      const validation = validatePodCreation(editingArea, members)
+      const validation = validatePodCreation(targetArea, members)
       if (!validation.isValid) {
         setError(validation.error || 'Invalid POD configuration')
         return
       }
 
-      // Associate the POD with the current area being edited
+      // Associate the POD with the current area being edited or validated
       const podDataWithArea = {
         ...podData,
-        area_id: editingArea.id
+        area_id: targetArea.id
       }
 
       const newPod: Pod = await createPod(podDataWithArea)
       await updatePodMembers(newPod.id, members)
       
       // Ensure POD is not assigned to any other area
-      console.log(`Created POD ${newPod.name} and assigned to area ${editingArea.name}`)
+      console.log(`Created POD ${newPod.name} and assigned to area ${targetArea.name}`)
       
       // Add the new POD to the selected pods
-      setFormData((prev: typeof formData) => ({
-        ...prev,
-        selected_pods: [...prev.selected_pods, newPod.id]
-      }))
+      if (editingArea) {
+        setFormData((prev: typeof formData) => ({
+          ...prev,
+          selected_pods: [...prev.selected_pods, newPod.id]
+        }))
+      } else if (validationDialog.area) {
+        setValidationFormData((prev: typeof validationFormData) => ({
+          ...prev,
+          selected_pods: [...prev.selected_pods, newPod.id]
+        }))
+      }
 
       // Reset form and close dialog
       setPodFormData({
@@ -807,16 +815,7 @@ export default function AreasPage() {
     }
     
     return (
-      <Box sx={{ 
-        p: 2.5, 
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        borderRadius: 1,
-        border: '1px solid',
-        borderColor: 'divider',
-        backgroundColor: 'background.paper'
-      }}>
+      <>
         {/* Area Name */}
         <Typography variant="h6" sx={{ 
           fontWeight: 600, 
@@ -971,7 +970,7 @@ export default function AreasPage() {
             {area.comments?.length || 0} comments
           </Typography>
         </Box>
-        </Box>
+      </>
       )
     }
 
@@ -1860,8 +1859,8 @@ export default function AreasPage() {
                   </Grid>
                 )}
                 
-                {/* POD Assignment - show when one-pager URL is present or when PODs are missing */}
-                {(validationFormData.one_pager_url && validationFormData.one_pager_url.trim()) || validationDialog.missingFields.includes('At least one POD') ? (
+                {/* POD Assignment - only show when PODs are missing */}
+                {validationDialog.missingFields.includes('At least one POD') ? (
                 <Grid item xs={12}>
                     <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
                       POD Assignment
