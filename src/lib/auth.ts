@@ -32,7 +32,7 @@ export async function getCurrentUser(): Promise<Profile | null> {
         .limit(1)
 
       if (!profileError && profiles && profiles.length > 0) {
-        const profile = profiles[0]
+        const profile: Profile = profiles[0]
         return {
           id: profile.id,
           email: profile.email,

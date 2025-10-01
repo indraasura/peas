@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -196,7 +198,7 @@ export default function PodsPage() {
         await updatePodMembers(editingPod.id, members)
         await updatePodDependencies(editingPod.id, dependencies)
       } else {
-        const newPod = await createPod(podData)
+        const newPod: Pod = await createPod(podData)
         await updatePodMembers(newPod.id, members)
         await updatePodDependencies(newPod.id, dependencies)
       }

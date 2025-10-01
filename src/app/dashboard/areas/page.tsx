@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import React, { useState, useEffect } from 'react'
 import {
   Box,
@@ -224,7 +226,7 @@ export default function AreasPage() {
         areaId = editingArea.id
       } else {
         console.log('Creating new area with data:', cleanAreaData)
-        const newArea = await createArea(cleanAreaData)
+        const newArea: Area = await createArea(cleanAreaData)
         await updateAreaDecisionQuorum(newArea.id, decision_quorum)
         areaId = newArea.id
       }
@@ -492,7 +494,7 @@ export default function AreasPage() {
         area_id: editingArea.id
       }
 
-      const newPod = await createPod(podDataWithArea)
+      const newPod: Pod = await createPod(podDataWithArea)
       await updatePodMembers(newPod.id, members)
       
       // Ensure POD is not assigned to any other area

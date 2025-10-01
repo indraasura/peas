@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
@@ -40,8 +42,7 @@ import {
   Close as CloseIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  Delete as DeleteIcon,
-  Collapse as CollapseIcon
+  Delete as DeleteIcon
 } from '@mui/icons-material'
 import { getPods, getPodNotes, createPodNote, updatePodNote, deletePodNote } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'

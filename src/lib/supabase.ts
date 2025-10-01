@@ -10,12 +10,26 @@ if (typeof window !== 'undefined') {
   console.log('Supabase Key exists:', !!supabaseAnonKey)
 }
 
-if (!supabaseAnonKey) {
-  console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable is missing')
-  throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable is required')
+// Create a function to get the Supabase client
+export const getSupabaseClient = () => {
+  if (!supabaseAnonKey) {
+    console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable is missing')
+    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable is required')
+  }
+  return createClient(supabaseUrl, supabaseAnonKey)
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Export a lazy-initialized client
+let supabaseClient: ReturnType<typeof createClient> | null = null
+
+export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+  get(target, prop) {
+    if (!supabaseClient) {
+      supabaseClient = getSupabaseClient()
+    }
+    return supabaseClient[prop as keyof typeof supabaseClient]
+  }
+})
 
 // Database types
 export interface Profile {
