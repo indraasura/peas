@@ -660,7 +660,7 @@ export default function PodsPage() {
           Execution
         </Typography>
         <Box display="flex" gap={2} alignItems="center">
-          <AnimatedAIButton onClick={() => setAiDrawerOpen(true)} />
+          {/* <AnimatedAIButton onClick={() => setAiDrawerOpen(true)} /> */}
           <Button
             variant="outlined"
             startIcon={<RefreshIcon />}

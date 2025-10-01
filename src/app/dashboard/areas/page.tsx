@@ -1065,7 +1065,7 @@ export default function AreasPage() {
           Planning
         </Typography>
         <Box display="flex" gap={2} alignItems="center">
-          <AnimatedAIButton onClick={() => setAiDrawerOpen(true)} />
+          {/* <AnimatedAIButton onClick={() => setAiDrawerOpen(true)} /> */}
           <Button
           variant="contained"
           startIcon={<AddIcon />}

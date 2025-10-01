@@ -306,7 +306,7 @@ export default function MembersPage() {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Members</Typography>
         <Box display="flex" gap={2} alignItems="center">
-          <AnimatedAIButton onClick={() => setAiDrawerOpen(true)} />
+          {/* <AnimatedAIButton onClick={() => setAiDrawerOpen(true)} /> */}
           <TextField
             placeholder="Search by name or email..."
             value={searchQuery}
