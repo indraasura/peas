@@ -99,7 +99,7 @@ export default function AIDrawer({ open, onClose, title, contextData, section }:
   }
 
   const generatePrompt = (userQuery: string, data: any, section: string) => {
-    const basePrompt = `You are Kynetik AI, an intelligent assistant for project management and team coordination. 
+    const basePrompt = `You are Neko AI, an intelligent assistant for project management and team coordination. 
     
 Context: You are analyzing ${section} data to provide insights and summaries.
 
@@ -183,9 +183,9 @@ Response should be concise but thorough, focusing on practical insights that hel
           justifyContent: 'space-between'
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <AIIcon sx={{ color: '#3b82f6' }} />
+            <BrainIcon sx={{ color: '#3b82f6' }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
-              Ask Kynetik AI
+              Ask Neko
             </Typography>
           </Box>
           <IconButton onClick={onClose} size="small">
@@ -239,7 +239,7 @@ Response should be concise but thorough, focusing on practical insights that hel
               rows={3}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ask Kynetik AI about your data..."
+              placeholder="Ask Neko about your data..."
               sx={{ mb: 2 }}
             />
             <Button
