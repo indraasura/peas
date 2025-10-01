@@ -33,9 +33,7 @@ import {
   ListItemAvatar,
   Paper,
   InputAdornment,
-  SelectChangeEvent,
-  ToggleButton,
-  ToggleButtonGroup
+  SelectChangeEvent
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -49,10 +47,7 @@ import {
   Send as SendIcon,
   Check as CheckIcon,
   Close as CloseIcon,
-  Person as PersonIcon,
-  ViewModule as ViewModuleIcon,
-  ViewList as ViewListIcon,
-  ViewAgenda as ViewAgendaIcon
+  Person as PersonIcon
 } from '@mui/icons-material'
 import { createArea, updateArea, deleteArea, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, verifyPODAssociation, updateAreaStatusAutomatically, getPodNotes } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
@@ -118,14 +113,6 @@ export default function AreasPage() {
   })
   const [error, setError] = useState('')
   
-  // View mode state with persistence
-  const [viewMode, setViewMode] = useState<'compact' | 'cozy' | 'detailed'>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('areas-view-mode')
-      return (saved as 'compact' | 'cozy' | 'detailed') || 'cozy'
-    }
-    return 'cozy'
-  })
   
   const [validationDialog, setValidationDialog] = useState<{
     open: boolean
@@ -748,20 +735,12 @@ export default function AreasPage() {
   }
 
   const renderAreaCard = (area: Area) => {
-    switch (viewMode) {
-      case 'compact':
-        return renderCompactAreaCard(area)
-      case 'detailed':
-        return renderDetailedAreaCard(area)
-      case 'cozy':
-      default:
-        return renderCozyAreaCard(area)
-    }
-  }
-
-  const renderCompactAreaCard = (area: Area) => {
     const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
+    const revisedDates = areaRevisedEndDates[area.id] || []
     const riskLevel = areaRiskLevels[area.id] || 'on-track'
+    
+    // Get POD leader for this area
+    const podLeader = areaPods.find(pod => pod.members?.some(member => member.is_leader))?.members?.find(member => member.is_leader)
     
     // Determine POD status color and text based on POD statuses
     const getPodStatusInfo = () => {
@@ -777,9 +756,9 @@ export default function AreasPage() {
     
     return (
       <Box sx={{ 
-        p: 2, 
-        height: '100%', 
-        display: 'flex', 
+        p: 2.5, 
+        height: '100%',
+        display: 'flex',
         flexDirection: 'column',
         borderRadius: 3,
         border: '1px solid',
@@ -809,16 +788,28 @@ export default function AreasPage() {
           }
         }
       }}>
-        {/* Area name */}
+        {/* Area Name */}
         <Typography variant="h6" sx={{ 
           fontWeight: 600, 
           color: 'text.primary', 
-          fontSize: '1rem', 
+          fontSize: '1.1rem', 
           lineHeight: 1.3,
           mb: 1.5
         }}>
           {area.name}
         </Typography>
+        
+        {/* Description */}
+        {area.description && (
+          <Typography variant="body2" sx={{ 
+            color: 'text.secondary', 
+            lineHeight: 1.5, 
+            fontSize: '0.85rem',
+            mb: 1.5
+          }}>
+            {area.description}
+          </Typography>
+        )}
         
         {/* Status indicators */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
@@ -838,7 +829,7 @@ export default function AreasPage() {
                       riskLevel === 'medium-risk' ? '1px solid #fed7aa' : '1px solid #fecaca',
               fontWeight: 600,
               fontSize: '0.7rem',
-              height: 20
+              height: 22
             }}
           />
           
@@ -852,190 +843,79 @@ export default function AreasPage() {
               border: `1px solid ${getPodStatusInfo().color}40`,
               fontWeight: 600,
               fontSize: '0.7rem',
-              height: 20
+              height: 22
             }}
           />
         </Box>
         
         {/* Dates */}
         {(area.start_date || area.end_date) && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
-            <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
-              📅 {formatDate(area.start_date)} - {formatDate(area.end_date)}
+          <Box sx={{ mb: 1.5 }}>
+            <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 500 }}>
+              📅 Start: {formatDate(area.start_date)} | End: {formatDate(area.end_date)}
             </Typography>
           </Box>
         )}
-      </Box>
-    )
-  }
-
-  const renderCozyAreaCard = (area: Area) => {
-    const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
-    const revisedDates = areaRevisedEndDates[area.id] || []
-    const riskLevel = areaRiskLevels[area.id] || 'on-track'
-    const riskInfo = getRiskInfo(riskLevel)
-    
-    // Get POD leader for this area
-    const podLeader = areaPods.find(pod => pod.members?.some(member => member.is_leader))?.members?.find(member => member.is_leader)
-    
-    // Determine POD status color and text based on POD statuses
-    const getPodStatusInfo = () => {
-      if (areaPods.length === 0) return { color: '#6b7280', text: 'No PODs', status: 'No PODs' }
-      
-      const podStatuses = areaPods.map(pod => pod.status)
-      if (podStatuses.includes('Released')) return { color: '#4caf50', text: 'Released', status: 'Released' }
-      if (podStatuses.includes('In testing')) return { color: '#9c27b0', text: 'In Testing', status: 'In testing' }
-      if (podStatuses.includes('In development')) return { color: '#2196f3', text: 'In Development', status: 'In development' }
-      if (podStatuses.includes('Awaiting development')) return { color: '#ff9800', text: 'Awaiting Dev', status: 'Awaiting development' }
-      return { color: '#6b7280', text: 'No Status', status: 'No Status' }
-    }
-    
-    return (
-        <Box sx={{ 
-          p: 2.5, 
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          backgroundColor: 'background.paper',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          position: 'relative',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '3px',
-            background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4)',
-            opacity: 0,
-            transition: 'opacity 0.3s ease'
-          },
-          '&:hover': {
-            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.12)',
-            borderColor: 'primary.main',
-            transform: 'translateY(-2px)',
-            '&::before': {
-              opacity: 1
-            }
-          }
-        }}>
-        {/* Header with title and status indicators */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.3 }}>
-            {area.name}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            {/* POD status indicator - shows POD status instead of area status */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box
-              sx={{
-                  width: 10,
-                  height: 10,
-                  backgroundColor: getPodStatusInfo().color,
-                borderRadius: '50%',
-                  border: '2px solid',
-                  borderColor: 'background.paper',
-                  boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 1px 3px rgba(255,255,255,0.1)' : '0 1px 3px rgba(0,0,0,0.1)'
-                }}
-              />
-              <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem', fontWeight: 500 }}>
-                {getPodStatusInfo().text}
-              </Typography>
-            </Box>
-            {/* Risk level indicator */}
-            <Chip
-              label={riskInfo.label}
-              size="small"
-              sx={(theme) => ({
-                backgroundColor: riskLevel === 'critical' ? 
-                  (theme.palette.mode === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#fef2f2') : 
-                  riskLevel === 'medium-risk' ? 
-                  (theme.palette.mode === 'dark' ? 'rgba(217, 119, 6, 0.15)' : '#fffbeb') :
-                  riskLevel === 'low-risk' ? 
-                  (theme.palette.mode === 'dark' ? 'rgba(107, 114, 128, 0.15)' : '#f3f4f6') : 
-                  (theme.palette.mode === 'dark' ? 'rgba(22, 163, 74, 0.15)' : '#f0fdf4'),
-                color: riskLevel === 'critical' ? '#dc2626' : 
-                       riskLevel === 'medium-risk' ? '#d97706' :
-                       riskLevel === 'low-risk' ? '#6b7280' : '#16a34a',
-                border: riskLevel === 'critical' ? 
-                  (theme.palette.mode === 'dark' ? '1px solid rgba(220, 38, 38, 0.3)' : '1px solid #fecaca') : 
-                  riskLevel === 'medium-risk' ? 
-                  (theme.palette.mode === 'dark' ? '1px solid rgba(217, 119, 6, 0.3)' : '1px solid #fed7aa') :
-                  riskLevel === 'low-risk' ? 
-                  (theme.palette.mode === 'dark' ? '1px solid rgba(107, 114, 128, 0.3)' : '1px solid #d1d5db') : 
-                  (theme.palette.mode === 'dark' ? '1px solid rgba(22, 163, 74, 0.3)' : '1px solid #bbf7d0'),
-                fontWeight: 600,
-                fontSize: '0.65rem',
-                height: 20,
-                borderRadius: '10px'
-              })}
-            />
-          </Box>
-        </Box>
         
-        {/* Dates Section - improved spacing */}
-        <Box sx={{ mb: 2.5 }}>
-          {/* Original dates */}
-          {(area.start_date || area.end_date) && (
-            <Box sx={{ 
-              mb: 1, 
-              p: 1.5, 
-              backgroundColor: 'action.hover', 
-              borderRadius: 1.5, 
-              border: '1px solid',
-              borderColor: 'divider'
-            }}>
-              <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 500 }}>
-                📅 Start: {formatDate(area.start_date)} | End: {formatDate(area.end_date)}
-              </Typography>
-            </Box>
-          )}
-          {/* Revised end dates */}
-          {revisedDates.map((revisedDate: string, index: number) => (
-            <Box 
-              key={index} 
-              sx={(theme) => ({ 
-                mb: 1,
-                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#fef2f2',
-                border: '1px solid',
-                borderColor: theme.palette.mode === 'dark' ? 'rgba(220, 38, 38, 0.3)' : '#fecaca',
-                borderRadius: 1.5,
-                px: 1.5,
-                py: 1
-              })}
-            >
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  color: 'error.main',
+        {/* Revised dates */}
+        {revisedDates.length > 0 && (
+          <Box sx={{ mb: 1.5 }}>
+            {revisedDates.map((revisedDate: string, index: number) => (
+              <Box key={index} sx={{ mb: 0.5 }}>
+                <Typography variant="body2" sx={{ 
+                  color: 'warning.main',
                   fontWeight: 600,
                   fontSize: '0.8rem'
-                }}
-              >
-                ⚠️ Revised: {formatDate(revisedDate)}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
+                }}>
+                  🔄 Revised: {formatDate(revisedDate)}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
 
         {/* POD Leader */}
         {podLeader && (
           <Box sx={{ mb: 1.5 }}>
-            <Box sx={{ 
-              p: 1.5, 
-              backgroundColor: 'primary.50', 
-              borderRadius: 1.5, 
-              border: '1px solid',
-              borderColor: 'primary.200'
-            }}>
-              <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 600, fontSize: '0.8rem' }}>
-                👑 POD Leader: {podLeader.name}
-          </Typography>
+            <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 600, fontSize: '0.8rem' }}>
+              👑 POD Leader: {podLeader.name}
+            </Typography>
+          </Box>
+        )}
+        
+        {/* PODs */}
+        {areaPods.length > 0 && (
+          <Box sx={{ mb: 1.5 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.8rem', mb: 0.5 }}>
+              PODs ({areaPods.length}):
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {areaPods.slice(0, 3).map((pod: Pod) => (
+                <Chip 
+                  key={pod.id}
+                  label={pod.name}
+                  size="small"
+                  clickable
+                  onClick={() => handlePodClick(pod.id)}
+                  sx={{ 
+                    fontSize: '0.7rem',
+                    backgroundColor: '#e0f2fe',
+                    color: '#0277bd',
+                    border: '1px solid #81d4fa',
+                    borderRadius: '8px',
+                    fontWeight: 500,
+                    height: 20,
+                    '&:hover': {
+                      backgroundColor: '#b3e5fc'
+                    }
+                  }} 
+                />
+              ))}
+              {areaPods.length > 3 && (
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
+                  +{areaPods.length - 3} more
+                </Typography>
+              )}
             </Box>
           </Box>
         )}
@@ -1062,552 +942,9 @@ export default function AreasPage() {
             {area.comments?.length || 0} comments
           </Typography>
         </Box>
-
-        {/* Impact Values - improved design */}
-        {(area.revenue_impact || area.business_enablement || area.efforts || area.end_user_impact) && (
-          <Box sx={{ mb: 2.5 }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, mb: 1, display: 'block' }}>
-              Impact Assessment
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            {area.revenue_impact && (
-              <Chip 
-                  label={`Revenue: ${area.revenue_impact}`} 
-                size="small" 
-                  sx={(theme) => ({ 
-                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(3, 105, 161, 0.15)' : '#f0f9ff', 
-                    color: '#0369a1',
-                  fontSize: '0.7rem',
-                    height: 24,
-                    border: '1px solid',
-                    borderColor: theme.palette.mode === 'dark' ? 'rgba(3, 105, 161, 0.3)' : '#bae6fd',
-                    borderRadius: '12px',
-                    fontWeight: 500
-                  })} 
-              />
-            )}
-            {area.business_enablement && (
-              <Chip 
-                  label={`Business: ${area.business_enablement}`} 
-                size="small" 
-                  sx={(theme) => ({ 
-                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(21, 128, 61, 0.15)' : '#f0fdf4', 
-                    color: '#15803d',
-                  fontSize: '0.7rem',
-                    height: 24,
-                    border: '1px solid',
-                    borderColor: theme.palette.mode === 'dark' ? 'rgba(21, 128, 61, 0.3)' : '#bbf7d0',
-                    borderRadius: '12px',
-                    fontWeight: 500
-                  })} 
-              />
-            )}
-            {area.efforts && (
-              <Chip 
-                  label={`Effort: ${area.efforts}`} 
-                size="small" 
-                  sx={(theme) => ({ 
-                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(161, 98, 7, 0.15)' : '#fefce8', 
-                    color: '#a16207',
-                  fontSize: '0.7rem',
-                    height: 24,
-                    border: '1px solid',
-                    borderColor: theme.palette.mode === 'dark' ? 'rgba(161, 98, 7, 0.3)' : '#fde047',
-                    borderRadius: '12px',
-                    fontWeight: 500
-                  })} 
-              />
-            )}
-            {area.end_user_impact && (
-              <Chip 
-                  label={`User Impact: ${area.end_user_impact}`} 
-                size="small" 
-                  sx={(theme) => ({ 
-                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(147, 51, 234, 0.15)' : '#fdf4ff', 
-                    color: '#9333ea',
-                  fontSize: '0.7rem',
-                    height: 24,
-                    border: '1px solid',
-                    borderColor: theme.palette.mode === 'dark' ? 'rgba(147, 51, 234, 0.3)' : '#e9d5ff',
-                    borderRadius: '12px',
-                    fontWeight: 500
-                  })} 
-                />
-              )}
-            </Box>
-          </Box>
-        )}
-
-        {/* POD Information */}
-        {(podLeader || areaPods.length > 0) && (
-          <Box sx={{ mb: 2.5 }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, mb: 1.5, display: 'block' }}>
-              POD Information
-            </Typography>
-
-        {/* POD Leader */}
-        {podLeader && (
-              <Box sx={(theme) => ({ 
-                mb: 1.5, 
-                p: 1.5, 
-                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(3, 105, 161, 0.15)' : '#f0f9ff', 
-                borderRadius: 1.5, 
-                border: '1px solid',
-                borderColor: theme.palette.mode === 'dark' ? 'rgba(3, 105, 161, 0.3)' : '#bae6fd'
-              })}>
-                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#0369a1', fontWeight: 500 }}>
-                  <PersonIcon sx={{ fontSize: 16 }} />
-                  Leader: {podLeader.member?.name || 'Unknown'}
-            </Typography>
-          </Box>
-        )}
-
-        {/* Associated PODs */}
-        {areaPods.length > 0 && (
-              <Box>
-                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', mb: 1, fontWeight: 500 }}>
-                  <GroupIcon sx={{ fontSize: 16 }} />
-              Associated PODs ({areaPods.length})
-            </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {areaPods.slice(0, 3).map((pod: Pod) => (
-                <Chip 
-                  key={pod.id}
-                  label={pod.name}
-                  size="small"
-                  clickable
-                  onClick={() => handlePodClick(pod.id)}
-                      sx={(theme) => ({ 
-                    fontSize: '0.7rem',
-                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(2, 119, 189, 0.15)' : '#e0f2fe',
-                        color: '#0277bd',
-                    border: '1px solid',
-                        borderColor: theme.palette.mode === 'dark' ? 'rgba(2, 119, 189, 0.3)' : '#81d4fa',
-                        borderRadius: '8px',
-                        fontWeight: 500,
-                        height: 22
-                      })}
-                />
-              ))}
-              {areaPods.length > 3 && (
-                <Chip 
-                  label={`+${areaPods.length - 3} more`}
-                  size="small"
-                      sx={(theme) => ({ 
-                        fontSize: '0.7rem',
-                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(107, 114, 128, 0.15)' : '#f3f4f6',
-                        color: '#6b7280',
-                        border: '1px solid',
-                        borderColor: theme.palette.mode === 'dark' ? 'rgba(107, 114, 128, 0.3)' : '#d1d5db',
-                        borderRadius: '8px',
-                        fontWeight: 500,
-                        height: 22
-                      })}
-                />
-              )}
-            </Box>
-              </Box>
-            )}
-          </Box>
-        )}
-
-        {/* One-pager status - improved design */}
-        <Box sx={{ mb: 2.5 }}>
-          {area.one_pager_url ? (
-            <Box sx={(theme) => ({ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1, 
-              p: 1.5, 
-              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(22, 163, 74, 0.15)' : '#f0fdf4', 
-              borderRadius: 1.5, 
-              border: '1px solid',
-              borderColor: theme.palette.mode === 'dark' ? 'rgba(22, 163, 74, 0.3)' : '#bbf7d0'
-            })}>
-              <AttachFileIcon sx={{ fontSize: 16, color: '#16a34a' }} />
-              <Typography variant="body2" sx={{ color: '#16a34a', fontWeight: 600 }}>
-                One-pager uploaded
-              </Typography>
-            </Box>
-          ) : (
-            <Box sx={(theme) => ({ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1, 
-              p: 1.5, 
-              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#fef2f2', 
-              borderRadius: 1.5, 
-              border: '1px solid',
-              borderColor: theme.palette.mode === 'dark' ? 'rgba(220, 38, 38, 0.3)' : '#fecaca'
-            })}>
-              <AttachFileIcon sx={{ fontSize: 16, color: '#dc2626' }} />
-              <Typography variant="body2" sx={{ color: '#dc2626', fontWeight: 600 }}>
-                One-pager required
-              </Typography>
-            </Box>
-          )}
-        </Box>
-
-        {/* Kick-off button for Planned areas - moved to bottom right */}
-        {area.status === 'Planned' && (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => handleKickOff(area)}
-              sx={{
-                backgroundColor: 'primary.main',
-                color: 'primary.contrastText',
-                fontSize: '0.7rem',
-                py: 0.5,
-                px: 1.5,
-                textTransform: 'none',
-                fontWeight: 500,
-                borderRadius: 0.5,
-                minWidth: 'auto',
-                width: 'fit-content',
-                '&:hover': {
-                  backgroundColor: 'primary.dark',
-                }
-              }}
-            >
-              Kick-off
-            </Button>
-          </Box>
-        )}
-
-        {/* Comments count */}
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 0.5,
-            cursor: 'pointer',
-            '&:hover': {
-              backgroundColor: 'action.hover',
-              borderRadius: 0.5,
-              px: 1,
-              py: 0.5
-            }
-          }}
-          onClick={() => handleViewComments(area)}
-        >
-          <CommentIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {area.comments?.length || 0} comments
-          </Typography>
-        </Box>
-        </Box>
-      )
-    }
-
-  const renderDetailedAreaCard = (area: Area) => {
-    const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
-    const revisedDates = areaRevisedEndDates[area.id] || []
-    const riskLevel = areaRiskLevels[area.id] || 'on-track'
-    const riskInfo = getRiskInfo(riskLevel)
-    
-    // Get POD leader for this area
-    const podLeader = areaPods.find(pod => pod.members?.some(member => member.is_leader))?.members?.find(member => member.is_leader)
-    
-    // Determine POD status color and text based on POD statuses
-    const getPodStatusInfo = () => {
-      if (areaPods.length === 0) return { color: '#6b7280', text: 'No PODs', status: 'No PODs' }
-      
-      const podStatuses = areaPods.map(pod => pod.status)
-      if (podStatuses.includes('Released')) return { color: '#4caf50', text: 'Released', status: 'Released' }
-      if (podStatuses.includes('In testing')) return { color: '#9c27b0', text: 'In Testing', status: 'In testing' }
-      if (podStatuses.includes('In development')) return { color: '#2196f3', text: 'In Development', status: 'In development' }
-      if (podStatuses.includes('Awaiting development')) return { color: '#ff9800', text: 'Awaiting Dev', status: 'Awaiting development' }
-      return { color: '#6b7280', text: 'No Status', status: 'No Status' }
-    }
-    
-    return (
-      <Box sx={{ 
-        p: 3, 
-        height: '100%', 
-        display: 'flex', 
-        flexDirection: 'column',
-        borderRadius: 3,
-        border: '1px solid',
-        borderColor: 'divider',
-        backgroundColor: 'background.paper',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        position: 'relative',
-        overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '3px',
-          background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4)',
-          opacity: 0,
-          transition: 'opacity 0.3s ease'
-        },
-        '&:hover': {
-          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.12)',
-          borderColor: 'primary.main',
-          transform: 'translateY(-2px)',
-          '&::before': {
-            opacity: 1
-          }
-        }
-      }}>
-        {/* Header with title and status indicators */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1.3 }}>
-            {area.name}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
-            {/* POD status indicator */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box
-                sx={{
-                  width: 12,
-                  height: 12,
-                  backgroundColor: getPodStatusInfo().color,
-                  borderRadius: '50%',
-                  border: '2px solid',
-                  borderColor: 'background.paper',
-                  boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 2px 4px rgba(255,255,255,0.1)' : '0 2px 4px rgba(0,0,0,0.1)'
-                }}
-              />
-              <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.75rem', fontWeight: 600 }}>
-                {getPodStatusInfo().text}
-              </Typography>
-            </Box>
-            {/* Risk level indicator */}
-            <Chip
-              label={riskInfo.label}
-              size="small"
-              sx={(theme) => ({
-                backgroundColor: riskLevel === 'critical' ? 
-                  (theme.palette.mode === 'dark' ? 'rgba(220, 38, 38, 0.15)' : '#fef2f2') : 
-                  riskLevel === 'medium-risk' ? 
-                  (theme.palette.mode === 'dark' ? 'rgba(217, 119, 6, 0.15)' : '#fffbeb') :
-                  riskLevel === 'low-risk' ? 
-                  (theme.palette.mode === 'dark' ? 'rgba(107, 114, 128, 0.15)' : '#f3f4f6') : 
-                  (theme.palette.mode === 'dark' ? 'rgba(22, 163, 74, 0.15)' : '#f0fdf4'),
-                color: riskLevel === 'critical' ? '#dc2626' : 
-                       riskLevel === 'medium-risk' ? '#d97706' :
-                       riskLevel === 'low-risk' ? '#6b7280' : '#16a34a',
-                border: riskLevel === 'critical' ? 
-                  (theme.palette.mode === 'dark' ? '1px solid rgba(220, 38, 38, 0.3)' : '1px solid #fecaca') : 
-                  riskLevel === 'medium-risk' ? 
-                  (theme.palette.mode === 'dark' ? '1px solid rgba(217, 119, 6, 0.3)' : '1px solid #fed7aa') :
-                  riskLevel === 'low-risk' ? 
-                  (theme.palette.mode === 'dark' ? '1px solid rgba(107, 114, 128, 0.3)' : '1px solid #d1d5db') : 
-                  (theme.palette.mode === 'dark' ? '1px solid rgba(22, 163, 74, 0.3)' : '1px solid #bbf7d0'),
-                fontWeight: 600,
-                fontSize: '0.75rem',
-                height: 24,
-                borderRadius: '12px'
-              })}
-            />
-          </Box>
-        </Box>
-        
-        {/* Description - more prominent in detailed view */}
-        {area.description && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.6, fontSize: '0.95rem' }}>
-              {area.description}
-            </Typography>
-          </Box>
-        )}
-        
-        {/* Dates Section */}
-        <Box sx={{ mb: 3 }}>
-          {/* Original dates */}
-          {(area.start_date || area.end_date) && (
-            <Box sx={{ 
-              mb: 1.5, 
-              p: 2, 
-              backgroundColor: 'action.hover', 
-              borderRadius: 2, 
-              border: '1px solid',
-              borderColor: 'divider'
-            }}>
-              <Typography variant="body2" sx={{ fontSize: '0.85rem', color: 'text.secondary', fontWeight: 500 }}>
-                📅 Start: {formatDate(area.start_date)} | End: {formatDate(area.end_date)}
-              </Typography>
-            </Box>
-          )}
-          {/* Revised end dates */}
-          {revisedDates.map((revisedDate: string, index: number) => (
-            <Box 
-              key={index} 
-              sx={(theme) => ({ 
-                mb: 1.5, 
-                p: 2, 
-                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(251, 191, 36, 0.1)' : '#fffbeb',
-                borderRadius: 2,
-                border: theme.palette.mode === 'dark' ? '1px solid rgba(251, 191, 36, 0.2)' : '1px solid #fed7aa'
-              })}>
-              <Typography variant="body2" sx={{ fontSize: '0.85rem', color: 'warning.main', fontWeight: 500 }}>
-                🔄 Revised End: {formatDate(revisedDate)}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-
-        {/* Impact Assessment - expanded */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.primary', fontWeight: 600 }}>
-            Impact Assessment
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-            {[
-              { label: 'Revenue Impact', value: area.revenue_impact, icon: '💰' },
-              { label: 'Business Enablement', value: area.business_enablement, icon: '🏢' },
-              { label: 'Efforts', value: area.efforts, icon: '⚡' },
-              { label: 'End User Impact', value: area.end_user_impact, icon: '👥' }
-            ].map(({ label, value, icon }) => (
-              <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Chip
-                  label={`${icon} ${value}`}
-                  size="small"
-                  sx={(theme) => ({
-                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(107, 114, 128, 0.15)' : '#f3f4f6',
-                    color: theme.palette.mode === 'dark' ? '#9ca3af' : '#6b7280',
-                    border: theme.palette.mode === 'dark' ? '1px solid rgba(107, 114, 128, 0.3)' : '1px solid #d1d5db',
-                    fontWeight: 600,
-                    fontSize: '0.75rem',
-                    height: 26,
-                    borderRadius: '13px'
-                  })}
-                />
-              </Box>
-            ))}
-          </Box>
-        </Box>
-
-        {/* POD Information - expanded */}
-        {areaPods.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.primary', fontWeight: 600 }}>
-              POD Information
-            </Typography>
-            {/* POD Leader */}
-            {podLeader && (
-              <Box sx={{ mb: 1.5 }}>
-                <Box sx={(theme) => ({ 
-                  p: 2, 
-                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff',
-                  borderRadius: 2,
-                  border: theme.palette.mode === 'dark' ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid #bfdbfe'
-                })}>
-                  <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 600, fontSize: '0.85rem' }}>
-                    👑 POD Leader: {podLeader.name}
-                  </Typography>
-                </Box>
-              </Box>
-            )}
-            {/* Associated PODs */}
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {areaPods.map((pod: Pod) => (
-                <Chip
-                  key={pod.id}
-                  label={pod.name}
-                  size="small"
-                  clickable
-                  onClick={() => handlePodClick(pod.id)}
-                  sx={(theme) => ({
-                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff',
-                    color: theme.palette.mode === 'dark' ? '#93c5fd' : '#1d4ed8',
-                    border: theme.palette.mode === 'dark' ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #bfdbfe',
-                    fontWeight: 600,
-                    fontSize: '0.75rem',
-                    height: 28,
-                    borderRadius: '14px'
-                  })}
-                />
-              ))}
-            </Box>
-          </Box>
-        )}
-
-        {/* One-pager Status - expanded */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.primary', fontWeight: 600 }}>
-            One-pager Status
-          </Typography>
-          <Box sx={(theme) => ({ 
-            p: 2, 
-            backgroundColor: area.one_pager_url ? 
-              (theme.palette.mode === 'dark' ? 'rgba(34, 197, 94, 0.1)' : '#f0fdf4') :
-              (theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.1)' : '#fef2f2'),
-            borderRadius: 2,
-            border: area.one_pager_url ? 
-              (theme.palette.mode === 'dark' ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid #bbf7d0') :
-              (theme.palette.mode === 'dark' ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid #fecaca')
-          })}>
-            <Typography variant="body2" sx={{ 
-              color: area.one_pager_url ? 'success.main' : 'error.main', 
-              fontWeight: 600, 
-              fontSize: '0.85rem' 
-            }}>
-              {area.one_pager_url ? '✅ One-pager available' : '❌ One-pager missing'}
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Kick-off button for Planned areas */}
-        {area.status === 'Planned' && (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-            <Button
-              variant="contained"
-              size="medium"
-              onClick={() => handleKickOff(area)}
-              sx={{
-                backgroundColor: 'primary.main',
-                color: 'primary.contrastText',
-                fontSize: '0.85rem',
-                py: 1,
-                px: 2.5,
-                textTransform: 'none',
-                fontWeight: 600,
-                borderRadius: 1,
-                minWidth: 'auto',
-                width: 'fit-content',
-                '&:hover': {
-                  backgroundColor: 'primary.dark',
-                }
-              }}
-            >
-              Kick-off
-            </Button>
-          </Box>
-        )}
-
-        {/* Comments count */}
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1,
-            cursor: 'pointer',
-            mt: 'auto',
-            '&:hover': {
-              backgroundColor: 'action.hover',
-              borderRadius: 1,
-              px: 1.5,
-              py: 0.5
-            }
-          }}
-          onClick={() => handleViewComments(area)}
-        >
-          <CommentIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-          <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-            {area.comments?.length || 0} comments
-          </Typography>
-        </Box>
-        </Box>
-      )
-    }
+      </Box>
+    )
+  }
 
   const backlogAreas = areas.filter((area: Area) => area.status === 'Backlog')
   const planningAreas = areas.filter((area: Area) => area.status === 'Planning')
@@ -1667,60 +1004,6 @@ export default function AreasPage() {
         }}>
           Planning
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {/* View Mode Selector */}
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={(event, newViewMode) => {
-              if (newViewMode !== null) {
-                setViewMode(newViewMode)
-                localStorage.setItem('areas-view-mode', newViewMode)
-              }
-            }}
-            size="medium"
-            sx={{ 
-              height: '40px', // Match Add Area button height
-              '& .MuiToggleButton-root': {
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb',
-                height: '40px',
-                px: 2,
-                py: 1,
-                fontSize: '14px',
-                fontWeight: 600,
-                textTransform: 'none',
-                backgroundColor: 'white',
-                color: '#6b7280',
-                '&:hover': {
-                  backgroundColor: '#f9fafb',
-                  color: '#374151'
-                },
-                '&.Mui-selected': {
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  borderColor: '#3b82f6',
-                  '&:hover': {
-                    backgroundColor: '#2563eb',
-                    borderColor: '#2563eb'
-                  }
-                }
-              }
-            }}
-          >
-            <ToggleButton value="cozy" aria-label="cozy view">
-              <ViewListIcon sx={{ fontSize: 18, mr: 1 }} />
-              Cozy
-            </ToggleButton>
-            <ToggleButton value="compact" aria-label="compact view">
-              <ViewModuleIcon sx={{ fontSize: 18, mr: 1 }} />
-              Compact
-            </ToggleButton>
-            <ToggleButton value="detailed" aria-label="detailed view">
-              <ViewAgendaIcon sx={{ fontSize: 18, mr: 1 }} />
-              Detailed
-            </ToggleButton>
-          </ToggleButtonGroup>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -1885,7 +1168,7 @@ export default function AreasPage() {
               </FormControl>
             </Grid>
             {/* POD Assignment - show when creating new areas or when editing areas with one-pager URL */}
-            {(!editingArea) || (editingArea && formData.one_pager_url && formData.one_pager_url.trim()) && (
+            {(!editingArea) || (editingArea && formData.one_pager_url && formData.one_pager_url.trim()) ? (
             <Grid item xs={12}>
                 <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
                   POD Assignment
@@ -1977,7 +1260,7 @@ export default function AreasPage() {
                 </Button>
               </Box>
             </Grid>
-            )}
+            ) : null}
           </Grid>
         </DialogContent>
         <DialogActions>
