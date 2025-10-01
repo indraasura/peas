@@ -181,10 +181,18 @@ export default function AreasPage() {
       refreshAreasWithComments()
     }
 
+    // Add periodic refresh to ensure data stays up to date
+    const refreshInterval = setInterval(() => {
+      refreshPods()
+      refreshAreas()
+      refreshAreasWithComments()
+    }, 30000) // Refresh every 30 seconds
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
 
     return () => {
+      clearInterval(refreshInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
     }
@@ -564,10 +572,10 @@ export default function AreasPage() {
       
       // Add the new POD to the selected pods
       if (editingArea) {
-      setFormData((prev: typeof formData) => ({
-        ...prev,
-        selected_pods: [...prev.selected_pods, newPod.id]
-      }))
+        setFormData((prev: typeof formData) => ({
+          ...prev,
+          selected_pods: [...prev.selected_pods, newPod.id]
+        }))
       } else if (validationDialog.area) {
         setValidationFormData((prev: typeof validationFormData) => ({
           ...prev,
@@ -582,8 +590,14 @@ export default function AreasPage() {
       })
       setOpenPodDialog(false)
       
-      // Refresh data
+      // Refresh data to ensure POD associations are updated
       await Promise.all([refreshAreas(), refreshPods(), refreshAreasWithComments()])
+      
+      // If this was created during validation, also refresh the validation dialog data
+      if (validationDialog.area) {
+        // Force a re-render by updating the validation dialog state
+        setValidationDialog(prev => ({ ...prev }))
+      }
     } catch (error) {
       console.error('Error creating POD:', error)
       setError('Failed to create POD. Please try again.')

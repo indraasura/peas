@@ -62,6 +62,15 @@ export default function MembersPage() {
     checkPODCommitteeStatus()
   }, [])
 
+  // Add periodic refresh to prevent stale data issues
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      fetchMembers()
+    }, 30000) // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval)
+  }, [])
+
   const checkPODCommitteeStatus = async () => {
     try {
       const currentUser = await getCurrentUser()
@@ -76,19 +85,39 @@ export default function MembersPage() {
 
   const fetchMembers = async () => {
     try {
+      setLoading(true)
       const membersData = await getMembers()
+      
+      // Validate and safely process members data
+      if (!Array.isArray(membersData)) {
+        console.error('Invalid members data received:', membersData)
+        setMembers([])
+        return
+      }
+      
       // Calculate bandwidth for each member (bandwidth_percentage is stored as decimals 0-1)
       const membersWithBandwidth = membersData.map(member => {
-        const usedBandwidth = member.pod_members?.reduce((sum: number, pm: any) => 
-          sum + (pm.bandwidth_percentage || 0), 0) || 0
-        return {
-          ...member,
-          bandwidth: usedBandwidth // This is already in 0-1 format from the database
+        try {
+          const usedBandwidth = member.pod_members?.reduce((sum: number, pm: any) => 
+            sum + (pm.bandwidth_percentage || 0), 0) || 0
+          return {
+            ...member,
+            bandwidth: Math.min(Math.max(usedBandwidth, 0), 1) // Ensure bandwidth is between 0 and 1
+          }
+        } catch (error) {
+          console.error('Error processing member bandwidth:', member.id, error)
+          return {
+            ...member,
+            bandwidth: 0
+          }
         }
       })
+      
       setMembers(membersWithBandwidth)
     } catch (error) {
       console.error('Error fetching members:', error)
+      setError('Failed to load members. Please refresh the page.')
+      setMembers([])
     } finally {
       setLoading(false)
     }
