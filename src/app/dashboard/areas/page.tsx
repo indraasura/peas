@@ -43,7 +43,8 @@ import {
   Assessment as AssessmentIcon,
   Send as SendIcon,
   Check as CheckIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Person as PersonIcon
 } from '@mui/icons-material'
 import { createArea, updateArea, deleteArea, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, verifyPODAssociation, updateAreaStatusAutomatically, getPodNotes } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
@@ -728,29 +729,61 @@ export default function AreasPage() {
     const riskLevel = areaRiskLevels[area.id] || 'on-track'
     const riskInfo = getRiskInfo(riskLevel)
     
+    // Get POD leader for this area
+    const podLeader = areaPods.find(pod => pod.members?.some(member => member.is_leader))?.members?.find(member => member.is_leader)
+    
+    // Determine area status color badge based on POD statuses
+    const getAreaStatusColor = () => {
+      if (areaPods.length === 0) return '#6b7280' // Gray for no PODs
+      
+      const podStatuses = areaPods.map(pod => pod.status)
+      if (podStatuses.includes('Released')) return '#4caf50' // Green if any POD is released
+      if (podStatuses.includes('In testing')) return '#9c27b0' // Purple if any POD is in testing
+      if (podStatuses.includes('In development')) return '#2196f3' // Blue if any POD is in development
+      if (podStatuses.includes('Awaiting development')) return '#ff9800' // Orange if any POD is awaiting development
+      return '#6b7280' // Default gray
+    }
+    
     return (
         <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: '#111827' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
             {area.name}
           </Typography>
-          <Chip
-            label={riskInfo.label}
-            size="small"
-            sx={{
-              backgroundColor: riskLevel === 'critical' ? '#fef2f2' : 
-                              riskLevel === 'medium-risk' ? '#fffbeb' :
-                              riskLevel === 'low-risk' ? '#f3f4f6' : '#f0fdf4',
-              color: riskLevel === 'critical' ? '#dc2626' : 
-                     riskLevel === 'medium-risk' ? '#d97706' :
-                     riskLevel === 'low-risk' ? '#6b7280' : '#16a34a',
-              border: riskLevel === 'critical' ? '1px solid #fecaca' : 
-                      riskLevel === 'medium-risk' ? '1px solid #fed7aa' :
-                      riskLevel === 'low-risk' ? '1px solid #d1d5db' : '1px solid #bbf7d0',
-              fontWeight: 600,
-              fontSize: '0.7rem'
-            }}
-          />
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            {/* Area status color badge */}
+            <Chip
+              label=""
+              size="small"
+              sx={{
+                width: 8,
+                height: 8,
+                backgroundColor: getAreaStatusColor(),
+                borderRadius: '50%',
+                minWidth: 8,
+                '& .MuiChip-label': {
+                  display: 'none'
+                }
+              }}
+            />
+            <Chip
+              label={riskInfo.label}
+              size="small"
+              sx={{
+                backgroundColor: riskLevel === 'critical' ? '#fef2f2' : 
+                                riskLevel === 'medium-risk' ? '#fffbeb' :
+                                riskLevel === 'low-risk' ? '#f3f4f6' : '#f0fdf4',
+                color: riskLevel === 'critical' ? '#dc2626' : 
+                       riskLevel === 'medium-risk' ? '#d97706' :
+                       riskLevel === 'low-risk' ? '#6b7280' : '#16a34a',
+                border: riskLevel === 'critical' ? '1px solid #fecaca' : 
+                        riskLevel === 'medium-risk' ? '1px solid #fed7aa' :
+                        riskLevel === 'low-risk' ? '1px solid #d1d5db' : '1px solid #bbf7d0',
+                fontWeight: 600,
+                fontSize: '0.7rem'
+              }}
+            />
+          </Box>
         </Box>
         
         {/* Dates Section */}
@@ -854,10 +887,20 @@ export default function AreasPage() {
           </Box>
         )}
 
+        {/* POD Leader */}
+        {podLeader && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
+              <PersonIcon sx={{ fontSize: 14 }} />
+              POD Leader: {podLeader.member?.name || 'Unknown'}
+            </Typography>
+          </Box>
+        )}
+
         {/* Associated PODs */}
         {areaPods.length > 0 && (
           <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#6b7280' }}>
+            <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
               <GroupIcon sx={{ fontSize: 14 }} />
               Associated PODs ({areaPods.length})
             </Typography>
@@ -872,9 +915,10 @@ export default function AreasPage() {
                     mr: 0.5, 
                     mb: 0.5, 
                     fontSize: '0.7rem',
-                    backgroundColor: '#eff6ff',
-                    color: '#1d4ed8',
-                    border: '1px solid #bfdbfe'
+                    backgroundColor: 'action.hover',
+                    color: 'primary.main',
+                    border: '1px solid',
+                    borderColor: 'primary.main'
                   }}
                 />
               ))}
@@ -909,25 +953,26 @@ export default function AreasPage() {
           )}
         </Box>
 
-        {/* Kick-off button for Planned areas */}
+        {/* Kick-off button for Planned areas - moved to bottom right */}
         {area.status === 'Planned' && (
-          <Box sx={{ mb: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
             <Button
               variant="contained"
               size="small"
               onClick={() => handleKickOff(area)}
               sx={{
-                backgroundColor: '#3b82f6',
-                color: 'white',
+                backgroundColor: 'primary.main',
+                color: 'primary.contrastText',
                 fontSize: '0.7rem',
                 py: 0.5,
                 px: 1.5,
                 textTransform: 'none',
                 fontWeight: 500,
-                borderRadius: 1,
-                width: '100%',
+                borderRadius: 0.5,
+                minWidth: 'auto',
+                width: 'fit-content',
                 '&:hover': {
-                  backgroundColor: '#2563eb',
+                  backgroundColor: 'primary.dark',
                 }
               }}
             >
@@ -944,16 +989,16 @@ export default function AreasPage() {
             gap: 0.5,
             cursor: 'pointer',
             '&:hover': {
-              backgroundColor: '#f9fafb',
-              borderRadius: 1,
+              backgroundColor: 'action.hover',
+              borderRadius: 0.5,
               px: 1,
               py: 0.5
             }
           }}
           onClick={() => handleViewComments(area)}
         >
-          <CommentIcon sx={{ fontSize: 14, color: '#6b7280' }} />
-          <Typography variant="caption" sx={{ color: '#6b7280' }}>
+          <CommentIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
             {area.comments?.length || 0} comments
           </Typography>
         </Box>
@@ -1750,6 +1795,23 @@ export default function AreasPage() {
                     </FormControl>
                   </Grid>
                 )}
+                
+                {/* PODs field */}
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <InputLabel>Associated PODs</InputLabel>
+                    <Select
+                      multiple
+                      value={formData.selected_pods}
+                      onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
+                      label="Associated PODs"
+                    >
+                      {pods.map((pod: Pod) => (
+                        <MenuItem key={pod.id} value={pod.id}>{pod.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
               </Grid>
             </Box>
           )}

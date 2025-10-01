@@ -11,7 +11,8 @@ import {
   Card,
   CardContent,
   CardActions,
-  Tooltip
+  Tooltip,
+  useTheme
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -52,6 +53,8 @@ export default function KanbanBoard({
   addButtonText = 'Add Item',
   showActionButtons = true
 }: KanbanBoardProps) {
+  const theme = useTheme()
+  
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return
     onItemMove(result)
@@ -73,21 +76,25 @@ export default function KanbanBoard({
               minWidth: 300,
               maxWidth: 350,
               height: 'fit-content',
-              backgroundColor: '#ffffff',
-              border: '1px solid #e5e7eb',
-              borderRadius: 1,
-              // Removed boxShadow for flat design
+              backgroundColor: theme.palette.background.paper,
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: 0.5,
+              // Sleeker flat design
             }}
           >
-            <Box sx={{ p: 2, borderBottom: '1px solid #e5e7eb' }}>
+            <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: '#111827' }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
                   {column.title}
                 </Typography>
                 <Chip
                   label={column.items.length}
                   size="small"
-                  sx={{ backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db' }}
+                  sx={{ 
+                    backgroundColor: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[100], 
+                    color: theme.palette.text.secondary, 
+                    border: `1px solid ${theme.palette.divider}` 
+                  }}
                 />
               </Box>
               {onItemAdd && column.showAddButton && (
@@ -97,14 +104,14 @@ export default function KanbanBoard({
                   sx={{ 
                     mt: 1, 
                     width: '100%',
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
+                    backgroundColor: theme.palette.primary.main,
+                    color: theme.palette.primary.contrastText,
                     border: 'none',
-                    borderRadius: 1,
+                    borderRadius: 0.5,
                     textTransform: 'none',
                     fontWeight: 500,
                     '&:hover': {
-                      backgroundColor: '#2563eb',
+                      backgroundColor: theme.palette.primary.dark,
                     }
                   }}
                   variant="contained"
@@ -123,9 +130,9 @@ export default function KanbanBoard({
                   sx={{
                     minHeight: 200,
                     p: 1,
-                    backgroundColor: snapshot.isDraggingOver ? '#f9fafb' : 'transparent',
+                    backgroundColor: snapshot.isDraggingOver ? theme.palette.action.hover : 'transparent',
                     transition: 'background-color 0.2s ease',
-                    borderRadius: 1
+                    borderRadius: 0.5
                   }}
                 >
                   {column.items.map((item, index) => (
@@ -145,13 +152,13 @@ export default function KanbanBoard({
                             onDoubleClick={() => handleCardDoubleClick(item)}
                             sx={{
                               cursor: 'pointer',
-                              backgroundColor: '#ffffff',
-                              border: '1px solid #e5e7eb',
-                              borderRadius: 1,
-                              // Removed boxShadow and hover effects for flat design
+                              backgroundColor: theme.palette.background.paper,
+                              border: `1px solid ${theme.palette.divider}`,
+                              borderRadius: 0.5,
+                              // Sleeker flat design
                               '&:hover': {
-                                borderColor: '#3b82f6',
-                                backgroundColor: '#f8fafc'
+                                borderColor: theme.palette.primary.main,
+                                backgroundColor: theme.palette.action.hover
                               },
                               transition: 'all 0.2s ease'
                             }}

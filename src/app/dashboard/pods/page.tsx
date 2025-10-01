@@ -515,7 +515,7 @@ export default function PodsPage() {
     return (
         <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
             {pod.name}
           </Typography>
           <Chip

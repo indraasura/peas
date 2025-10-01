@@ -40,7 +40,8 @@ import {
   Close as CloseIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Collapse as CollapseIcon
 } from '@mui/icons-material'
 import { getPods, getPodNotes, createPodNote, updatePodNote, deletePodNote } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'
@@ -67,6 +68,7 @@ export default function PodViewPage() {
     dependencies_risks: '',
     misc: ''
   })
+  const [membersExpanded, setMembersExpanded] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -267,30 +269,40 @@ export default function PodViewPage() {
             </CardContent>
           </Card>
 
-          {/* Team Members */}
+          {/* Team Members - Collapsible */}
           <Card sx={{ mt: 3 }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Team Members
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  Team Members ({pod.members?.length || 0})
+                </Typography>
+                <IconButton 
+                  onClick={() => setMembersExpanded(!membersExpanded)}
+                  size="small"
+                >
+                  {membersExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              </Box>
               <Divider sx={{ mb: 2 }} />
               
-              {pod.members && pod.members.length > 0 ? (
-                <List>
-                  {pod.members.map((member: any) => (
-                    <ListItem key={member.id}>
-                      <ListItemIcon>
-                        <PersonIcon />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={`${member.member?.name || 'Unknown'} ${member.is_leader ? '(Leader)' : ''}`}
-                        secondary={`${member.bandwidth_percentage.toFixed(2)} bandwidth`}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              ) : (
-                <Typography color="text.secondary">No team members assigned</Typography>
+              {membersExpanded && (
+                pod.members && pod.members.length > 0 ? (
+                  <List>
+                    {pod.members.map((member: any) => (
+                      <ListItem key={member.id}>
+                        <ListItemIcon>
+                          <PersonIcon />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={`${member.member?.name || 'Unknown'} ${member.is_leader ? '(Leader)' : ''}`}
+                          secondary={`${member.bandwidth_percentage.toFixed(2)} bandwidth`}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                ) : (
+                  <Typography color="text.secondary">No team members assigned</Typography>
+                )
               )}
             </CardContent>
           </Card>
@@ -403,30 +415,70 @@ export default function PodViewPage() {
                         Created by {note.creator?.name || 'Unknown'} • {formatDate(note.created_at)}
                       </Typography>
 
-                      {/* Show only a summary of key fields */}
-                      <Box sx={{ mb: 2 }}>
+                      {/* Show all fields in 2-column layout */}
+                      <Grid container spacing={2}>
                         {note.current_state && (
-                          <Typography variant="body2" sx={{ mb: 1 }}>
-                            <strong>Current State:</strong> {note.current_state.length > 80 
-                              ? `${note.current_state.substring(0, 80)}...` 
-                              : note.current_state}
-                          </Typography>
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="body2" sx={{ mb: 1 }}>
+                              <strong>Current State:</strong> {note.current_state.length > 100 
+                                ? `${note.current_state.substring(0, 100)}...` 
+                                : note.current_state}
+                            </Typography>
+                          </Grid>
                         )}
                         {note.blockers && (
-                          <Typography variant="body2" sx={{ mb: 1, color: 'error.main' }}>
-                            <strong>Blockers:</strong> {note.blockers.length > 80 
-                              ? `${note.blockers.substring(0, 80)}...` 
-                              : note.blockers}
-                          </Typography>
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'error.main' }}>
+                              <strong>Blockers:</strong> {note.blockers.length > 100 
+                                ? `${note.blockers.substring(0, 100)}...` 
+                                : note.blockers}
+                            </Typography>
+                          </Grid>
                         )}
                         {note.learnings && (
-                          <Typography variant="body2" sx={{ mb: 1, color: 'success.main' }}>
-                            <strong>Learnings:</strong> {note.learnings.length > 80 
-                              ? `${note.learnings.substring(0, 80)}...` 
-                              : note.learnings}
-                          </Typography>
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'success.main' }}>
+                              <strong>Learnings:</strong> {note.learnings.length > 100 
+                                ? `${note.learnings.substring(0, 100)}...` 
+                                : note.learnings}
+                            </Typography>
+                          </Grid>
                         )}
-                      </Box>
+                        {note.deviation_to_plan && (
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'warning.main' }}>
+                              <strong>Deviation to Plan:</strong> {note.deviation_to_plan.length > 100 
+                                ? `${note.deviation_to_plan.substring(0, 100)}...` 
+                                : note.deviation_to_plan}
+                            </Typography>
+                          </Grid>
+                        )}
+                        {note.dependencies_risks && (
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'info.main' }}>
+                              <strong>Dependencies & Risks:</strong> {note.dependencies_risks.length > 100 
+                                ? `${note.dependencies_risks.substring(0, 100)}...` 
+                                : note.dependencies_risks}
+                            </Typography>
+                          </Grid>
+                        )}
+                        {note.misc && (
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="body2" sx={{ mb: 1 }}>
+                              <strong>Miscellaneous:</strong> {note.misc.length > 100 
+                                ? `${note.misc.substring(0, 100)}...` 
+                                : note.misc}
+                            </Typography>
+                          </Grid>
+                        )}
+                        {note.revised_end_date && (
+                          <Grid item xs={12} md={6}>
+                            <Typography variant="body2" sx={{ mb: 1, color: 'warning.main' }}>
+                              <strong>Revised End Date:</strong> {formatDate(note.revised_end_date)}
+                            </Typography>
+                          </Grid>
+                        )}
+                      </Grid>
                     </Paper>
                   ))}
                 </Stack>
@@ -549,7 +601,7 @@ export default function PodViewPage() {
                 helperText="If the POD end date needs to be revised"
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Current State"
@@ -559,52 +611,52 @@ export default function PodViewPage() {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, current_state: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Blockers"
                 multiline
-                rows={2}
+                rows={3}
                 value={noteForm.blockers}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, blockers: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Learnings"
                 multiline
-                rows={2}
+                rows={3}
                 value={noteForm.learnings}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, learnings: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Deviation to Plan"
                 multiline
-                rows={2}
+                rows={3}
                 value={noteForm.deviation_to_plan}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, deviation_to_plan: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Dependencies & Risks"
                 multiline
-                rows={2}
+                rows={3}
                 value={noteForm.dependencies_risks}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, dependencies_risks: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Miscellaneous Notes"
                 multiline
-                rows={2}
+                rows={3}
                 value={noteForm.misc}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNoteForm({ ...noteForm, misc: e.target.value })}
               />

@@ -76,7 +76,7 @@ const lightTheme = createTheme({
     },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 4,
   },
   shadows: [
     'none',
@@ -183,7 +183,7 @@ const darkTheme = createTheme({
     },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 4,
   },
   shadows: [
     'none',
