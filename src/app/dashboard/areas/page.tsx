@@ -64,9 +64,8 @@ const impactLevels = ['Low', 'Medium', 'High']
 export default function AreasPage() {
   const router = useRouter()
   
-  // Use optimized data fetching hook
+  // Use comprehensive data fetching hook
   const {
-    areas: areasWithoutComments,
     pods,
     members,
     availableMembers,
@@ -80,7 +79,7 @@ export default function AreasPage() {
   } = useComprehensiveData()
   
   // Get areas with comments for proper comment count display
-  const { areas } = useAreas(true) // true = include relations (comments)
+  const { areas, refreshAreas: refreshAreasWithComments } = useAreas(true) // true = include relations (comments)
   const [user, setUser] = useState<Profile | null>(null)
   const [openDialog, setOpenDialog] = useState(false)
   const [openPodDialog, setOpenPodDialog] = useState(false)
@@ -168,6 +167,7 @@ export default function AreasPage() {
         // Page became visible, refresh data
         refreshPods()
         refreshAreas()
+        refreshAreasWithComments()
       }
     }
 
@@ -175,6 +175,7 @@ export default function AreasPage() {
       // Window gained focus, refresh data
       refreshPods()
       refreshAreas()
+      refreshAreasWithComments()
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -184,7 +185,7 @@ export default function AreasPage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
     }
-  }, [refreshPods, refreshAreas])
+  }, [refreshPods, refreshAreas, refreshAreasWithComments])
 
   // Calculate area risk levels when areas and pods data changes
   useEffect(() => {
@@ -359,7 +360,7 @@ export default function AreasPage() {
       }
       
       // Refresh data to get updated POD associations
-      await Promise.all([refreshAreas(), refreshPods()])
+      await Promise.all([refreshAreas(), refreshPods(), refreshAreasWithComments()])
       
       // Show success message
       console.log('Area saved successfully')
@@ -478,11 +479,11 @@ export default function AreasPage() {
       }
       
       // Refresh data to show updated POD statuses
-      await Promise.all([refreshAreas(), refreshPods()])
+      await Promise.all([refreshAreas(), refreshPods(), refreshAreasWithComments()])
       
       // Refresh data to show updated POD statuses
       if (source.droppableId === 'Released' && destination.droppableId !== 'Released') {
-        await Promise.all([refreshAreas(), refreshPods()])
+        await Promise.all([refreshAreas(), refreshPods(), refreshAreasWithComments()])
       }
       
       console.log('Area movement completed successfully')
@@ -514,7 +515,7 @@ export default function AreasPage() {
     if (window.confirm(`Are you sure you want to kick off "${area.name}"? This will move all associated PODs to "Awaiting development" status.`)) {
       try {
         await kickOffArea(area.id)
-        await Promise.all([refreshAreas(), refreshPods()]) // Refresh data to show updated statuses
+        await Promise.all([refreshAreas(), refreshPods(), refreshAreasWithComments()]) // Refresh data to show updated statuses
       } catch (error) {
         console.error('Error kicking off area:', error)
         setError('Failed to kick off area. Please try again.')
@@ -579,7 +580,7 @@ export default function AreasPage() {
       setOpenPodDialog(false)
       
       // Refresh data
-      await Promise.all([refreshAreas(), refreshPods()])
+      await Promise.all([refreshAreas(), refreshPods(), refreshAreasWithComments()])
     } catch (error) {
       console.error('Error creating POD:', error)
       setError('Failed to create POD. Please try again.')
@@ -609,7 +610,7 @@ export default function AreasPage() {
     if (window.confirm(`Are you sure you want to delete "${area.name}"?`)) {
       try {
         await deleteArea(area.id)
-        await refreshAreas()
+        await Promise.all([refreshAreas(), refreshAreasWithComments()])
       } catch (error) {
         console.error('Error deleting area:', error)
         setError('Failed to delete area. Please try again.')
@@ -664,7 +665,7 @@ export default function AreasPage() {
       setNewComment('')
       
       // Refresh areas data to update comment counts in cards
-      await refreshAreas()
+      await Promise.all([refreshAreas(), refreshAreasWithComments()])
     } catch (error) {
       console.error('Error adding comment:', error)
       setError('Failed to add comment. Please try again.')
@@ -690,7 +691,7 @@ export default function AreasPage() {
       setAreaComments(comments)
       
       // Refresh areas data to update comment counts in cards
-      await refreshAreas()
+      await Promise.all([refreshAreas(), refreshAreasWithComments()])
       
       setEditingComment(null)
       setEditCommentText('')
@@ -714,7 +715,7 @@ export default function AreasPage() {
         setAreaComments(comments)
         
         // Refresh areas data to update comment counts in cards
-        await refreshAreas()
+        await Promise.all([refreshAreas(), refreshAreasWithComments()])
       } catch (error) {
         console.error('Error deleting comment:', error)
         setError('Failed to delete comment. Please try again.')
@@ -799,7 +800,7 @@ export default function AreasPage() {
         selected_pods: []
       })
       
-      await Promise.all([refreshAreas(), refreshPods()])
+      await Promise.all([refreshAreas(), refreshPods(), refreshAreasWithComments()])
       
       console.log('Area updated with missing fields and status automatically adjusted')
     } catch (error) {
