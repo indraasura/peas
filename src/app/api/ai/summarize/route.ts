@@ -17,19 +17,15 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Making request to Groq API with model:', GROQ_MODEL)
+    console.log('API Key length:', GROQ_API_KEY?.length)
+    console.log('API Key starts with:', GROQ_API_KEY?.substring(0, 10))
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [
-          {
-            role: 'system',
-            content: `You are Kynetik AI, an intelligent assistant for project management and team coordination. 
+    const requestBody = {
+      model: GROQ_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: `You are Kynetik AI, an intelligent assistant for project management and team coordination. 
             
 You excel at:
 - Analyzing project data and providing actionable insights
@@ -45,33 +41,69 @@ Always format your responses with:
 - Professional, concise language
 
 Focus on practical, actionable insights that help teams make better decisions.`
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: 2000,
-        temperature: 0.7,
-        stream: false
-      })
-    })
-
-    if (!response.ok) {
-      const errorData = await response.text()
-      console.error('Groq API error:', response.status, response.statusText, errorData)
-      return NextResponse.json({ 
-        error: 'Failed to get AI response', 
-        details: `Groq API returned ${response.status}: ${response.statusText}` 
-      }, { status: 500 })
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 2000,
+      temperature: 0.7,
+      stream: false
     }
 
-    const data = await response.json()
-    console.log('Groq API response received successfully')
-    
-    const summary = data.choices?.[0]?.message?.content || 'No response generated'
+    console.log('Request body prepared, making fetch request...')
 
-    return NextResponse.json({ summary })
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+      console.log('Fetch request completed, status:', response.status)
+
+      if (!response.ok) {
+        const errorData = await response.text()
+        console.error('Groq API error:', response.status, response.statusText, errorData)
+        return NextResponse.json({ 
+          error: 'Failed to get AI response', 
+          details: `Groq API returned ${response.status}: ${response.statusText}` 
+        }, { status: 500 })
+      }
+
+      const data = await response.json()
+      console.log('Groq API response received successfully')
+      
+      const summary = data.choices?.[0]?.message?.content || 'No response generated'
+
+      return NextResponse.json({ summary })
+
+    } catch (fetchError) {
+      clearTimeout(timeoutId)
+      console.error('Fetch error:', fetchError)
+      
+      if (fetchError.name === 'AbortError') {
+        return NextResponse.json({ 
+          error: 'Request timeout', 
+          details: 'The request to Groq API timed out after 30 seconds' 
+        }, { status: 500 })
+      }
+      
+      return NextResponse.json({ 
+        error: 'Network error', 
+        details: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error' 
+      }, { status: 500 })
+    }
 
   } catch (error) {
     console.error('AI API error:', error)
