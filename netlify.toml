@@ -6,13 +6,12 @@
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
 
-# Next.js App Router support
-# Redirect API calls to Netlify functions
-[[redirects]]
-  from = "/api/ai/summarize"
-  to = "/.netlify/functions/ai-summarize"
-  status = 200
+# Next.js plugin configuration
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
+# Next.js App Router support
+# The plugin handles API routes automatically
 [[redirects]]
   from = "/*"
   to = "/index.html"
