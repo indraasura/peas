@@ -50,13 +50,15 @@ import {
   Comment as CommentIcon,
   Close as CloseIcon,
   Assessment as AssessmentIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  SmartToy as SmartToyIcon
 } from '@mui/icons-material'
 import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote, updatePodNote, deletePodNote, checkAndUpdateAreaStatus } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'
 import { type Pod, type Area, type Profile, type PodNote } from '@/lib/supabase'
 import { calculatePodRiskLevel, getRiskInfo, getLatestRevisedEndDate, type RiskLevel } from '@/lib/risk-utils'
 import KanbanBoard from '@/components/KanbanBoard'
+import AIDrawer from '@/components/AIDrawer'
 import { DropResult } from '@hello-pangea/dnd'
 
 const podStatuses = ['Awaiting development', 'In development', 'In testing', 'Released']
@@ -77,6 +79,7 @@ export default function PodsPage() {
   const [podRiskLevels, setPodRiskLevels] = useState<Record<string, RiskLevel>>({})
   const [podRevisedDates, setPodRevisedDates] = useState<Record<string, string>>({})
   const [openViewDialog, setOpenViewDialog] = useState(false)
+  const [aiDrawerOpen, setAiDrawerOpen] = useState(false)
   const [selectedNote, setSelectedNote] = useState<PodNote | null>(null)
   const [editingNote, setEditingNote] = useState<PodNote | null>(null)
   const [newNote, setNewNote] = useState({
@@ -656,29 +659,53 @@ export default function PodsPage() {
         }}>
           Execution
         </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={fetchData}
-          disabled={loading}
-          sx={{
-            borderRadius: '12px',
-            px: 3,
-            py: 1.5,
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '14px',
-            borderColor: '#E2E8F0',
-            color: '#64748B',
-            '&:hover': {
-              borderColor: '#3B82F6',
-              color: '#3B82F6',
-              backgroundColor: '#EBF8FF',
-            },
-          }}
-        >
-          Refresh
-        </Button>
+        <Box display="flex" gap={2} alignItems="center">
+          <Button
+            variant="outlined"
+            startIcon={<SmartToyIcon />}
+            onClick={() => setAiDrawerOpen(true)}
+            sx={{
+              borderRadius: '12px',
+              px: 3,
+              py: 1.5,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '14px',
+              borderColor: '#E2E8F0',
+              color: '#64748B',
+              '&:hover': {
+                borderColor: '#3B82F6',
+                color: '#3B82F6',
+                backgroundColor: '#EBF8FF',
+              },
+            }}
+          >
+            Ask Kynetik AI
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={fetchData}
+            disabled={loading}
+            sx={{
+              borderRadius: '12px',
+              px: 3,
+              py: 1.5,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '14px',
+              borderColor: '#E2E8F0',
+              color: '#64748B',
+              '&:hover': {
+                borderColor: '#3B82F6',
+                color: '#3B82F6',
+                backgroundColor: '#EBF8FF',
+              },
+            }}
+          >
+            Refresh
+          </Button>
+        </Box>
       </Box>
 
       {error && (
@@ -963,7 +990,7 @@ export default function PodsPage() {
                 helperText="If the POD end date needs to be revised based on this review"
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Current State"
@@ -974,18 +1001,18 @@ export default function PodsPage() {
                 placeholder="Describe the current state of the POD..."
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Blockers"
                 value={newNote.blockers}
                 onChange={(e: any) => setNewNote({ ...newNote, blockers: e.target.value })}
                 multiline
-                rows={2}
+                rows={3}
                 placeholder="List any blockers or impediments..."
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Learnings"
@@ -996,7 +1023,7 @@ export default function PodsPage() {
                 placeholder="What did the team learn during this period?"
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Deviation to Plan"
@@ -1007,7 +1034,7 @@ export default function PodsPage() {
                 placeholder="Any deviations from the original plan..."
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Dependencies & Risks"
@@ -1018,7 +1045,7 @@ export default function PodsPage() {
                 placeholder="External dependencies and potential risks..."
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Miscellaneous"
@@ -1191,6 +1218,27 @@ export default function PodsPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* AI Drawer */}
+      <AIDrawer
+        open={aiDrawerOpen}
+        onClose={() => setAiDrawerOpen(false)}
+        title="POD Execution Analysis"
+        contextData={{
+          pods: pods,
+          podsByStatus: {
+            awaiting: pods.filter(pod => pod.status === 'Awaiting development'),
+            development: pods.filter(pod => pod.status === 'In development'),
+            testing: pods.filter(pod => pod.status === 'In testing'),
+            released: pods.filter(pod => pod.status === 'Released')
+          },
+          areas: areas,
+          riskLevels: podRiskLevels,
+          revisedDates: podRevisedDates,
+          notesCounts: podNotesCounts
+        }}
+        section="pods"
+      />
     </Box>
   )
 }

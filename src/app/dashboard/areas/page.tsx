@@ -47,7 +47,8 @@ import {
   Send as SendIcon,
   Check as CheckIcon,
   Close as CloseIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  SmartToy as SmartToyIcon
 } from '@mui/icons-material'
 import { createArea, updateArea, deleteArea, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, verifyPODAssociation, updateAreaStatusAutomatically, getPodNotes } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
@@ -57,6 +58,7 @@ import { SkeletonLoader, AreaCardSkeleton } from '@/components/SkeletonLoader'
 import { validatePodCreation } from '@/lib/area-status-utils'
 import { calculateAreaRiskLevel, calculatePodRiskLevel, getRiskInfo, type RiskLevel } from '@/lib/risk-utils'
 import KanbanBoard from '@/components/KanbanBoard'
+import AIDrawer from '@/components/AIDrawer'
 import { DropResult } from '@hello-pangea/dnd'
 
 const impactLevels = ['Low', 'Medium', 'High']
@@ -146,6 +148,7 @@ export default function AreasPage() {
     targetStatus: string
   } | null>(null)
   const [areaRiskLevels, setAreaRiskLevels] = useState<Record<string, RiskLevel>>({})
+  const [aiDrawerOpen, setAiDrawerOpen] = useState(false)
 
   // Load user data
   useEffect(() => {
@@ -1061,25 +1064,48 @@ export default function AreasPage() {
         }}>
           Planning
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddArea}
-          sx={{
-            backgroundColor: '#3b82f6',
-            borderRadius: 1,
-            px: 3,
-            py: 1.5,
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '14px',
-            '&:hover': {
-              backgroundColor: '#2563eb',
-            },
-          }}
-        >
-          Add Area
-        </Button>
+        <Box display="flex" gap={2} alignItems="center">
+          <Button
+            variant="outlined"
+            startIcon={<SmartToyIcon />}
+            onClick={() => setAiDrawerOpen(true)}
+            sx={{
+              borderColor: '#3b82f6',
+              color: '#3b82f6',
+              borderRadius: 1,
+              px: 3,
+              py: 1.5,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '14px',
+              '&:hover': {
+                borderColor: '#2563eb',
+                backgroundColor: '#eff6ff',
+              },
+            }}
+          >
+            Ask Kynetik AI
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddArea}
+            sx={{
+              backgroundColor: '#3b82f6',
+              borderRadius: 1,
+              px: 3,
+              py: 1.5,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '14px',
+              '&:hover': {
+                backgroundColor: '#2563eb',
+              },
+            }}
+          >
+            Add Area
+          </Button>
+        </Box>
       </Box>
 
       {error && (
@@ -2000,6 +2026,27 @@ export default function AreasPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* AI Drawer */}
+      <AIDrawer
+        open={aiDrawerOpen}
+        onClose={() => setAiDrawerOpen(false)}
+        title="Planning & Areas Analysis"
+        contextData={{
+          areas: areas,
+          pods: pods,
+          areasByStatus: {
+            backlog: areas.filter(area => area.status === 'Backlog'),
+            planning: areas.filter(area => area.status === 'Planning'),
+            planned: areas.filter(area => area.status === 'Planned'),
+            executing: areas.filter(area => area.status === 'Executing'),
+            released: areas.filter(area => area.status === 'Released')
+          },
+          riskLevels: areaRiskLevels,
+          revisedDates: areaRevisedEndDates
+        }}
+        section="areas"
+      />
 
     </Box>
   )

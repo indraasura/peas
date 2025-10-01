@@ -30,11 +30,13 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Save as SaveIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  SmartToy as SmartToyIcon
 } from '@mui/icons-material'
 import { getMembers, createMember, updateMember, deleteMember, isPODCommitteeMember } from '@/lib/data'
 import { type Profile } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
+import AIDrawer from '@/components/AIDrawer'
 
 export default function MembersPage() {
   const [members, setMembers] = useState<Profile[]>([])
@@ -44,6 +46,7 @@ export default function MembersPage() {
   const [isPODCommittee, setIsPODCommittee] = useState(false)
   const [openDialog, setOpenDialog] = useState(false)
   const [editingMember, setEditingMember] = useState<Profile | null>(null)
+  const [aiDrawerOpen, setAiDrawerOpen] = useState(false)
   const [memberForm, setMemberForm] = useState({
     name: '',
     email: '',
@@ -230,6 +233,7 @@ export default function MembersPage() {
       field: 'assigned_capacity', 
       headerName: 'Assigned Capacity', 
       width: 150,
+      valueGetter: (params: any) => params.row.bandwidth || 0,
       renderCell: (params: any) => {
         const assignedBandwidth = params.row.bandwidth || 0
         return (
@@ -243,6 +247,7 @@ export default function MembersPage() {
       field: 'available_capacity', 
       headerName: 'Available Capacity', 
       width: 150,
+      valueGetter: (params: any) => Math.max(0, 1 - (params.row.bandwidth || 0)),
       renderCell: (params: any) => {
         const assignedBandwidth = params.row.bandwidth || 0
         const availableBandwidth = Math.max(0, 1 - assignedBandwidth)
@@ -301,6 +306,28 @@ export default function MembersPage() {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Members</Typography>
         <Box display="flex" gap={2} alignItems="center">
+          <Button
+            variant="outlined"
+            startIcon={<SmartToyIcon />}
+            onClick={() => setAiDrawerOpen(true)}
+            sx={{
+              borderRadius: '12px',
+              px: 3,
+              py: 1.5,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '14px',
+              borderColor: '#E2E8F0',
+              color: '#64748B',
+              '&:hover': {
+                borderColor: '#3B82F6',
+                color: '#3B82F6',
+                backgroundColor: '#EBF8FF',
+              },
+            }}
+          >
+            Ask Kynetik AI
+          </Button>
           <TextField
             placeholder="Search by name or email..."
             value={searchQuery}
@@ -516,6 +543,27 @@ export default function MembersPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* AI Drawer */}
+      <AIDrawer
+        open={aiDrawerOpen}
+        onClose={() => setAiDrawerOpen(false)}
+        title="Team Members Analysis"
+        contextData={{
+          members: members,
+          membersByTeam: uniqueTeams.reduce((acc, team) => {
+            acc[team] = members.filter(member => member.team === team)
+            return acc
+          }, {} as Record<string, Profile[]>),
+          podCommitteeMembers: members.filter(member => member.team === 'POD committee'),
+          bandwidthStats: {
+            totalAssigned: members.reduce((sum, member) => sum + (member.bandwidth || 0), 0),
+            totalAvailable: members.reduce((sum, member) => sum + Math.max(0, 1 - (member.bandwidth || 0)), 0),
+            averageBandwidth: members.length > 0 ? members.reduce((sum, member) => sum + (member.bandwidth || 0), 0) / members.length : 0
+          }
+        }}
+        section="members"
+      />
     </Box>
   )
 }
