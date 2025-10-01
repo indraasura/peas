@@ -52,7 +52,7 @@ import {
 import { createArea, updateArea, deleteArea, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, verifyPODAssociation, updateAreaStatusAutomatically, getPodNotes } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
-import { useComprehensiveData } from '@/hooks/useOptimizedData'
+import { useComprehensiveData, useAreas } from '@/hooks/useOptimizedData'
 import { SkeletonLoader, AreaCardSkeleton } from '@/components/SkeletonLoader'
 import { validatePodCreation } from '@/lib/area-status-utils'
 import { calculateAreaRiskLevel, calculatePodRiskLevel, getRiskInfo, type RiskLevel } from '@/lib/risk-utils'
@@ -66,7 +66,7 @@ export default function AreasPage() {
   
   // Use optimized data fetching hook
   const {
-    areas,
+    areas: areasWithoutComments,
     pods,
     members,
     availableMembers,
@@ -78,6 +78,9 @@ export default function AreasPage() {
     refreshAreas,
     refreshPods
   } = useComprehensiveData()
+  
+  // Get areas with comments for proper comment count display
+  const { areas } = useAreas(true) // true = include relations (comments)
   const [user, setUser] = useState<Profile | null>(null)
   const [openDialog, setOpenDialog] = useState(false)
   const [openPodDialog, setOpenPodDialog] = useState(false)
@@ -157,6 +160,38 @@ export default function AreasPage() {
     }
     loadUser()
   }, [])
+
+  // Add real-time updates when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Page became visible, refresh data
+        refreshPods()
+        refreshAreas()
+      }
+    }
+
+    const handleFocus = () => {
+      // Window gained focus, refresh data
+      refreshPods()
+      refreshAreas()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    // Also refresh data every 30 seconds for real-time updates
+    const interval = setInterval(() => {
+      refreshPods()
+      refreshAreas()
+    }, 30000)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+      clearInterval(interval)
+    }
+  }, [refreshPods, refreshAreas])
 
   // Calculate area risk levels when areas and pods data changes
   useEffect(() => {
@@ -800,7 +835,7 @@ export default function AreasPage() {
     const riskLevel = areaRiskLevels[area.id] || 'on-track'
     
     // Get POD leader for this area
-    const podLeader = areaPods.find(pod => pod.members?.some(member => member.is_leader))?.members?.find(member => member.is_leader)
+    const podLeader = areaPods.find(pod => pod.members?.some(member => member.is_leader))?.members?.find(member => member.is_leader)?.member
     
     // Determine POD status color and text based on POD statuses
     const getPodStatusInfo = () => {
