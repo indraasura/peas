@@ -59,6 +59,7 @@ import { validatePodCreation } from '@/lib/area-status-utils'
 import { calculateAreaRiskLevel, calculatePodRiskLevel, getRiskInfo, type RiskLevel } from '@/lib/risk-utils'
 import KanbanBoard from '@/components/KanbanBoard'
 import AIDrawer from '@/components/AIDrawer'
+import AnimatedAIButton from '@/components/AnimatedAIButton'
 import { DropResult } from '@hello-pangea/dnd'
 
 const impactLevels = ['Low', 'Medium', 'High']
@@ -564,10 +565,10 @@ export default function AreasPage() {
       
       // Add the new POD to the selected pods
       if (editingArea) {
-        setFormData((prev: typeof formData) => ({
-          ...prev,
-          selected_pods: [...prev.selected_pods, newPod.id]
-        }))
+      setFormData((prev: typeof formData) => ({
+        ...prev,
+        selected_pods: [...prev.selected_pods, newPod.id]
+      }))
       } else if (validationDialog.area) {
         setValidationFormData((prev: typeof validationFormData) => ({
           ...prev,
@@ -1065,46 +1066,26 @@ export default function AreasPage() {
           Planning
         </Typography>
         <Box display="flex" gap={2} alignItems="center">
+          <AnimatedAIButton onClick={() => setAiDrawerOpen(true)} />
           <Button
-            variant="outlined"
-            startIcon={<SmartToyIcon />}
-            onClick={() => setAiDrawerOpen(true)}
-            sx={{
-              borderColor: '#3b82f6',
-              color: '#3b82f6',
-              borderRadius: 1,
-              px: 3,
-              py: 1.5,
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '14px',
-              '&:hover': {
-                borderColor: '#2563eb',
-                backgroundColor: '#eff6ff',
-              },
-            }}
-          >
-            Ask Kynetik AI
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAddArea}
-            sx={{
-              backgroundColor: '#3b82f6',
-              borderRadius: 1,
-              px: 3,
-              py: 1.5,
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '14px',
-              '&:hover': {
-                backgroundColor: '#2563eb',
-              },
-            }}
-          >
-            Add Area
-          </Button>
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleAddArea}
+          sx={{
+            backgroundColor: '#3b82f6',
+            borderRadius: 1,
+            px: 3,
+            py: 1.5,
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: '14px',
+            '&:hover': {
+              backgroundColor: '#2563eb',
+            },
+          }}
+        >
+          Add Area
+        </Button>
         </Box>
       </Box>
 

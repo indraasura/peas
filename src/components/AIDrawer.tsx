@@ -13,13 +13,18 @@ import {
   Paper,
   Chip,
   Stack,
-  Alert
+  Alert,
+  Avatar,
+  Fade,
+  Slide,
+  keyframes
 } from '@mui/material'
 import {
   Close as CloseIcon,
   Send as SendIcon,
-  SmartToy as AIIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  AutoAwesome as SparkleIcon,
+  Psychology as BrainIcon
 } from '@mui/icons-material'
 
 interface AIDrawerProps {
@@ -29,6 +34,24 @@ interface AIDrawerProps {
   contextData: any
   section: 'areas' | 'pods' | 'members' | 'dashboard'
 }
+
+const shimmerAnimation = keyframes`
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+`
+
+const floatAnimation = keyframes`
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+`
 
 export default function AIDrawer({ open, onClose, title, contextData, section }: AIDrawerProps) {
   const [query, setQuery] = useState('')

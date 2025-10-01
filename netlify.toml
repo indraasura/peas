@@ -7,10 +7,10 @@
   NPM_FLAGS = "--legacy-peer-deps"
 
 # Next.js App Router support
-# Handle API routes properly
+# Redirect API calls to Netlify functions
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/ai/summarize"
+  to = "/.netlify/functions/ai-summarize"
   status = 200
 
 [[redirects]]
