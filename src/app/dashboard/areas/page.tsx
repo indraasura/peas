@@ -1023,7 +1023,6 @@ export default function AreasPage() {
         >
           Add Area
         </Button>
-        </Box>
       </Box>
 
       {error && (
