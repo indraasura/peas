@@ -12,8 +12,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (!GROQ_API_KEY) {
+      console.error('GROQ_API_KEY is not set in environment variables')
       return NextResponse.json({ error: 'Groq API key not configured' }, { status: 500 })
     }
+
+    console.log('Making request to Groq API with model:', GROQ_MODEL)
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -56,17 +59,25 @@ Focus on practical, actionable insights that help teams make better decisions.`
 
     if (!response.ok) {
       const errorData = await response.text()
-      console.error('Groq API error:', errorData)
-      return NextResponse.json({ error: 'Failed to get AI response' }, { status: 500 })
+      console.error('Groq API error:', response.status, response.statusText, errorData)
+      return NextResponse.json({ 
+        error: 'Failed to get AI response', 
+        details: `Groq API returned ${response.status}: ${response.statusText}` 
+      }, { status: 500 })
     }
 
     const data = await response.json()
+    console.log('Groq API response received successfully')
+    
     const summary = data.choices?.[0]?.message?.content || 'No response generated'
 
     return NextResponse.json({ summary })
 
   } catch (error) {
     console.error('AI API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 })
   }
 }

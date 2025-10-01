@@ -63,7 +63,11 @@ export default function AIDrawer({ open, onClose, title, contextData, section }:
       }
 
       const data = await response.json()
-      setResponse(data.summary)
+      if (data.error) {
+        setError(`${data.error}${data.details ? ': ' + data.details : ''}`)
+      } else {
+        setResponse(data.summary)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to get AI response')
     } finally {
