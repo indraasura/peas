@@ -31,12 +31,12 @@ import {
   Delete as DeleteIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
-  SmartToy as SmartToyIcon
 } from '@mui/icons-material'
 import { getMembers, createMember, updateMember, deleteMember, isPODCommitteeMember } from '@/lib/data'
 import { type Profile } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import AIDrawer from '@/components/AIDrawer'
+import AnimatedAIButton from '@/components/AnimatedAIButton'
 
 export default function MembersPage() {
   const [members, setMembers] = useState<Profile[]>([])
@@ -306,28 +306,7 @@ export default function MembersPage() {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Members</Typography>
         <Box display="flex" gap={2} alignItems="center">
-          <Button
-            variant="outlined"
-            startIcon={<SmartToyIcon />}
-            onClick={() => setAiDrawerOpen(true)}
-            sx={{
-              borderRadius: '12px',
-              px: 3,
-              py: 1.5,
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '14px',
-              borderColor: '#E2E8F0',
-              color: '#64748B',
-              '&:hover': {
-                borderColor: '#3B82F6',
-                color: '#3B82F6',
-                backgroundColor: '#EBF8FF',
-              },
-            }}
-          >
-            Ask Kynetik AI
-          </Button>
+          <AnimatedAIButton onClick={() => setAiDrawerOpen(true)} />
           <TextField
             placeholder="Search by name or email..."
             value={searchQuery}

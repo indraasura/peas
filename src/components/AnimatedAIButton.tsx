@@ -78,11 +78,8 @@ export default function AnimatedAIButton({ onClick, disabled = false }: Animated
     <Button
       onClick={onClick}
       disabled={disabled}
+      variant="outlined"
       sx={{
-        position: 'relative',
-        background: 'white',
-        border: '2px solid',
-        borderImage: 'linear-gradient(90deg, #3b82f6, #10b981, #f59e0b) 1',
         borderRadius: '50px',
         px: 3,
         py: 1.5,
@@ -91,51 +88,37 @@ export default function AnimatedAIButton({ onClick, disabled = false }: Animated
         textTransform: 'none',
         fontWeight: 700,
         fontSize: '16px',
-        color: '#1e293b',
+        color: '#3b82f6',
+        borderColor: '#3b82f6',
+        background: 'white',
         display: 'flex',
         alignItems: 'center',
         gap: 1.5,
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+        boxShadow: disabled ? 'none' : '0 4px 12px rgba(59, 130, 246, 0.2)',
         animation: disabled ? 'none' : `${pulseAnimation} 3s ease-in-out infinite`,
         '&:hover': {
-          background: 'linear-gradient(135deg, #f8fafc, #e2e8f0)',
-          transform: 'translateY(-2px)',
-          boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
-          borderImage: 'linear-gradient(90deg, #2563eb, #059669, #d97706) 1',
+          backgroundColor: '#eff6ff',
+          borderColor: '#2563eb',
+          color: '#2563eb',
+          transform: 'translateY(-1px)',
+          boxShadow: '0 6px 16px rgba(59, 130, 246, 0.3)',
         },
         '&:active': {
           transform: 'translateY(0px)',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
         },
         '&:disabled': {
           background: '#f1f5f9',
           color: '#94a3b8',
-          borderImage: 'linear-gradient(90deg, #cbd5e1, #cbd5e1, #cbd5e1) 1',
+          borderColor: '#cbd5e1',
           boxShadow: 'none',
           animation: 'none',
-        },
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          borderRadius: '50px',
-          padding: '2px',
-          background: 'linear-gradient(90deg, #3b82f6, #10b981, #f59e0b)',
-          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-          maskComposite: 'xor',
-          WebkitMaskComposite: 'xor',
         }
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
         <SparkleIcon animation={sparkleAnimation} />
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
-          <SparkleIcon animation={sparkleAnimation2} delay={0.3} />
-          <SparkleIcon animation={sparkleAnimation3} delay={0.6} />
-        </Box>
+        <SparkleIcon animation={sparkleAnimation2} delay={0.3} />
+        <SparkleIcon animation={sparkleAnimation3} delay={0.6} />
       </Box>
       <Box sx={{ fontWeight: 700, fontSize: '16px' }}>
         Ask Neko

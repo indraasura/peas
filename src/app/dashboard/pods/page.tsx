@@ -51,7 +51,6 @@ import {
   Close as CloseIcon,
   Assessment as AssessmentIcon,
   Refresh as RefreshIcon,
-  SmartToy as SmartToyIcon
 } from '@mui/icons-material'
 import { getPods, createPod, updatePod, deletePod, getAreas, getAvailableMembers, updatePodMembers, updatePodDependencies, getPodDependencies, getPodNotes, createPodNote, updatePodNote, deletePodNote, checkAndUpdateAreaStatus } from '@/lib/data'
 import { getCurrentUser } from '@/lib/auth'
@@ -59,6 +58,7 @@ import { type Pod, type Area, type Profile, type PodNote } from '@/lib/supabase'
 import { calculatePodRiskLevel, getRiskInfo, getLatestRevisedEndDate, type RiskLevel } from '@/lib/risk-utils'
 import KanbanBoard from '@/components/KanbanBoard'
 import AIDrawer from '@/components/AIDrawer'
+import AnimatedAIButton from '@/components/AnimatedAIButton'
 import { DropResult } from '@hello-pangea/dnd'
 
 const podStatuses = ['Awaiting development', 'In development', 'In testing', 'Released']
@@ -660,28 +660,7 @@ export default function PodsPage() {
           Execution
         </Typography>
         <Box display="flex" gap={2} alignItems="center">
-          <Button
-            variant="outlined"
-            startIcon={<SmartToyIcon />}
-            onClick={() => setAiDrawerOpen(true)}
-            sx={{
-              borderRadius: '12px',
-              px: 3,
-              py: 1.5,
-              textTransform: 'none',
-              fontWeight: 600,
-              fontSize: '14px',
-              borderColor: '#E2E8F0',
-              color: '#64748B',
-              '&:hover': {
-                borderColor: '#3B82F6',
-                color: '#3B82F6',
-                backgroundColor: '#EBF8FF',
-              },
-            }}
-          >
-            Ask Kynetik AI
-          </Button>
+          <AnimatedAIButton onClick={() => setAiDrawerOpen(true)} />
           <Button
             variant="outlined"
             startIcon={<RefreshIcon />}

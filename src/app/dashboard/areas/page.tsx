@@ -47,8 +47,7 @@ import {
   Send as SendIcon,
   Check as CheckIcon,
   Close as CloseIcon,
-  Person as PersonIcon,
-  SmartToy as SmartToyIcon
+  Person as PersonIcon
 } from '@mui/icons-material'
 import { createArea, updateArea, deleteArea, updateAreaDecisionQuorum, getAreaComments, createAreaComment, updateAreaComment, deleteAreaComment, updatePod, kickOffArea, validateAreaForPlanning, validateAreaForPlanned, checkAndUpdateAreaStatus, createPod, updatePodMembers, verifyPODAssociation, updateAreaStatusAutomatically, getPodNotes } from '@/lib/data'
 import { type Area, type Profile, type Pod } from '@/lib/supabase'
