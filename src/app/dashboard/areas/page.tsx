@@ -136,7 +136,8 @@ export default function AreasPage() {
     revenue_impact: 'Low',
     business_enablement: 'Low',
     efforts: 'Low',
-    end_user_impact: 'Low'
+    end_user_impact: 'Low',
+    selected_pods: [] as string[]
   })
   const [pendingMove, setPendingMove] = useState<{
     areaId: string
@@ -360,6 +361,17 @@ export default function AreasPage() {
           area: area,
           targetStatus: 'Planning'
         })
+        // Initialize validation form data
+        setValidationFormData({
+          one_pager_url: area.one_pager_url || '',
+          start_date: area.start_date || '',
+          end_date: area.end_date || '',
+          revenue_impact: area.revenue_impact || 'Low',
+          business_enablement: area.business_enablement || 'Low',
+          efforts: area.efforts || 'Low',
+          end_user_impact: area.end_user_impact || 'Low',
+          selected_pods: []
+        })
         return
       }
     }
@@ -379,6 +391,18 @@ export default function AreasPage() {
             missingFields: validation.missing || [],
             area: area,
             targetStatus: 'Planned'
+          })
+          // Initialize validation form data with current area data
+          const areaPods = pods.filter((pod: Pod) => pod.area_id === area.id)
+          setValidationFormData({
+            one_pager_url: area.one_pager_url || '',
+            start_date: area.start_date || '',
+            end_date: area.end_date || '',
+            revenue_impact: area.revenue_impact || 'Low',
+            business_enablement: area.business_enablement || 'Low',
+            efforts: area.efforts || 'Low',
+            end_user_impact: area.end_user_impact || 'Low',
+            selected_pods: areaPods.map((pod: Pod) => pod.id)
           })
           return
         }
@@ -696,6 +720,33 @@ export default function AreasPage() {
       // Update the area
       await updateArea(validationDialog.area.id, updates)
       
+      // Handle POD assignments if needed
+      if (validationFormData.selected_pods.length > 0) {
+        // First, remove all PODs from this area
+        const currentAreaPods = pods.filter((pod: Pod) => pod.area_id === validationDialog.area.id)
+        for (const pod of currentAreaPods) {
+          try {
+            await updatePod(pod.id, { area_id: undefined })
+          } catch (error) {
+            console.warn('Could not remove POD from area:', error)
+          }
+        }
+
+        // Then, assign selected PODs to this area
+        for (const podId of validationFormData.selected_pods) {
+          try {
+            const pod = pods.find((p: Pod) => p.id === podId)
+            if (pod && pod.area_id && pod.area_id !== validationDialog.area.id) {
+              console.warn(`POD ${pod.name} is already assigned to another area. Skipping assignment.`)
+              continue
+            }
+            await updatePod(podId, { area_id: validationDialog.area.id })
+          } catch (error) {
+            console.warn('Could not assign POD to area:', error)
+          }
+        }
+      }
+      
       // Automatically update area status
       await updateAreaStatusAutomatically(validationDialog.area.id)
       
@@ -708,7 +759,8 @@ export default function AreasPage() {
         revenue_impact: 'Low',
         business_enablement: 'Low',
         efforts: 'Low',
-        end_user_impact: 'Low'
+        end_user_impact: 'Low',
+        selected_pods: []
       })
       
       await Promise.all([refreshAreas(), refreshPods()])
@@ -760,33 +812,10 @@ export default function AreasPage() {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        borderRadius: 3,
+        borderRadius: 1,
         border: '1px solid',
         borderColor: 'divider',
-        backgroundColor: 'background.paper',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        position: 'relative',
-        overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '3px',
-          background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4)',
-          opacity: 0,
-          transition: 'opacity 0.3s ease'
-        },
-        '&:hover': {
-          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.12)',
-          borderColor: 'primary.main',
-          transform: 'translateY(-2px)',
-          '&::before': {
-            opacity: 1
-          }
-        }
+        backgroundColor: 'background.paper'
       }}>
         {/* Area Name */}
         <Typography variant="h6" sx={{ 
@@ -796,8 +825,8 @@ export default function AreasPage() {
           lineHeight: 1.3,
           mb: 1.5
         }}>
-          {area.name}
-        </Typography>
+            {area.name}
+          </Typography>
         
         {/* Description */}
         {area.description && (
@@ -814,10 +843,10 @@ export default function AreasPage() {
         {/* Status indicators */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
           {/* On-track status */}
-          <Chip
+            <Chip
             label={riskLevel === 'on-track' ? 'On Track' : riskLevel === 'low-risk' ? 'Low Risk' : riskLevel === 'medium-risk' ? 'Medium Risk' : 'Critical'}
-            size="small"
-            sx={{
+              size="small"
+              sx={{
               backgroundColor: riskLevel === 'on-track' ? '#f0fdf4' : 
                              riskLevel === 'low-risk' ? '#f3f4f6' :
                              riskLevel === 'medium-risk' ? '#fffbeb' : '#fef2f2',
@@ -834,33 +863,33 @@ export default function AreasPage() {
           />
           
           {/* POD status */}
-          <Chip
+            <Chip
             label={getPodStatusInfo().text}
-            size="small"
-            sx={{
+              size="small"
+              sx={{
               backgroundColor: getPodStatusInfo().color + '20',
               color: getPodStatusInfo().color,
               border: `1px solid ${getPodStatusInfo().color}40`,
-              fontWeight: 600,
+                fontWeight: 600,
               fontSize: '0.7rem',
               height: 22
-            }}
-          />
+              }}
+            />
         </Box>
         
         {/* Dates */}
-        {(area.start_date || area.end_date) && (
+          {(area.start_date || area.end_date) && (
           <Box sx={{ mb: 1.5 }}>
             <Typography variant="body2" sx={{ fontSize: '0.8rem', color: 'text.secondary', fontWeight: 500 }}>
-              📅 Start: {formatDate(area.start_date)} | End: {formatDate(area.end_date)}
-            </Typography>
-          </Box>
-        )}
+                📅 Start: {formatDate(area.start_date)} | End: {formatDate(area.end_date)}
+              </Typography>
+            </Box>
+          )}
         
         {/* Revised dates */}
         {revisedDates.length > 0 && (
           <Box sx={{ mb: 1.5 }}>
-            {revisedDates.map((revisedDate: string, index: number) => (
+          {revisedDates.map((revisedDate: string, index: number) => (
               <Box key={index} sx={{ mb: 0.5 }}>
                 <Typography variant="body2" sx={{ 
                   color: 'warning.main',
@@ -868,9 +897,9 @@ export default function AreasPage() {
                   fontSize: '0.8rem'
                 }}>
                   🔄 Revised: {formatDate(revisedDate)}
-                </Typography>
-              </Box>
-            ))}
+              </Typography>
+            </Box>
+          ))}
           </Box>
         )}
 
@@ -882,7 +911,7 @@ export default function AreasPage() {
             </Typography>
           </Box>
         )}
-        
+
         {/* PODs */}
         {areaPods.length > 0 && (
           <Box sx={{ mb: 1.5 }}>
@@ -908,18 +937,18 @@ export default function AreasPage() {
                     '&:hover': {
                       backgroundColor: '#b3e5fc'
                     }
-                  }} 
+                  }}
                 />
               ))}
               {areaPods.length > 3 && (
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.7rem' }}>
                   +{areaPods.length - 3} more
-                </Typography>
-              )}
-            </Box>
+              </Typography>
+          )}
+        </Box>
           </Box>
         )}
-        
+
         {/* Comments count */}
         <Box 
           sx={{ 
@@ -942,9 +971,9 @@ export default function AreasPage() {
             {area.comments?.length || 0} comments
           </Typography>
         </Box>
-      </Box>
-    )
-  }
+        </Box>
+      )
+    }
 
   const backlogAreas = areas.filter((area: Area) => area.status === 'Backlog')
   const planningAreas = areas.filter((area: Area) => area.status === 'Planning')
@@ -1166,8 +1195,8 @@ export default function AreasPage() {
                 </Select>
               </FormControl>
             </Grid>
-            {/* POD Assignment - show when creating new areas or when editing areas with one-pager URL */}
-            {(!editingArea) || (editingArea && formData.one_pager_url && formData.one_pager_url.trim()) ? (
+            {/* POD Assignment - only show when editing areas with one-pager URL */}
+            {editingArea && formData.one_pager_url && formData.one_pager_url.trim() && (
             <Grid item xs={12}>
                 <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
                   POD Assignment
@@ -1259,7 +1288,7 @@ export default function AreasPage() {
                 </Button>
               </Box>
             </Grid>
-            ) : null}
+            )}
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -1831,30 +1860,30 @@ export default function AreasPage() {
                   </Grid>
                 )}
                 
-                {/* POD Assignment - show when one-pager URL is present */}
-                {validationFormData.one_pager_url && validationFormData.one_pager_url.trim() && (
+                {/* POD Assignment - show when one-pager URL is present or when PODs are missing */}
+                {(validationFormData.one_pager_url && validationFormData.one_pager_url.trim()) || validationDialog.missingFields.includes('At least one POD') ? (
                 <Grid item xs={12}>
                     <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
                       POD Assignment
                     </Typography>
                     
                     {/* Assigned PODs */}
-                    {formData.selected_pods.length > 0 && (
+                    {validationFormData.selected_pods.length > 0 && (
                       <Box sx={{ mb: 2 }}>
                         <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                           Assigned PODs:
                         </Typography>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {formData.selected_pods.map((podId) => {
+                          {validationFormData.selected_pods.map((podId) => {
                             const pod = pods.find((p: Pod) => p.id === podId)
                             return pod ? (
                               <Chip
                                 key={podId}
                                 label={pod.name}
                                 onDelete={() => {
-                                  setFormData({
-                                    ...formData,
-                                    selected_pods: formData.selected_pods.filter(id => id !== podId)
+                                  setValidationFormData({
+                                    ...validationFormData,
+                                    selected_pods: validationFormData.selected_pods.filter(id => id !== podId)
                                   })
                                 }}
                                 deleteIcon={<CloseIcon />}
@@ -1883,8 +1912,8 @@ export default function AreasPage() {
                         <InputLabel>Assign PODs</InputLabel>
                     <Select
                       multiple
-                      value={formData.selected_pods}
-                      onChange={(e: SelectChangeEvent<string[]>) => setFormData({ ...formData, selected_pods: e.target.value as string[] })}
+                      value={validationFormData.selected_pods}
+                      onChange={(e: SelectChangeEvent<string[]>) => setValidationFormData({ ...validationFormData, selected_pods: e.target.value as string[] })}
                           label="Assign PODs"
                           renderValue={(selected) => (
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -1924,7 +1953,7 @@ export default function AreasPage() {
                       </Button>
                     </Box>
                 </Grid>
-                )}
+                ) : null}
               </Grid>
             </Box>
           )}
