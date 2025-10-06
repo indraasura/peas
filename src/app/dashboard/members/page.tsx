@@ -102,13 +102,15 @@ export default function MembersPage() {
             sum + (pm.bandwidth_percentage || 0), 0) || 0
           return {
             ...member,
-            bandwidth: Math.min(Math.max(usedBandwidth, 0), 1) // Ensure bandwidth is between 0 and 1
+            bandwidth: Math.min(Math.max(usedBandwidth, 0), 1), // Ensure bandwidth is between 0 and 1
+            pod_members: member.pod_members || [] // Ensure pod_members is always an array
           }
         } catch (error) {
           console.error('Error processing member bandwidth:', member.id, error)
           return {
             ...member,
-            bandwidth: 0
+            bandwidth: 0,
+            pod_members: [] // Ensure pod_members is always an array
           }
         }
       })
@@ -262,9 +264,9 @@ export default function MembersPage() {
       field: 'assigned_capacity', 
       headerName: 'Assigned Capacity', 
       width: 150,
-      valueGetter: (params: any) => params.row.bandwidth || 0,
+      valueGetter: (params: any) => params?.row?.bandwidth || 0,
       renderCell: (params: any) => {
-        const assignedBandwidth = params.row.bandwidth || 0
+        const assignedBandwidth = params?.row?.bandwidth || 0
         return (
           <Typography variant="body2">
             {assignedBandwidth.toFixed(2)}
@@ -276,9 +278,9 @@ export default function MembersPage() {
       field: 'available_capacity', 
       headerName: 'Available Capacity', 
       width: 150,
-      valueGetter: (params: any) => Math.max(0, 1 - (params.row.bandwidth || 0)),
+      valueGetter: (params: any) => Math.max(0, 1 - (params?.row?.bandwidth || 0)),
       renderCell: (params: any) => {
-        const assignedBandwidth = params.row.bandwidth || 0
+        const assignedBandwidth = params?.row?.bandwidth || 0
         const availableBandwidth = Math.max(0, 1 - assignedBandwidth)
         return (
           <Typography variant="body2" color={availableBandwidth < 0 ? 'error.main' : 'text.primary'}>
@@ -292,7 +294,7 @@ export default function MembersPage() {
       headerName: 'Assigned PODs', 
       width: 200,
       renderCell: (params: any) => {
-        const podNames = params.row.pod_members?.map((pm: any) => pm.pod?.name).filter(Boolean) || []
+        const podNames = params?.row?.pod_members?.map((pm: any) => pm.pod?.name).filter(Boolean) || []
         return (
           <Typography variant="body2">
             {podNames.length > 0 ? podNames.join(', ') : 'No PODs'}
@@ -308,14 +310,14 @@ export default function MembersPage() {
         <Box>
           <IconButton
             size="small"
-            onClick={() => handleOpenDialog(params.row)}
+            onClick={() => handleOpenDialog(params?.row)}
             title="Edit member"
           >
             <EditIcon fontSize="small" />
           </IconButton>
           <IconButton
             size="small"
-            onClick={() => handleDelete(params.row.id, params.row.name)}
+            onClick={() => handleDelete(params?.row?.id, params?.row?.name)}
             title="Delete member"
             color="error"
           >
