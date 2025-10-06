@@ -8,44 +8,44 @@ const lightTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#2563eb',
-      light: '#3b82f6',
-      dark: '#1d4ed8',
-      contrastText: '#ffffff',
+      main: '#7ea6f2', // muted pastel blue
+      light: '#aecdff',
+      dark: '#5a85e6',
+      contrastText: '#0b1220',
     },
     secondary: {
-      main: '#7c3aed',
-      light: '#8b5cf6',
-      dark: '#5b21b6',
-      contrastText: '#ffffff',
+      main: '#c4b5fd', // soft purple
+      light: '#e0d9ff',
+      dark: '#a78bfa',
+      contrastText: '#0b1220',
     },
     background: {
-      default: '#f8fafc',
+      default: '#f6f7fb', // softer page background
       paper: '#ffffff',
     },
     text: {
-      primary: '#0f172a',
-      secondary: '#475569',
+      primary: '#111827',
+      secondary: '#6b7280',
     },
     success: {
-      main: '#10b981',
-      light: '#34d399',
-      dark: '#059669',
+      main: '#8bd3a3', // pastel green
+      light: '#bfe9ca',
+      dark: '#5fbf82',
     },
     warning: {
-      main: '#f59e0b',
-      light: '#fbbf24',
-      dark: '#d97706',
+      main: '#f7c68b', // pastel amber
+      light: '#fde1bc',
+      dark: '#e5ae66',
     },
     error: {
-      main: '#ef4444',
-      light: '#f87171',
-      dark: '#dc2626',
+      main: '#f2a7a7', // pastel red
+      light: '#f8caca',
+      dark: '#e08181',
     },
     info: {
-      main: '#06b6d4',
-      light: '#22d3ee',
-      dark: '#0891b2',
+      main: '#9bd7e0', // pastel cyan
+      light: '#c9ecf1',
+      dark: '#76c1cc',
     },
   },
   typography: {
@@ -111,48 +111,48 @@ const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#60a5fa',
-      light: '#93c5fd',
-      dark: '#3b82f6',
-      contrastText: '#000000',
+      main: '#89a8ff', // muted blue accent
+      light: '#b7c7ff',
+      dark: '#688bff',
+      contrastText: '#0b1220',
     },
     secondary: {
-      main: '#a78bfa',
-      light: '#c4b5fd',
-      dark: '#8b5cf6',
-      contrastText: '#000000',
+      main: '#b8a6ff', // soft purple accent
+      light: '#d6ccff',
+      dark: '#9a86ff',
+      contrastText: '#0b1220',
     },
     background: {
-      default: '#000000',
-      paper: '#111827',
+      default: '#0b1220', // darker page background
+      paper: '#0f172a', // darker card background
     },
     text: {
-      primary: '#ffffff',
-      secondary: '#d1d5db',
+      primary: '#eef2ff',
+      secondary: '#cbd5e1',
     },
     success: {
-      main: '#22c55e',
-      light: '#4ade80',
-      dark: '#16a34a',
-      contrastText: '#000000',
+      main: '#7fd3a0',
+      light: '#aee8c2',
+      dark: '#5ab985',
+      contrastText: '#0b1220',
     },
     warning: {
-      main: '#f59e0b',
-      light: '#fbbf24',
-      dark: '#d97706',
-      contrastText: '#000000',
+      main: '#f1c48a',
+      light: '#f7ddb7',
+      dark: '#d6aa6d',
+      contrastText: '#0b1220',
     },
     error: {
-      main: '#ef4444',
-      light: '#f87171',
-      dark: '#dc2626',
-      contrastText: '#ffffff',
+      main: '#f1a3a3',
+      light: '#f7c7c7',
+      dark: '#d98888',
+      contrastText: '#0b1220',
     },
     info: {
-      main: '#06b6d4',
-      light: '#22d3ee',
-      dark: '#0891b2',
-      contrastText: '#000000',
+      main: '#93d5de',
+      light: '#c3ebf1',
+      dark: '#6ebac5',
+      contrastText: '#0b1220',
     },
   },
   typography: {

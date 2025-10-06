@@ -163,36 +163,31 @@ export default function AreasPage() {
     loadUser()
   }, [])
 
-  // Add real-time updates when page becomes visible
+  // Refresh on visibility/focus with debounce to avoid unwanted reloads
   useEffect(() => {
+    let lastRefreshedAt = 0
+
+    const triggerRefresh = () => {
+      const now = Date.now()
+      if (now - lastRefreshedAt < 10000) return
+      lastRefreshedAt = now
+      refreshPods()
+      refreshAreas()
+      refreshAreasWithComments()
+    }
+
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // Page became visible, refresh data
-        refreshPods()
-        refreshAreas()
-        refreshAreasWithComments()
-      }
+      if (!document.hidden) triggerRefresh()
     }
 
     const handleFocus = () => {
-      // Window gained focus, refresh data
-      refreshPods()
-      refreshAreas()
-      refreshAreasWithComments()
+      triggerRefresh()
     }
-
-    // Add periodic refresh to ensure data stays up to date
-    const refreshInterval = setInterval(() => {
-      refreshPods()
-      refreshAreas()
-      refreshAreasWithComments()
-    }, 30000) // Refresh every 30 seconds
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
 
     return () => {
-      clearInterval(refreshInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
     }
@@ -848,17 +843,7 @@ export default function AreasPage() {
     // Get POD leader for this area
     const podLeader = areaPods.find(pod => pod.members?.some(member => member.is_leader))?.members?.find(member => member.is_leader)?.member
     
-    // Determine POD status color and text based on POD statuses
-    const getPodStatusInfo = () => {
-      if (areaPods.length === 0) return { color: '#6b7280', text: 'No PODs', status: 'No PODs' }
-      
-      const podStatuses = areaPods.map(pod => pod.status)
-      if (podStatuses.includes('Released')) return { color: '#4caf50', text: 'Released', status: 'Released' }
-      if (podStatuses.includes('In testing')) return { color: '#9c27b0', text: 'In Testing', status: 'In testing' }
-      if (podStatuses.includes('In development')) return { color: '#2196f3', text: 'In Development', status: 'In development' }
-      if (podStatuses.includes('Awaiting development')) return { color: '#ff9800', text: 'Awaiting Dev', status: 'Awaiting development' }
-      return { color: '#6b7280', text: 'No Status', status: 'No Status' }
-    }
+    // POD status display removed per requirements
     
     return (
       <>
@@ -906,20 +891,7 @@ export default function AreasPage() {
               height: 22
             }}
           />
-          
-          {/* POD status */}
-            <Chip
-            label={getPodStatusInfo().text}
-              size="small"
-              sx={{
-              backgroundColor: getPodStatusInfo().color + '20',
-              color: getPodStatusInfo().color,
-              border: `1px solid ${getPodStatusInfo().color}40`,
-                fontWeight: 600,
-              fontSize: '0.7rem',
-              height: 22
-              }}
-            />
+
         </Box>
         
         {/* Dates */}
