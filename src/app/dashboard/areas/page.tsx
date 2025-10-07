@@ -1087,12 +1087,12 @@ export default function AreasPage() {
         onItemDelete={handleDeleteArea}
         onItemAdd={handleAddArea}
         renderItem={renderAreaCard}
-        addButtonText="Add Area"
+        addButtonText="Create Area"
       />
 
       {/* Add/Edit Area Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{editingArea ? 'Edit Area' : 'Add New Area'}</DialogTitle>
+        <DialogTitle>{editingArea ? 'Edit Area' : 'Create New Area'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
