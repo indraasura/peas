@@ -1052,25 +1052,6 @@ export default function AreasPage() {
         </Typography>
         <Box display="flex" gap={2} alignItems="center">
           {/* <AnimatedAIButton onClick={() => setAiDrawerOpen(true)} /> */}
-          <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddArea}
-          sx={{
-            backgroundColor: '#3b82f6',
-            borderRadius: 1,
-            px: 3,
-            py: 1.5,
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '14px',
-            '&:hover': {
-              backgroundColor: '#2563eb',
-            },
-          }}
-        >
-          Create Area
-        </Button>
         </Box>
       </Box>
 
@@ -1087,7 +1068,7 @@ export default function AreasPage() {
         onItemDelete={handleDeleteArea}
         onItemAdd={handleAddArea}
         renderItem={renderAreaCard}
-        addButtonText="Create Area"
+        addButtonText="Add Area"
       />
 
       {/* Add/Edit Area Dialog */}
