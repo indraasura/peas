@@ -8,9 +8,9 @@ const lightTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#05224E', // muted pastel blue
+      main: '#7ea6f2', // muted pastel blue
       light: '#aecdff',
-      dark: '#05224E',
+      dark: '#5a85e6',
       contrastText: '#0b1220',
     },
     secondary: {
