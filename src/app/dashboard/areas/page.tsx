@@ -1069,7 +1069,7 @@ export default function AreasPage() {
             },
           }}
         >
-          Add Area
+          Create Area
         </Button>
         </Box>
       </Box>
@@ -1092,7 +1092,7 @@ export default function AreasPage() {
 
       {/* Add/Edit Area Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{editingArea ? 'Edit Area' : 'Create New Area'}</DialogTitle>
+        <DialogTitle>{editingArea ? 'Edit Area' : 'Add New Area'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
