@@ -752,21 +752,6 @@ export default function PodsPage() {
 
               <Divider sx={{ my: 2 }} />
 
-              <Typography variant="h6" sx={{ mb: 2 }}>Team Members</Typography>
-              <List>
-                {selectedPod.members?.map((member: any) => (
-                  <ListItem key={member.id}>
-                    <ListItemAvatar>
-                      <Avatar>{member.member?.name?.[0] || 'U'}</Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={`${member.member?.name || 'Unknown'} ${member.is_leader ? '(Leader)' : ''}`}
-                      secondary={`${member.member?.team || 'Unknown Team'} • ${member.bandwidth_percentage.toFixed(2)} bandwidth`}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-
               <Divider sx={{ my: 2 }} />
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -921,6 +906,21 @@ export default function PodsPage() {
                   </Button>
                 </Box>
               )}
+
+<Typography variant="h6" sx={{ mb: 2 }}>Team Members</Typography>
+              <List>
+                {selectedPod.members?.map((member: any) => (
+                  <ListItem key={member.id}>
+                    <ListItemAvatar>
+                      <Avatar>{member.member?.name?.[0] || 'U'}</Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={`${member.member?.name || 'Unknown'} ${member.is_leader ? '(Leader)' : ''}`}
+                      secondary={`${member.member?.team || 'Unknown Team'} • ${member.bandwidth_percentage.toFixed(2)} bandwidth`}
+                    />
+                  </ListItem>
+                ))}
+              </List>
             </Box>
           )}
         </DialogContent>
