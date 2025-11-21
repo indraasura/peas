@@ -61,7 +61,7 @@ import AIDrawer from '@/components/AIDrawer'
 import AnimatedAIButton from '@/components/AnimatedAIButton'
 import { DropResult } from '@hello-pangea/dnd'
 
-const podStatuses = ['Awaiting development', 'In development', 'In testing', 'Released']
+const podStatuses = ['Awaiting development', 'In development', 'In testing', 'Released to specific customers', 'Released']
 
 export default function PodsPage() {
   const router = useRouter()
@@ -97,7 +97,7 @@ export default function PodsPage() {
     name: '',
     description: '',
     area_id: '',
-    status: 'Awaiting development' as 'Awaiting development' | 'In development' | 'In testing' | 'Released',
+    status: 'Awaiting development' as 'Awaiting development' | 'In development' | 'In testing' | 'Released to specific customers' | 'Released',
     start_date: '',
     end_date: '',
     members: [] as Array<{
@@ -128,13 +128,13 @@ export default function PodsPage() {
       
       // Filter PODs to show:
       // 1. PODs from areas that are in "Executing" status (kicked off)
-      // 2. Released PODs (regardless of area status - they should persist)
+      // 2. Released and Released to specific customers PODs (regardless of area status - they should persist)
       const executingAreas = allAreasData.filter(area => area.status === 'Executing')
       const executingAreaIds = executingAreas.map(area => area.id)
       
       const filteredPods = podsData.filter(pod => {
-        // Always show Released PODs regardless of area status
-        if (pod.status === 'Released') {
+        // Always show Released and Released to specific customers PODs regardless of area status
+        if (pod.status === 'Released' || pod.status === 'Released to specific customers') {
           return true
         }
         
@@ -234,7 +234,7 @@ export default function PodsPage() {
     if (!pod) return
 
     try {
-      const newStatus = destination.droppableId as 'Awaiting development' | 'In development' | 'In testing' | 'Released'
+      const newStatus = destination.droppableId as 'Awaiting development' | 'In development' | 'In testing' | 'Released to specific customers' | 'Released'
       await updatePod(pod.id, { status: newStatus })
       
       // Update local state
@@ -242,8 +242,8 @@ export default function PodsPage() {
         p.id === pod.id ? { ...p, status: newStatus } : p
       ))
 
-      // Check if POD was moved to Released and if so, check area completion
-      if (newStatus === 'Released' && pod.area_id) {
+      // Check if POD was moved to Released or Released to specific customers and if so, check area completion
+      if ((newStatus === 'Released' || newStatus === 'Released to specific customers') && pod.area_id) {
         try {
           await checkAndUpdateAreaStatus(pod.area_id)
           // Refresh areas data to show the updated area status
@@ -505,6 +505,7 @@ export default function PodsPage() {
       case 'Awaiting development': return '#9e9e9e'
       case 'In development': return '#ff9800'
       case 'In testing': return '#9c27b0'
+      case 'Released to specific customers': return '#2196f3'
       case 'Released': return '#4caf50'
       default: return '#9e9e9e'
     }

@@ -81,7 +81,7 @@ export interface Pod {
   area_id?: string
   start_date?: string | null
   end_date?: string | null
-  status: 'Awaiting development' | 'In development' | 'In testing' | 'Released'
+  status: 'Awaiting development' | 'In development' | 'In testing' | 'Released to specific customers' | 'Released'
   review_notes?: string
   created_at: string
   updated_at: string
