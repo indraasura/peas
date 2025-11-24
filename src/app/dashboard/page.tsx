@@ -202,20 +202,36 @@ export default function DashboardPage() {
     }
     
     try {
-      // TODO: Implement the actual assignment logic here
-      console.log('Assigning member to POD:', assignmentDialog.formData)
-      // await assignToPod({
-      //   memberId: assignmentDialog.formData.memberId,
-      //   podId: assignmentDialog.formData.podId,
-      //   bandwidth: assignmentDialog.formData.bandwidth
-      // })
+      // Get the selected POD details
+      const selectedPod = pods.find(pod => pod.id === assignmentDialog.formData?.podId)
+      if (!selectedPod) {
+        throw new Error('Selected POD not found')
+      }
+
+      // Call the API to assign member to POD
+      const response = await fetch('/api/pod-members', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          podId: assignmentDialog.formData.podId,
+          memberId: assignmentDialog.formData.memberId,
+          bandwidth: assignmentDialog.formData.bandwidth
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to assign member to POD')
+      }
       
-      // Refresh data
+      // Refresh data and close dialog
       await fetchBandwidthData()
       handleCloseAssignmentDialog()
     } catch (error) {
       console.error('Error assigning member to POD:', error)
-      setError('Failed to assign member to POD')
+      setError(error instanceof Error ? error.message : 'Failed to assign member to POD')
     }
   }
 
@@ -620,7 +636,7 @@ export default function DashboardPage() {
               
               <TextField
                 select
-                label="Select POD"
+                label="POD"
                 value={assignmentDialog.formData.podId}
                 onChange={(e) => {
                   setAssignmentDialog(prev => ({
@@ -634,11 +650,25 @@ export default function DashboardPage() {
                 fullWidth
                 margin="normal"
                 required
+                variant="outlined"
+                InputLabelProps={{
+                  shrink: true,
+                }}
                 SelectProps={{
-                  native: true
+                  native: true,
+                  displayEmpty: true,
+                  renderValue: (selected: any) => {
+                    if (!selected) {
+                      return <em>Select a POD</em>;
+                    }
+                    const pod = pods.find(p => p.id === selected);
+                    return pod?.name || `POD ${selected}`;
+                  },
                 }}
               >
-                <option value="">Select a POD</option>
+                <option value="" disabled>
+                  Select a POD
+                </option>
                 {pods.map((pod) => (
                   <option key={pod.id} value={pod.id}>
                     {pod.name || `POD ${pod.id}`}
