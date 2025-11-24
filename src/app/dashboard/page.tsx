@@ -463,7 +463,6 @@ export default function DashboardPage() {
                                     <TableCell>Name</TableCell>
                                     <TableCell>Email</TableCell>
                                     <TableCell align="right">Available Bandwidth</TableCell>
-                                    <TableCell align="right">Actions</TableCell>
                                   </TableRow>
                                 </TableHead>
                                 <TableBody>
