@@ -507,17 +507,6 @@ export default function DashboardPage() {
                                               {(availableBandwidth * 100).toFixed(0)}%
                                             </Box>
                                           </TableCell>
-                                          <TableCell align="right">
-                                            <Button
-                                              size="small"
-                                              variant="outlined"
-                                              startIcon={<AssignmentIcon fontSize="small" />}
-                                              onClick={() => handleOpenAssignmentDialog(member, team)}
-                                              disabled={availableBandwidth <= 0}
-                                            >
-                                              Assign to POD
-                                            </Button>
-                                          </TableCell>
                                         </TableRow>
                                       )
                                     })}
@@ -604,120 +593,6 @@ export default function DashboardPage() {
           )}
         </Grid>
       </Box>
-
-      {/* Assignment Dialog */}
-      <Dialog 
-        open={assignmentDialog.open} 
-        onClose={handleCloseAssignmentDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <span>Assign to POD</span>
-            <IconButton onClick={handleCloseAssignmentDialog} size="small">
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {assignmentDialog.formData && (
-            <Box sx={{ pt: 2 }}>
-              <TextField
-                label="Member"
-                value={assignmentDialog.formData.memberName}
-                fullWidth
-                margin="normal"
-                InputProps={{
-                  readOnly: true,
-                }}
-              />
-              
-              <TextField
-                label="Bandwidth"
-                type="number"
-                value={assignmentDialog.formData.bandwidth}
-                onChange={(e) => {
-                  const value = parseFloat(e.target.value)
-                  if (!isNaN(value) && value >= 0 && value <= assignmentDialog.formData!.maxBandwidth) {
-                    setAssignmentDialog(prev => ({
-                      ...prev,
-                      formData: prev.formData ? {
-                        ...prev.formData,
-                        bandwidth: value
-                      } : null
-                    }))
-                  }
-                }}
-                fullWidth
-                margin="normal"
-                InputProps={{
-                  endAdornment: <InputAdornment position="end">/ {assignmentDialog.formData.maxBandwidth.toFixed(2)}</InputAdornment>,
-                  inputProps: {
-                    min: 0,
-                    max: assignmentDialog.formData.maxBandwidth,
-                    step: 0.1
-                  }
-                }}
-              />
-              
-              <TextField
-                select
-                label="POD"
-                value={assignmentDialog.formData.podId}
-                onChange={(e) => {
-                  setAssignmentDialog(prev => ({
-                    ...prev,
-                    formData: prev.formData ? {
-                      ...prev.formData,
-                      podId: e.target.value
-                    } : null
-                  }))
-                }}
-                fullWidth
-                margin="normal"
-                required
-                variant="outlined"
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                SelectProps={{
-                  native: true,
-                  displayEmpty: true,
-                  renderValue: (selected: any) => {
-                    if (!selected) {
-                      return <em>Select a POD</em>;
-                    }
-                    const pod = pods.find(p => p.id === selected);
-                    return pod?.name || `POD ${selected}`;
-                  },
-                }}
-              >
-                <option value="" disabled>
-                  Select a POD
-                </option>
-                {pods.map((pod) => (
-                  <option key={pod.id} value={pod.id}>
-                    {pod.name || `POD ${pod.id}`}
-                  </option>
-                ))}
-              </TextField>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Button onClick={handleCloseAssignmentDialog} color="inherit">
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleAssignmentSubmit} 
-            variant="contained"
-            disabled={!assignmentDialog.formData}
-          >
-            Assign to POD
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   )
 }
