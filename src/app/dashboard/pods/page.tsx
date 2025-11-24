@@ -61,7 +61,8 @@ import AIDrawer from '@/components/AIDrawer'
 import AnimatedAIButton from '@/components/AnimatedAIButton'
 import { DropResult } from '@hello-pangea/dnd'
 
-const podStatuses = ['Awaiting development', 'In development', 'In testing', 'Released to specific customers', 'Released']
+const executionStatuses = ['Awaiting development', 'In development', 'In testing', 'Released to specific customers', 'Released']
+const planningStatuses = ['Backlog', 'Planned', 'In Progress', 'Released to specific customers', 'Done']
 
 export default function PodsPage() {
   const router = useRouter()
@@ -226,8 +227,7 @@ export default function PodsPage() {
   }
 
   const handleItemMove = async (result: DropResult) => {
-    const { destination, source, draggableId } = result
-    
+    if (!result.destination) return
     if (!destination || destination.droppableId === source.droppableId) return
 
     const pod = pods.find((p: Pod) => p.id === draggableId)
@@ -638,8 +638,8 @@ export default function PodsPage() {
       )
     }
 
-  // Group pods by status
-  const podsByStatus = podStatuses.map((status: string) => ({
+  // Group pods by status for execution view
+  const podsByStatus = executionStatuses.map((status: string) => ({
     id: status,
     title: status.charAt(0).toUpperCase() + status.slice(1).replace(/([A-Z])/g, ' $1'),
     items: pods.filter((pod: Pod) => pod.status === status),
@@ -696,7 +696,7 @@ export default function PodsPage() {
 
       {pods.length === 0 && !loading && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          No PODs are currently visible in the Execution section. PODs will only appear here when their associated area has been kicked off (moved to "Executing" status) in the Planning section.
+          No PODs are currently visible in the Execution section. PODs will only appear here when their associated area has been kicked off (moved to "Executing" status) in the Planning section, or if they are in "Released" or "Released to specific customers" status.
         </Alert>
       )}
 
@@ -709,6 +709,39 @@ export default function PodsPage() {
         renderItem={renderPodCard}
         showActionButtons={false}
       />
+
+      {/* Planning Section */}
+      <Box mt={6}>
+        <Typography variant="h4" component="h1" sx={{ 
+          fontWeight: 700, 
+          color: '#0F172A',
+          fontSize: '28px',
+          mb: 4
+        }}>
+          Planning
+        </Typography>
+        
+        {pods.length === 0 && !loading ? (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            No PODs are currently visible in the Planning section. PODs will appear here when they are created.
+          </Alert>
+        ) : (
+          <KanbanBoard
+            columns={planningStatuses.map((status: string) => ({
+              id: status,
+              title: status,
+              items: pods.filter((pod: Pod) => pod.status === status),
+              color: getStatusColor(status)
+            }))}
+            onItemMove={handleItemMove}
+            onItemEdit={handleEditPod}
+            onItemDelete={handleDeletePod}
+            onItemView={handleViewPodDetails}
+            renderItem={renderPodCard}
+            showActionButtons={false}
+          />
+        )}
+      </Box>
 
       {/* POD Details Dialog */}
       <Dialog open={openDetailsDialog} onClose={() => setOpenDetailsDialog(false)} maxWidth="md" fullWidth>
