@@ -227,37 +227,65 @@ export default function PodsPage() {
   }
 
   const handleItemMove = async (result: DropResult) => {
-    if (!result.destination) return
-    if (!destination || destination.droppableId === source.droppableId) return
+    const { source, destination, draggableId } = result;
+    
+    // Check if the drop is valid
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId) return;
 
-    const pod = pods.find((p: Pod) => p.id === draggableId)
-    if (!pod) return
+    // Find the pod being moved
+    const pod = pods.find((p: Pod) => p.id === draggableId);
+    if (!pod) return;
 
     try {
-      const newStatus = destination.droppableId as 'Awaiting development' | 'In development' | 'In testing' | 'Released to specific customers' | 'Released'
-      await updatePod(pod.id, { status: newStatus })
+      // Determine the new status based on the destination
+      const newStatus = destination.droppableId as 'Awaiting development' | 'In development' | 'In testing' | 'Released to specific customers' | 'Released';
       
-      // Update local state
-      setPods((prev: Pod[]) => prev.map((p: Pod) => 
-        p.id === pod.id ? { ...p, status: newStatus } : p
-      ))
+      // Update the pod's status in the database
+      await updatePod(pod.id, { status: newStatus });
+      
+      // Update local state to reflect the change
+      setPods((prevPods: Pod[]) => 
+        prevPods.map((p: Pod) => 
+          p.id === pod.id ? { ...p, status: newStatus } : p
+        )
+      );
 
-      // Check if POD was moved to Released or Released to specific customers and if so, check area completion
+      // If the pod was moved to 'Released to specific customers' or 'Released', check area completion
       if ((newStatus === 'Released' || newStatus === 'Released to specific customers') && pod.area_id) {
         try {
-          await checkAndUpdateAreaStatus(pod.area_id)
-          // Refresh areas data to show the updated area status
-          await fetchData()
+          // Check and update the area status
+          await checkAndUpdateAreaStatus(pod.area_id);
+          
+          // If moving to 'Released to specific customers', update all pods in the same area
+          if (newStatus === 'Released to specific customers') {
+            const areaPods = pods.filter(p => p.area_id === pod.area_id && p.id !== pod.id);
+            await Promise.all(
+              areaPods.map(async (areaPod) => {
+                await updatePod(areaPod.id, { status: 'Released to specific customers' });
+              })
+            );
+            
+            // Update local state for all pods in the area
+            setPods((prevPods: Pod[]) => 
+              prevPods.map((p: Pod) => 
+                p.area_id === pod.area_id ? { ...p, status: 'Released to specific customers' } : p
+              )
+            );
+          }
+          
+          // Refresh the data to ensure everything is in sync
+          await fetchData();
         } catch (error) {
-          console.error('Error checking area status:', error)
+          console.error('Error updating area status:', error);
           // Don't show error to user as this is a background operation
         }
       }
     } catch (error) {
-      console.error('Error moving pod:', error)
-      setError('Failed to move pod. Please try again.')
+      console.error('Error moving pod:', error);
+      setError('Failed to move pod. Please try again.');
     }
-  }
+  };
 
   const handleAddPod = () => {
     setEditingPod(null)
