@@ -3,19 +3,46 @@
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { useState, useEffect, createContext, useContext } from 'react'
+import { Montserrat } from 'next/font/google'
+
+// Initialize Montserrat font with required weights
+const montserrat = Montserrat({
+  weight: ['300', '400', '500', '600', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  fallback: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'sans-serif']
+})
 
 const lightTheme = createTheme({
   typography: {
-    button: {
-      textTransform: 'none',
+    fontFamily: montserrat.style.fontFamily,
+    h1: { fontFamily: montserrat.style.fontFamily },
+    h2: { fontFamily: montserrat.style.fontFamily },
+    h3: { fontFamily: montserrat.style.fontFamily },
+    h4: { fontFamily: montserrat.style.fontFamily },
+    h5: { fontFamily: montserrat.style.fontFamily },
+    h6: { fontFamily: montserrat.style.fontFamily },
+    subtitle1: { fontFamily: montserrat.style.fontFamily },
+    subtitle2: { fontFamily: montserrat.style.fontFamily },
+    body1: { fontFamily: montserrat.style.fontFamily },
+    body2: { fontFamily: montserrat.style.fontFamily },
+    button: { fontFamily: montserrat.style.fontFamily, textTransform: 'none' },
+    caption: { fontFamily: montserrat.style.fontFamily },
+    overline: { fontFamily: montserrat.style.fontFamily },
+  },
+  components: {
+    MuiTypography: {
+      defaultProps: {
+        fontFamily: montserrat.style.fontFamily,
+      },
     },
   },
   palette: {
     mode: 'light',
     primary: {
-      main: '#f5f5dc', // muted pastel blue
-      light: '#cbb799',
-      dark: '#a07856',
+      main: '#7ea6f2', // muted pastel blue
+      light: '#aecdff',
+      dark: '#5a85e6',
       contrastText: '#0b1220',
     },
     secondary: {
@@ -25,8 +52,8 @@ const lightTheme = createTheme({
       contrastText: '#0b1220',
     },
     background: {
-      default: '#f5f5dc', // softer page background
-      paper: '#f5f5dc',
+      default: '#f6f7fb', // softer page background
+      paper: '#ffffff',
     },
     text: {
       primary: '#111827',
@@ -114,16 +141,34 @@ const lightTheme = createTheme({
 
 const darkTheme = createTheme({
   typography: {
-    button: {
-      textTransform: 'none',
+    fontFamily: montserrat.style.fontFamily,
+    h1: { fontFamily: montserrat.style.fontFamily },
+    h2: { fontFamily: montserrat.style.fontFamily },
+    h3: { fontFamily: montserrat.style.fontFamily },
+    h4: { fontFamily: montserrat.style.fontFamily },
+    h5: { fontFamily: montserrat.style.fontFamily },
+    h6: { fontFamily: montserrat.style.fontFamily },
+    subtitle1: { fontFamily: montserrat.style.fontFamily },
+    subtitle2: { fontFamily: montserrat.style.fontFamily },
+    body1: { fontFamily: montserrat.style.fontFamily },
+    body2: { fontFamily: montserrat.style.fontFamily },
+    button: { fontFamily: montserrat.style.fontFamily, textTransform: 'none' },
+    caption: { fontFamily: montserrat.style.fontFamily },
+    overline: { fontFamily: montserrat.style.fontFamily },
+  },
+  components: {
+    MuiTypography: {
+      defaultProps: {
+        fontFamily: montserrat.style.fontFamily,
+      },
     },
   },
   palette: {
     mode: 'dark',
     primary: {
-      main: '#f5f5dc', // muted pastel blue
-      light: '#cbb799',
-      dark: '#a07856',
+      main: '#89a8ff', // muted blue accent
+      light: '#b7c7ff',
+      dark: '#688bff',
       contrastText: '#0b1220',
     },
     secondary: {
