@@ -285,7 +285,7 @@ export default function DashboardPage() {
   const totalCapacity = totalAssignedCapacity + totalAvailableCapacity
 
   return (
-    <Box>
+    <Box background="#f5f5dc">
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" component="h1">
           Capacity Management Dashboard
