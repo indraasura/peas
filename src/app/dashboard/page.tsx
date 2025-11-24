@@ -537,61 +537,6 @@ export default function DashboardPage() {
           </TableContainer>
         </CardContent>
       </Card>
-
-      {/* Quick Actions */}
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Quick Actions
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<AssessmentIcon />}
-              onClick={() => router.push('/dashboard/areas')}
-              sx={{ borderRadius: '8px' }}
-            >
-              Manage Planning
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<GroupIcon />}
-              onClick={() => router.push('/dashboard/pods')}
-              sx={{ borderRadius: '8px' }}
-            >
-              Manage Execution
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<PersonIcon />}
-              onClick={() => router.push('/dashboard/members')}
-              sx={{ borderRadius: '8px' }}
-            >
-              View Members
-            </Button>
-          </Grid>
-          {user?.team !== 'POD committee' && (
-            <Grid item xs={12} sm={6} md={3}>
-              <Button
-                variant="outlined"
-                fullWidth
-                startIcon={<TrendingUpIcon />}
-                onClick={() => router.push('/dashboard/my-pods')}
-                sx={{ borderRadius: '8px' }}
-              >
-                My PODs
-              </Button>
-            </Grid>
-          )}
-        </Grid>
-      </Box>
     </Box>
   )
 }
