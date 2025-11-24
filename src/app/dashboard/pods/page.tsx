@@ -728,15 +728,21 @@ export default function PodsPage() {
         </Alert>
       )}
 
-      <KanbanBoard
-        columns={podsByStatus}
-        onItemMove={handleItemMove}
-        onItemEdit={handleEditPod}
-        onItemDelete={handleDeletePod}
-        onItemView={handleViewPodDetails}
-        renderItem={renderPodCard}
-        showActionButtons={false}
-      />
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        gap: 3 
+      }}>
+        <KanbanBoard
+          columns={podsByStatus}
+          onItemMove={handleItemMove}
+          onItemEdit={handleEditPod}
+          onItemDelete={handleDeletePod}
+          onItemView={handleViewPodDetails}
+          renderItem={renderPodCard}
+          showActionButtons={false}
+        />
+      </Box>
 
       {/* Planning Section */}
       <Box mt={6}>
