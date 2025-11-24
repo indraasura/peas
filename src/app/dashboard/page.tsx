@@ -61,13 +61,14 @@ interface AssignmentFormData {
   memberId: string
   memberName: string
   bandwidth: number
-  role: string
+  podId: string
   maxBandwidth: number
 }
 
 export default function DashboardPage() {
   const router = useRouter()
   const [bandwidthData, setBandwidthData] = useState<TeamBandwidthData[]>([])
+  const [pods, setPods] = useState<any[]>([])
   const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({})
   const [assignmentDialog, setAssignmentDialog] = useState<{
     open: boolean
@@ -83,11 +84,13 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     try {
-      const [currentUser] = await Promise.all([
+      const [currentUser, podsData] = await Promise.all([
         getCurrentUser(),
-        fetchBandwidthData()
+        getPods()
       ])
       setUser(currentUser)
+      setPods(podsData)
+      await fetchBandwidthData()
     } catch (error) {
       console.error('Error fetching data:', error)
     }
@@ -182,7 +185,7 @@ export default function DashboardPage() {
         memberId: member.id,
         memberName: member.name || member.email,
         bandwidth: availableBandwidth,
-        role: 'Developer', // Default role
+        podId: '',
         maxBandwidth: availableBandwidth
       }
     })
@@ -193,22 +196,25 @@ export default function DashboardPage() {
   }
 
   const handleAssignmentSubmit = async () => {
-    if (!assignmentDialog.formData) return
+    if (!assignmentDialog.formData || !assignmentDialog.formData.podId) {
+      setError('Please select a POD')
+      return
+    }
     
     try {
       // TODO: Implement the actual assignment logic here
-      console.log('Assigning member:', assignmentDialog.formData)
+      console.log('Assigning member to POD:', assignmentDialog.formData)
       // await assignToPod({
       //   memberId: assignmentDialog.formData.memberId,
-      //   bandwidth: assignmentDialog.formData.bandwidth,
-      //   role: assignmentDialog.formData.role
+      //   podId: assignmentDialog.formData.podId,
+      //   bandwidth: assignmentDialog.formData.bandwidth
       // })
       
       // Refresh data
       await fetchBandwidthData()
       handleCloseAssignmentDialog()
     } catch (error) {
-      console.error('Error assigning member:', error)
+      console.error('Error assigning member to POD:', error)
       setError('Failed to assign member to POD')
     }
   }
@@ -614,28 +620,30 @@ export default function DashboardPage() {
               
               <TextField
                 select
-                label="Role"
-                value={assignmentDialog.formData.role}
+                label="Select POD"
+                value={assignmentDialog.formData.podId}
                 onChange={(e) => {
                   setAssignmentDialog(prev => ({
                     ...prev,
                     formData: prev.formData ? {
                       ...prev.formData,
-                      role: e.target.value
+                      podId: e.target.value
                     } : null
                   }))
                 }}
                 fullWidth
                 margin="normal"
+                required
                 SelectProps={{
                   native: true
                 }}
               >
-                <option value="Developer">Developer</option>
-                <option value="Designer">Designer</option>
-                <option value="QA">QA</option>
-                <option value="Product Owner">Product Owner</option>
-                <option value="Scrum Master">Scrum Master</option>
+                <option value="">Select a POD</option>
+                {pods.map((pod) => (
+                  <option key={pod.id} value={pod.id}>
+                    {pod.name || `POD ${pod.id}`}
+                  </option>
+                ))}
               </TextField>
             </Box>
           )}
