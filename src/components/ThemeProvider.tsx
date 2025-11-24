@@ -3,38 +3,11 @@
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { useState, useEffect, createContext, useContext } from 'react'
-import { Montserrat } from 'next/font/google'
-
-// Initialize Montserrat font with required weights
-const montserrat = Montserrat({
-  weight: ['300', '400', '500', '600', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  fallback: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'sans-serif']
-})
 
 const lightTheme = createTheme({
   typography: {
-    fontFamily: montserrat.style.fontFamily,
-    h1: { fontFamily: montserrat.style.fontFamily },
-    h2: { fontFamily: montserrat.style.fontFamily },
-    h3: { fontFamily: montserrat.style.fontFamily },
-    h4: { fontFamily: montserrat.style.fontFamily },
-    h5: { fontFamily: montserrat.style.fontFamily },
-    h6: { fontFamily: montserrat.style.fontFamily },
-    subtitle1: { fontFamily: montserrat.style.fontFamily },
-    subtitle2: { fontFamily: montserrat.style.fontFamily },
-    body1: { fontFamily: montserrat.style.fontFamily },
-    body2: { fontFamily: montserrat.style.fontFamily },
-    button: { fontFamily: montserrat.style.fontFamily, textTransform: 'none' },
-    caption: { fontFamily: montserrat.style.fontFamily },
-    overline: { fontFamily: montserrat.style.fontFamily },
-  },
-  components: {
-    MuiTypography: {
-      defaultProps: {
-        fontFamily: montserrat.style.fontFamily,
-      },
+    button: {
+      textTransform: 'none',
     },
   },
   palette: {
@@ -141,26 +114,8 @@ const lightTheme = createTheme({
 
 const darkTheme = createTheme({
   typography: {
-    fontFamily: montserrat.style.fontFamily,
-    h1: { fontFamily: montserrat.style.fontFamily },
-    h2: { fontFamily: montserrat.style.fontFamily },
-    h3: { fontFamily: montserrat.style.fontFamily },
-    h4: { fontFamily: montserrat.style.fontFamily },
-    h5: { fontFamily: montserrat.style.fontFamily },
-    h6: { fontFamily: montserrat.style.fontFamily },
-    subtitle1: { fontFamily: montserrat.style.fontFamily },
-    subtitle2: { fontFamily: montserrat.style.fontFamily },
-    body1: { fontFamily: montserrat.style.fontFamily },
-    body2: { fontFamily: montserrat.style.fontFamily },
-    button: { fontFamily: montserrat.style.fontFamily, textTransform: 'none' },
-    caption: { fontFamily: montserrat.style.fontFamily },
-    overline: { fontFamily: montserrat.style.fontFamily },
-  },
-  components: {
-    MuiTypography: {
-      defaultProps: {
-        fontFamily: montserrat.style.fontFamily,
-      },
+    button: {
+      textTransform: 'none',
     },
   },
   palette: {
