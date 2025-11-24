@@ -21,13 +21,25 @@ import {
   LinearProgress,
   Alert,
   Chip,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Collapse
 } from '@mui/material'
 import {
   Assessment as AssessmentIcon,
   Group as GroupIcon,
   Person as PersonIcon,
-  TrendingUp as TrendingUpIcon
+  TrendingUp as TrendingUpIcon,
+  KeyboardArrowDown as KeyboardArrowDownIcon,
+  KeyboardArrowUp as KeyboardArrowUpIcon,
+  Assignment as AssignmentIcon,
+  Close as CloseIcon
 } from '@mui/icons-material'
 import { getPods, getMembers, getAreas, getAvailableMembers } from '@/lib/data'
 import { getCurrentUser, type Profile } from '@/lib/auth'
@@ -36,12 +48,31 @@ interface TeamBandwidthData {
   team: string
   assignedCapacity: number
   availableCapacity: number
-  members: any[]
+  members: Array<{
+    id: string
+    name: string
+    email: string
+    bandwidth_percentage: number
+    pod_members: Array<{ bandwidth_percentage: number }>
+  }>
+}
+
+interface AssignmentFormData {
+  memberId: string
+  memberName: string
+  bandwidth: number
+  role: string
+  maxBandwidth: number
 }
 
 export default function DashboardPage() {
   const router = useRouter()
   const [bandwidthData, setBandwidthData] = useState<TeamBandwidthData[]>([])
+  const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({})
+  const [assignmentDialog, setAssignmentDialog] = useState<{
+    open: boolean
+    formData: AssignmentFormData | null
+  }>({ open: false, formData: null })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [user, setUser] = useState<Profile | null>(null)
@@ -129,6 +160,57 @@ export default function DashboardPage() {
     if (percentage > 30) return 'Healthy'
     if (percentage > 10) return 'Moderate'
     return 'Critical'
+  }
+
+  const handleExpandClick = (teamName: string) => {
+    setExpandedTeams(prev => ({
+      ...prev,
+      [teamName]: !prev[teamName]
+    }))
+  }
+
+  const handleOpenAssignmentDialog = (member: any, team: TeamBandwidthData) => {
+    const assignedBandwidth = member.pod_members?.reduce(
+      (sum: number, pm: any) => sum + (pm.bandwidth_percentage || 0),
+      0
+    )
+    const availableBandwidth = 1 - assignedBandwidth // Assuming 1.0 is full capacity
+
+    setAssignmentDialog({
+      open: true,
+      formData: {
+        memberId: member.id,
+        memberName: member.name || member.email,
+        bandwidth: availableBandwidth,
+        role: 'Developer', // Default role
+        maxBandwidth: availableBandwidth
+      }
+    })
+  }
+
+  const handleCloseAssignmentDialog = () => {
+    setAssignmentDialog({ open: false, formData: null })
+  }
+
+  const handleAssignmentSubmit = async () => {
+    if (!assignmentDialog.formData) return
+    
+    try {
+      // TODO: Implement the actual assignment logic here
+      console.log('Assigning member:', assignmentDialog.formData)
+      // await assignToPod({
+      //   memberId: assignmentDialog.formData.memberId,
+      //   bandwidth: assignmentDialog.formData.bandwidth,
+      //   role: assignmentDialog.formData.role
+      // })
+      
+      // Refresh data
+      await fetchBandwidthData()
+      handleCloseAssignmentDialog()
+    } catch (error) {
+      console.error('Error assigning member:', error)
+      setError('Failed to assign member to POD')
+    }
   }
 
   if (loading) {
@@ -243,66 +325,174 @@ export default function DashboardPage() {
                   const status = getCapacityStatus(team.availableCapacity, team.assignedCapacity)
                   
                   return (
-                    <TableRow key={team.team} hover>
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <GroupIcon sx={{ fontSize: 20 }} />
+                    <React.Fragment key={team.team}>
+                      <TableRow hover>
+                        <TableCell>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleExpandClick(team.team)
+                              }}
+                            >
+                              {expandedTeams[team.team] ? (
+                                <KeyboardArrowUpIcon />
+                              ) : (
+                                <KeyboardArrowDownIcon />
+                              )}
+                            </IconButton>
+                            <GroupIcon sx={{ fontSize: 20 }} />
+                            <Typography variant="body1" fontWeight="medium">
+                              {team.team}
+                            </Typography>
+                            <Chip 
+                              label={`${team.members.length} members`} 
+                              size="small" 
+                              variant="outlined"
+                            />
+                          </Box>
+                        </TableCell>
+                        <TableCell align="center">
                           <Typography variant="body1" fontWeight="medium">
-                            {team.team}
+                            {team.assignedCapacity.toFixed(2)}
                           </Typography>
-                          <Chip 
-                            label={`${team.members.length} members`} 
-                            size="small" 
-                            variant="outlined"
-                          />
-                        </Box>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Typography variant="body1" fontWeight="medium">
-                          {team.assignedCapacity.toFixed(2)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Typography 
-                          variant="body1" 
-                          fontWeight="medium"
-                          color={capacityColor}
-                        >
-                          {team.availableCapacity.toFixed(2)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          label={status}
-                          size="small"
-                          sx={{
-                            backgroundColor: capacityColor,
-                            color: 'white',
-                            fontWeight: 'medium'
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Box sx={{ width: '100%', minWidth: 100 }}>
-                          <LinearProgress
-                            variant="determinate"
-                            value={utilizationPercentage}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography 
+                            variant="body1" 
+                            fontWeight="medium"
+                            color={capacityColor}
+                          >
+                            {team.availableCapacity.toFixed(2)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={status}
+                            size="small"
                             sx={{
-                              height: 8,
-                              borderRadius: 4,
-                              backgroundColor: '#e0e0e0',
-                              '& .MuiLinearProgress-bar': {
-                                backgroundColor: capacityColor,
-                                borderRadius: 4
-                              }
+                              backgroundColor: capacityColor,
+                              color: 'white',
+                              fontWeight: 'medium'
                             }}
                           />
-                          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                            {(utilizationPercentage / 100).toFixed(3)}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ width: '100%', minWidth: 100 }}>
+                            <LinearProgress
+                              variant="determinate"
+                              value={utilizationPercentage}
+                              sx={{
+                                height: 8,
+                                borderRadius: 4,
+                                backgroundColor: '#e0e0e0',
+                                '& .MuiLinearProgress-bar': {
+                                  backgroundColor: capacityColor,
+                                  borderRadius: 4
+                                }
+                              }}
+                            />
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                              {(utilizationPercentage / 100).toFixed(3)}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                      
+                      {/* Expanded row with member details */}
+                      <TableRow>
+                        <TableCell style={{ padding: 0 }} colSpan={5}>
+                          <Collapse in={expandedTeams[team.team]} timeout="auto" unmountOnExit>
+                            <Box sx={{ p: 2, backgroundColor: 'background.default' }}>
+                              <Typography variant="subtitle2" gutterBottom>
+                                Members with Available Bandwidth
+                              </Typography>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>Name</TableCell>
+                                    <TableCell>Email</TableCell>
+                                    <TableCell align="right">Available Bandwidth</TableCell>
+                                    <TableCell align="right">Actions</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {team.members
+                                    .filter(member => {
+                                      const assignedBandwidth = member.pod_members?.reduce(
+                                        (sum: number, pm: any) => sum + (pm.bandwidth_percentage || 0),
+                                        0
+                                      )
+                                      const availableBandwidth = 1 - assignedBandwidth
+                                      return availableBandwidth > 0
+                                    })
+                                    .map((member) => {
+                                      const assignedBandwidth = member.pod_members?.reduce(
+                                        (sum: number, pm: any) => sum + (pm.bandwidth_percentage || 0),
+                                        0
+                                      )
+                                      const availableBandwidth = 1 - assignedBandwidth
+                                      
+                                      return (
+                                        <TableRow key={member.id}>
+                                          <TableCell>{member.name || 'Unnamed'}</TableCell>
+                                          <TableCell>{member.email}</TableCell>
+                                          <TableCell align="right">
+                                            <Box display="flex" alignItems="center" justifyContent="flex-end">
+                                              <Box width={100} mr={2}>
+                                                <LinearProgress
+                                                  variant="determinate"
+                                                  value={availableBandwidth * 100}
+                                                  sx={{
+                                                    height: 8,
+                                                    borderRadius: 4,
+                                                    backgroundColor: 'divider',
+                                                    '& .MuiLinearProgress-bar': {
+                                                      backgroundColor: 'success.main',
+                                                      borderRadius: 4
+                                                    }
+                                                  }}
+                                                />
+                                              </Box>
+                                              {(availableBandwidth * 100).toFixed(0)}%
+                                            </Box>
+                                          </TableCell>
+                                          <TableCell align="right">
+                                            <Button
+                                              size="small"
+                                              variant="outlined"
+                                              startIcon={<AssignmentIcon fontSize="small" />}
+                                              onClick={() => handleOpenAssignmentDialog(member, team)}
+                                              disabled={availableBandwidth <= 0}
+                                            >
+                                              Assign to POD
+                                            </Button>
+                                          </TableCell>
+                                        </TableRow>
+                                      )
+                                    })}
+                                  
+                                  {team.members.filter(member => {
+                                    const assignedBandwidth = member.pod_members?.reduce(
+                                      (sum: number, pm: any) => sum + (pm.bandwidth_percentage || 0),
+                                      0
+                                    )
+                                    return (1 - assignedBandwidth) > 0
+                                  }).length === 0 && (
+                                    <TableRow>
+                                      <TableCell colSpan={4} align="center" sx={{ py: 2, color: 'text.secondary' }}>
+                                        No members with available bandwidth in this team
+                                      </TableCell>
+                                    </TableRow>
+                                  )}
+                                </TableBody>
+                              </Table>
+                            </Box>
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    </React.Fragment>
                   )
                 })}
               </TableBody>
@@ -365,6 +555,104 @@ export default function DashboardPage() {
           )}
         </Grid>
       </Box>
+
+      {/* Assignment Dialog */}
+      <Dialog 
+        open={assignmentDialog.open} 
+        onClose={handleCloseAssignmentDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <span>Assign to POD</span>
+            <IconButton onClick={handleCloseAssignmentDialog} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {assignmentDialog.formData && (
+            <Box sx={{ pt: 2 }}>
+              <TextField
+                label="Member"
+                value={assignmentDialog.formData.memberName}
+                fullWidth
+                margin="normal"
+                InputProps={{
+                  readOnly: true,
+                }}
+              />
+              
+              <TextField
+                label="Bandwidth"
+                type="number"
+                value={assignmentDialog.formData.bandwidth}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value)
+                  if (!isNaN(value) && value >= 0 && value <= assignmentDialog.formData!.maxBandwidth) {
+                    setAssignmentDialog(prev => ({
+                      ...prev,
+                      formData: prev.formData ? {
+                        ...prev.formData,
+                        bandwidth: value
+                      } : null
+                    }))
+                  }
+                }}
+                fullWidth
+                margin="normal"
+                InputProps={{
+                  endAdornment: <InputAdornment position="end">/ {assignmentDialog.formData.maxBandwidth.toFixed(2)}</InputAdornment>,
+                  inputProps: {
+                    min: 0,
+                    max: assignmentDialog.formData.maxBandwidth,
+                    step: 0.1
+                  }
+                }}
+              />
+              
+              <TextField
+                select
+                label="Role"
+                value={assignmentDialog.formData.role}
+                onChange={(e) => {
+                  setAssignmentDialog(prev => ({
+                    ...prev,
+                    formData: prev.formData ? {
+                      ...prev.formData,
+                      role: e.target.value
+                    } : null
+                  }))
+                }}
+                fullWidth
+                margin="normal"
+                SelectProps={{
+                  native: true
+                }}
+              >
+                <option value="Developer">Developer</option>
+                <option value="Designer">Designer</option>
+                <option value="QA">QA</option>
+                <option value="Product Owner">Product Owner</option>
+                <option value="Scrum Master">Scrum Master</option>
+              </TextField>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Button onClick={handleCloseAssignmentDialog} color="inherit">
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleAssignmentSubmit} 
+            variant="contained"
+            disabled={!assignmentDialog.formData}
+          >
+            Assign to POD
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
