@@ -84,15 +84,23 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     try {
+      setLoading(true)
       const [currentUser, podsData] = await Promise.all([
         getCurrentUser(),
-        getPods()
+        getPods().catch(error => {
+          console.error('Error fetching pods:', error)
+          return []
+        })
       ])
+      
       setUser(currentUser)
-      setPods(podsData)
+      setPods(podsData || [])
       await fetchBandwidthData()
     } catch (error) {
-      console.error('Error fetching data:', error)
+      console.error('Error in fetchData:', error)
+      setError('Failed to load dashboard data. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -103,47 +111,49 @@ export default function DashboardPage() {
         getPods()
       ])
 
-      // Filter out POD committee members and group remaining members by team
-      const nonCommitteeMembers = members.filter((member: any) => member.team !== 'POD committee')
-      const teamGroups = nonCommitteeMembers.reduce((acc: any, member: any) => {
-        const team = member.team || 'Unassigned'
-        if (!acc[team]) {
-          acc[team] = []
-        }
-        acc[team].push(member)
-        return acc
-      }, {})
-
-      // Calculate bandwidth for each team (bandwidth_percentage is stored as decimals 0-1)
-      const teamData: TeamBandwidthData[] = Object.entries(teamGroups).map(([team, teamMembers]: [string, any]) => {
-        const totalCapacity = teamMembers.length * 1 // Assuming 1.0 capacity per member (decimal format)
-        let assignedCapacity = 0
-
-        // Calculate assigned capacity from POD assignments
-        teamMembers.forEach((member: any) => {
-          if (member.pod_members) {
-            member.pod_members.forEach((pm: any) => {
-              assignedCapacity += pm.bandwidth_percentage || 0
-            })
-          }
-        })
-
-        const availableCapacity = totalCapacity - assignedCapacity // Allow negative values for over-allocation
-
-        console.log(`Team: ${team}, Assigned: ${assignedCapacity}, Available: ${availableCapacity}, Total: ${totalCapacity}`)
+      // Process members and calculate bandwidth
+      const membersWithBandwidth = (members || []).map(member => {
+        const memberPods = (pods || []).filter(pod => 
+          pod.pod_members?.some((pm: any) => pm.member_id === member.id)
+        )
+        
+        const assignedBandwidth = memberPods.reduce((sum: number, pod: any) => {
+          const podMember = pod.pod_members?.find((pm: any) => pm.member_id === member.id)
+          return sum + ((podMember?.bandwidth_percentage || 0) / 100) // Convert percentage to decimal
+        }, 0)
 
         return {
-          team,
-          assignedCapacity,
-          availableCapacity,
-          members: teamMembers
+          ...member,
+          bandwidth_percentage: assignedBandwidth,
+          pod_members: memberPods.map((pod: any) => ({
+            pod_id: pod.id,
+            pod_name: pod.name,
+            bandwidth_percentage: (pod.pod_members?.find((pm: any) => pm.member_id === member.id)?.bandwidth_percentage || 0) / 100
+          }))
         }
       })
 
-      setBandwidthData(teamData.sort((a, b) => b.assignedCapacity - a.assignedCapacity))
+      // Group by team
+      const teams = membersWithBandwidth.reduce((acc: Record<string, TeamBandwidthData>, member) => {
+        const teamName = member.team || 'Unassigned'
+        if (!acc[teamName]) {
+          acc[teamName] = {
+            team: teamName,
+            members: [],
+            assignedCapacity: 0,
+            availableCapacity: 1
+          }
+        }
+        acc[teamName].members.push(member)
+        acc[teamName].assignedCapacity += member.bandwidth_percentage
+        acc[teamName].availableCapacity = Math.max(0, 1 - acc[teamName].assignedCapacity)
+        return acc
+      }, {})
+
+      setBandwidthData(Object.values(teams))
     } catch (error) {
-      console.error('Error fetching bandwidth data:', error)
-      setError('Failed to load bandwidth data')
+      console.error('Error in fetchBandwidthData:', error)
+      setError('Failed to load bandwidth data. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -202,6 +212,9 @@ export default function DashboardPage() {
     }
     
     try {
+      setLoading(true)
+      setError('')
+      
       // Get the selected POD details
       const selectedPod = pods.find(pod => pod.id === assignmentDialog.formData?.podId)
       if (!selectedPod) {
@@ -221,17 +234,31 @@ export default function DashboardPage() {
         })
       })
 
+      const responseData = await response.json()
+      
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to assign member to POD')
+        throw new Error(responseData.error || responseData.message || 'Failed to assign member to POD')
       }
       
-      // Refresh data and close dialog
-      await fetchBandwidthData()
+      // Show success message and refresh data
+      setError('')
       handleCloseAssignmentDialog()
+      
+      // Refresh the data
+      await Promise.all([
+        fetchData(),
+        new Promise(resolve => setTimeout(resolve, 1000)) // Small delay to ensure data is updated
+      ])
+      
+      // Show success message
+      setError('Member successfully assigned to POD!')
+      setTimeout(() => setError(''), 3000) // Clear success message after 3 seconds
+      
     } catch (error) {
-      console.error('Error assigning member to POD:', error)
+      console.error('Error in handleAssignmentSubmit:', error)
       setError(error instanceof Error ? error.message : 'Failed to assign member to POD')
+    } finally {
+      setLoading(false)
     }
   }
 
