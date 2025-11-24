@@ -40,16 +40,16 @@ const lightTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#6f4d38', // muted pastel blue
-      light: '#f5f5dc',
-      dark: '#3d211a',
-      contrastText: '#ffffff',
+      main: '#7ea6f2', // muted pastel blue
+      light: '#aecdff',
+      dark: '#5a85e6',
+      contrastText: '#0b1220',
     },
     secondary: {
-      main: '#cbb799', // soft purple
-      light: '#f5f5dc',
-      dark: '#a07856',
-      contrastText: '#1d1d1d',
+      main: '#c4b5fd', // soft purple
+      light: '#e0d9ff',
+      dark: '#a78bfa',
+      contrastText: '#0b1220',
     },
     background: {
       default: '#f6f7fb', // softer page background
@@ -166,16 +166,16 @@ const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#6f4d38', // muted pastel blue
-      light: '#f5f5dc',
-      dark: '#3d211a',
-      contrastText: '#ffffff',
+      main: '#89a8ff', // muted blue accent
+      light: '#b7c7ff',
+      dark: '#688bff',
+      contrastText: '#0b1220',
     },
     secondary: {
-      main: '#cbb799', // soft purple
-      light: '#f5f5dc',
-      dark: '#a07856',
-      contrastText: '#1d1d1d',
+      main: '#b8a6ff', // soft purple accent
+      light: '#d6ccff',
+      dark: '#9a86ff',
+      contrastText: '#0b1220',
     },
     background: {
       default: '#0b1220', // darker page background
