@@ -8,15 +8,15 @@ const lightTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#6750A5', // muted pastel blue
-      light: '#6750A5',
-      dark: '#D0BCFF',
+      main: '#7ea6f2', // muted pastel blue
+      light: '#aecdff',
+      dark: '#5a85e6',
       contrastText: '#0b1220',
     },
     secondary: {
-      main: '#7D5261', // soft purple
-      light: '#7D5261',
-      dark: '#EFB8C9',
+      main: '#c4b5fd', // soft purple
+      light: '#e0d9ff',
+      dark: '#a78bfa',
       contrastText: '#0b1220',
     },
     background: {
@@ -25,7 +25,7 @@ const lightTheme = createTheme({
     },
     text: {
       primary: '#111827',
-      secondary: '#615B72',
+      secondary: '#6b7280',
     },
     success: {
       main: '#8bd3a3', // pastel green

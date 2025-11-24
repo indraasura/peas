@@ -666,13 +666,30 @@ export default function PodsPage() {
       )
     }
 
+  // Filter pods for execution view (only show pods with execution statuses or released statuses)
+  const executionPods = pods.filter((pod: Pod) => 
+    executionStatuses.includes(pod.status) || 
+    pod.status === 'Released' || 
+    pod.status === 'Released to specific customers'
+  )
+
   // Group pods by status for execution view
   const podsByStatus = executionStatuses.map((status: string) => ({
     id: status,
     title: status.charAt(0).toUpperCase() + status.slice(1).replace(/([A-Z])/g, ' $1'),
-    items: pods.filter((pod: Pod) => pod.status === status),
+    items: executionPods.filter((pod: Pod) => pod.status === status),
     color: getStatusColor(status)
   }))
+  
+  // Filter pods for planning view (only show pods with planning statuses)
+  const planningPods = pods.filter((pod: Pod) => 
+    planningStatuses.includes(pod.status) || 
+    pod.status === 'Backlog' ||
+    pod.status === 'Planned' ||
+    pod.status === 'In Progress' ||
+    pod.status === 'Done' ||
+    pod.status === 'Released to specific customers' ||
+    pod.status === 'Done')
 
   if (loading) {
     return <Typography>Loading...</Typography>
@@ -755,7 +772,7 @@ export default function PodsPage() {
           Planning
         </Typography>
         
-        {pods.length === 0 && !loading ? (
+        {planningPods.length === 0 && !loading ? (
           <Alert severity="info" sx={{ mb: 2 }}>
             No PODs are currently visible in the Planning section. PODs will appear here when they are created.
           </Alert>
@@ -764,7 +781,7 @@ export default function PodsPage() {
             columns={planningStatuses.map((status: string) => ({
               id: status,
               title: status,
-              items: pods.filter((pod: Pod) => pod.status === status),
+              items: planningPods.filter((pod: Pod) => pod.status === status),
               color: getStatusColor(status)
             }))}
             onItemMove={handleItemMove}
