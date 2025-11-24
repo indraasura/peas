@@ -761,39 +761,6 @@ export default function PodsPage() {
         />
       </Box>
 
-      {/* Planning Section */}
-      <Box mt={6}>
-        <Typography variant="h4" component="h1" sx={{ 
-          fontWeight: 700, 
-          color: '#0F172A',
-          fontSize: '28px',
-          mb: 4
-        }}>
-          Planning
-        </Typography>
-        
-        {planningPods.length === 0 && !loading ? (
-          <Alert severity="info" sx={{ mb: 2 }}>
-            No PODs are currently visible in the Planning section. PODs will appear here when they are created.
-          </Alert>
-        ) : (
-          <KanbanBoard
-            columns={planningStatuses.map((status: string) => ({
-              id: status,
-              title: status,
-              items: planningPods.filter((pod: Pod) => pod.status === status),
-              color: getStatusColor(status)
-            }))}
-            onItemMove={handleItemMove}
-            onItemEdit={handleEditPod}
-            onItemDelete={handleDeletePod}
-            onItemView={handleViewPodDetails}
-            renderItem={renderPodCard}
-            showActionButtons={false}
-          />
-        )}
-      </Box>
-
       {/* POD Details Dialog */}
       <Dialog open={openDetailsDialog} onClose={() => setOpenDetailsDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>

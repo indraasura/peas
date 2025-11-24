@@ -78,7 +78,7 @@ export default function KanbanBoard({
               height: 'fit-content',
               backgroundColor: theme.palette.background.paper,
               border: `1px solid ${theme.palette.divider}`,
-              borderRadius: 0.5,
+              borderRadius: 1,
               // Sleeker flat design
             }}
           >
@@ -107,7 +107,7 @@ export default function KanbanBoard({
                     backgroundColor: theme.palette.primary.main,
                     color: theme.palette.primary.contrastText,
                     border: 'none',
-                    borderRadius: 0.5,
+                    borderRadius: 1,
                     textTransform: 'none',
                     fontWeight: 500,
                     '&:hover': {
@@ -132,7 +132,7 @@ export default function KanbanBoard({
                     p: 1,
                     backgroundColor: snapshot.isDraggingOver ? theme.palette.action.hover : 'transparent',
                     transition: 'background-color 0.2s ease',
-                    borderRadius: 0.5
+                    borderRadius: 1
                   }}
                 >
                   {column.items.map((item, index) => (
@@ -154,7 +154,7 @@ export default function KanbanBoard({
                               cursor: 'pointer',
                               backgroundColor: theme.palette.background.paper,
                               border: `1px solid ${theme.palette.divider}`,
-                              borderRadius: 0.5,
+                              borderRadius: 1,
                               // Sleeker flat design
                               '&:hover': {
                                 borderColor: theme.palette.primary.main,
