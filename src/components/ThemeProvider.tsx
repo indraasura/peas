@@ -188,15 +188,6 @@ const lightTheme = createTheme({
     },
     divider: '#dadce0', // Light gray divider
   },
-    h5: {
-      fontWeight: 600,
-      fontSize: '1.25rem',
-    },
-    h6: {
-      fontWeight: 600,
-      fontSize: '1.125rem',
-    },
-  },
   shape: {
     borderRadius: 4,
   },
